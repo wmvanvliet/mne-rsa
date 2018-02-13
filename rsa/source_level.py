@@ -74,6 +74,11 @@ def rsa_source_level(stcs, model, src, stc_dsm_metric='correlation',
     verbose : bool
         Whether to display a progress bar. In order for this to work, you need
         the tqdm python module installed. Defaults to False.
+
+    Returns
+    -------
+    stc : SourceEstimate
+        The correlation values for each searchlight patch.
     """
     # Check for compatibility of the source estimated and the model features
     n_items, n_features = model.shape
