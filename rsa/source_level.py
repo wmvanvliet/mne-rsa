@@ -35,7 +35,7 @@ def rsa_source_level(stcs, model, src, stc_dsm_metric='correlation',
        The model can be other brain data, a computer model, norm data, etc.
 
     The output is a source estimate where the "signal" at each source point is
-    the RSA, computes for a patch surrounding the source point.
+    the RSA, computed for a patch surrounding the source point.
 
     Parameters
     ----------
