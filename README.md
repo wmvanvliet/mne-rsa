@@ -1,7 +1,7 @@
 Representational Similarity Analysis
 ------------------------------------
 
-This is a Python package for performining representational similarity analysis (RSA) using [MNE-Python](https://martinos.org/mne/stable/index.html) data structures.
+This is a Python package for performing representational similarity analysis (RSA) using [MNE-Python](https://martinos.org/mne/stable/index.html) data structures. The RSA is computed using a "searchlight" approach.
 
 ## Installation
 
@@ -23,68 +23,27 @@ python setup.py develop --user
 
 ## Use cases
 
-We actually encountered these:
+This is what the package can do for you:
+
  - Compute RSA across vertices and samples (source level)
  - Compute RSA across sensors and samples (sensor level)
- - Compute RSA across voxels (volume level)
- - Compute statistics
-
-Possible other scenarios we haven't encountered yet:
  - Compute RSA across vertices only (source level)
  - Compute RSA across sensors only (sensor level)
  - Compute RSA across samples only (source and sensor level)
 
+This is what it cannot do (yet) for you:
 
-## Parameters
-
- - Brain data:
-   - MNE data structures: list of Evokeds, (list of SourceEstimate + 1 SourceSpaces)
-   - 2D or 3D NumPy array (n_items x n_space_things x n_time_things) + positions (time is always consecutive)
- - Norm data: 1D or 2D NumPy array (n_items x n_features)
- - Distance metric for creating the DSMs
- - Distance metric for comparing two DSMs
- - Radius of the searchlight (time, space, space-time)
- - Number of processes to run in parallel
- - Verbosity (display progressbar or not?)
-
-Return values:
- - MNE data structures: Evoked (sensor level), SourceEstimate (source level)
- - Numpy array (voxel data) same shape as the input data
+ - Compute RSA across voxels (volume level)
 
 
-## Suggested API 
+## Juicy bits of the API 
 
 ```python
-def rsa_stcs(stcs, model, src, stc_dsm_metric='correlation',
-             model_dsm_metric='correlation', rsa_metric='spearman',
-             spatial_radius=0, temporal_radius=0, break_after=-1,
-             n_jobs=1, verbose=False)
+def rsa_source_level(stcs, model, src, spatial_radius=0.04, temporal_radius=0.1,
+		     stc_dsm_metric='correlation', model_dsm_metric='correlation', rsa_metric='spearman',
+                     n_jobs=1, verbose=False)
 
-def rsa_evokeds(evokeds, model, evoked_dsm_metric='correlation',
-                model_dsm_metric='correlation', rsa_metric='spearman',
-                spatial_radius=0, temporal_radius=0, break_after=-1,
+def rsa_evokeds(evokeds, model, spatial_radius=0.04, temporal_radius=0.1,
+                evoked_dsm_metric='correlation', model_dsm_metric='correlation', rsa_metric='spearman',
                 n_jobs=1, verbose=False)
-
-def rsa_array(data, model, positions, data_dsm_metric='correlation',
-              model_dsm_metric='correlation', rsa_metric='spearman',
-              spatial_radius=0, temporal_radius=0, break_after=-1,
-              n_jobs=1, verbose=False)
 ```
-
-
-## To think about
-
-How to deal with gradiometer pairs? (combine them first?)
-How to deal with mixed sensor types? (just give error when present in data, normalize the data)
-
-
-## Documentation
-
- - Docstrings
- - Comments in code
- - Examples
-
-
-## Tests
-
- - Unit tests

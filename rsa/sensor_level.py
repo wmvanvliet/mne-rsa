@@ -16,13 +16,14 @@ import numpy as np
 from scipy.spatial import distance
 import mne
 
-from .rsa import _get_time_patch_centers, rsa_spattemp, compute_dsm
+from .rsa import (_get_time_patch_centers, rsa_spattemp, rsa_spat, rsa_temp,
+                  compute_dsm, rsa)
 
 
-def rsa_evokeds(evokeds, model, spatial_radius=0.04, temporal_radius=0.1,
-                evoked_dsm_metric='correlation',
+def rsa_evokeds(evokeds, model, noise_cov=None, spatial_radius=0.04,
+                temporal_radius=0.1, evoked_dsm_metric='correlation',
                 model_dsm_metric='correlation', rsa_metric='spearman',
-                break_after=-1, n_jobs=1, verbose=False):
+                n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern on evokeds. The inputs are:
 
     1) a list of Evoked objects that hold the evoked data for each item in the
@@ -39,12 +40,18 @@ def rsa_evokeds(evokeds, model, spatial_radius=0.04, temporal_radius=0.1,
         For each item, the evoked brain activity.
     model : ndarray, shape (n_items, n_features)
         For each item, the model features corresponding to the item.
-    spatial_radius : float
+    noise_cov : mne.Covariance | None
+        When specified, the data will by normalized using the noise covariance.
+        This is recommended in all cases, but a hard requirement when the data
+        contains sensors of different types. Defaults to None.
+    spatial_radius : floats | None
         The spatial radius of the searchlight patch in meters. All sensors
-        within this radius will belong to the searchlight patch.
+        within this radius will belong to the searchlight patch. Set to None to
+        only perform the searchlight over time, flattening across sensors.
         Defaults to 0.04.
-    temporal_radius : float
-        The temporal radius of the searchlight patch in seconds.
+    temporal_radius : float | None
+        The temporal radius of the searchlight patch in seconds. Set to None to
+        only perform the searchlight over sensors, flattening across time.
         Defaults to 0.1.
     evoked_dsm_metric : str
         The metric to use to compute the DSM for the evokeds. This can be any
@@ -59,9 +66,6 @@ def rsa_evokeds(evokeds, model, spatial_radius=0.04, temporal_radius=0.1,
         The metric to use to compare the stc and model DSMs. This can either be
         'spearman' correlation or 'pearson' correlation.
         Defaults to 'spearman'.
-    break_after : int
-        Abort the computation after this many steps. Useful for debugging.
-        Defaults to -1 which means to perform the computation until the end.
     n_jobs : int
         The number of processes (=number of CPU cores) to use. Specify -1 to
         use all available cores. Defaults to 1.
@@ -72,7 +76,9 @@ def rsa_evokeds(evokeds, model, spatial_radius=0.04, temporal_radius=0.1,
     Returns
     -------
     rsa : Evoked
-        The correlation values for each searchlight patch.
+        The correlation values for each searchlight patch. When spatial_radius
+        is set to None, there will only be one sensor. When temporal_radius is
+        set to None, there will only be one time point.
     """
     # Check for compatibility of the source estimated and the model features
     n_items, n_features = model.shape
@@ -88,24 +94,41 @@ def rsa_evokeds(evokeds, model, spatial_radius=0.04, temporal_radius=0.1,
     dsm_Y = compute_dsm(model, model_dsm_metric)
 
     # Convert the temporal radius to samples
-    temporal_radius = round(evokeds[0].info['sfreq'] * temporal_radius)
+    if temporal_radius is not None:
+        temporal_radius = round(evokeds[0].info['sfreq'] * temporal_radius)
+        if temporal_radius < 1:
+            raise ValueError('Temporal radius is less than one sample.')
 
-    if temporal_radius < 1:
-        raise ValueError('Temporal radius is less than one sample.')
+    # Construct a big array containing all brain data
+    X = np.array([evoked.data for evoked in evokeds])
 
     # Compute the distances between the sensors
     locs = np.vstack([ch['loc'][:3] for ch in evokeds[0].info['chs']])
     dist = distance.squareform(distance.pdist(locs))
 
-    # Construct a big array containing all brain data
-    X = np.array([evoked.data for evoked in evokeds])
-
     # Perform the RSA
-    rsa = rsa_spattemp(X, dsm_Y, dist, spatial_radius, temporal_radius,
-                       evoked_dsm_metric, model_dsm_metric, rsa_metric,
-                       break_after, n_jobs, verbose)
+    if spatial_radius is not None and temporal_radius is not None:
+        data = rsa_spattemp(X, dsm_Y, dist, spatial_radius, temporal_radius,
+                            evoked_dsm_metric, model_dsm_metric, rsa_metric,
+                            n_jobs, verbose)
+    elif spatial_radius is not None:
+        data = rsa_spat(X, dsm_Y, dist, spatial_radius, evoked_dsm_metric,
+                        model_dsm_metric, rsa_metric, n_jobs, verbose)
+    elif temporal_radius is not None:
+        data = rsa_temp(X, dsm_Y, evoked_dsm_metric, model_dsm_metric,
+                        rsa_metric, n_jobs, verbose)
+    else:
+        data = rsa(X, dsm_Y, evoked_dsm_metric, model_dsm_metric,
+                   rsa_metric, n_jobs, verbose)
 
     # Pack the result in an Evoked object
-    first_ind = _get_time_patch_centers(X.shape[1], temporal_radius)[0]
-    return mne.EvokedArray(rsa, evokeds[0].info, tmin=times[first_ind],
-                           comment='RSA', nave=len(evokeds))
+    if temporal_radius is not None:
+        first_ind = _get_time_patch_centers(X.shape[1], temporal_radius)[0]
+        tmin = times[first_ind]
+    else:
+        tmin = 0
+    if spatial_radius is not None:
+        info = evokeds[0].info
+    else:
+        info = mne.create_info(['rsa'], evoked[0].info['sfreq'])
+    return mne.EvokedArray(data, info, tmin, comment='RSA', nave=len(evokeds))

@@ -19,13 +19,14 @@ import numpy as np
 import mne
 from scipy.linalg import block_diag
 
-from .rsa import _get_time_patch_centers, rsa_spattemp, compute_dsm
+from .rsa import (_get_time_patch_centers, rsa_spattemp, rsa_spat, rsa_temp,
+                  compute_dsm, rsa)
 
 
 def rsa_source_level(stcs, model, src, spatial_radius=0.04,
                      temporal_radius=0.1, stc_dsm_metric='correlation',
                      model_dsm_metric='correlation', rsa_metric='spearman',
-                     break_after=-1, n_jobs=1, verbose=False):
+                     n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern across the cortex. The inputs are:
 
     1) a list of SourceEstimate objects that hold the source estimate for each
@@ -45,11 +46,14 @@ def rsa_source_level(stcs, model, src, spatial_radius=0.04,
     src : instance of mne.SourceSpaces
         The source space used by the source estimates specified in the `stcs`
         parameter.
-    spatial_radius : float
-        The spatial radius of the searchlight patch in meters.
-        Defaults to 0.04.
-    temporal_radius : float
-        The temporal radius of the searchlight patch in seconds.
+    spatial_radius : floats | None
+        The spatial radius of the searchlight patch in meters. All source
+        points within this radius will belong to the searchlight patch. Set to
+        None to only perform the searchlight over time, flattening across
+        sensors. Defaults to 0.04.
+    temporal_radius : float | None
+        The temporal radius of the searchlight patch in seconds. Set to None to
+        only perform the searchlight over sensors, flattening across time.
         Defaults to 0.1.
     stc_dsm_metric : str
         The metric to use to compute the DSM for the source estimates. This can
@@ -64,9 +68,6 @@ def rsa_source_level(stcs, model, src, spatial_radius=0.04,
         The metric to use to compare the stc and model DSMs. This can either be
         'spearman' correlation or 'pearson' correlation.
         Defaults to 'spearman'.
-    break_after : int
-        Abort the computation after this many steps. Useful for debugging.
-        Defaults to -1 which means to perform the computation until the end.
     n_jobs : int
         The number of processes (=number of CPU cores) to use. Specify -1 to
         use all available cores. Defaults to 1.
@@ -77,7 +78,9 @@ def rsa_source_level(stcs, model, src, spatial_radius=0.04,
     Returns
     -------
     stc : SourceEstimate
-        The correlation values for each searchlight patch.
+        The correlation values for each searchlight patch. When spatial_radius
+        is set to None, there will only be one vertex. When temporal_radius is
+        set to None, there will only be one time point.
     """
     # Check for compatibility of the source estimated and the model features
     n_items, n_features = model.shape
@@ -128,11 +131,31 @@ def rsa_source_level(stcs, model, src, spatial_radius=0.04,
     X = np.array([stc.data for stc in stcs])
 
     # Perform the RSA
-    rsa = rsa_spattemp(X, dsm_Y, dist, spatial_radius, temporal_radius,
-                       stc_dsm_metric, rsa_metric, break_after, n_jobs,
-                       verbose)
+    if spatial_radius is not None and temporal_radius is not None:
+        data = rsa_spattemp(X, dsm_Y, dist, spatial_radius, temporal_radius,
+                            stc_dsm_metric, model_dsm_metric, rsa_metric,
+                            n_jobs, verbose)
+    elif spatial_radius is not None:
+        data = rsa_spat(X, dsm_Y, dist, spatial_radius, stc_dsm_metric,
+                        model_dsm_metric, rsa_metric, n_jobs, verbose)
+    elif temporal_radius is not None:
+        data = rsa_temp(X, dsm_Y, stc_dsm_metric, model_dsm_metric,
+                        rsa_metric, n_jobs, verbose)
+    else:
+        data = rsa(X, dsm_Y, stc_dsm_metric, model_dsm_metric,
+                   rsa_metric, n_jobs, verbose)
 
     # Pack the result in a SourceEstimate object
-    first_ind = _get_time_patch_centers(X.shape[1], temporal_radius)[0]
-    return mne.SourceEstimate(rsa, vertices=[lh_verts, rh_verts],
-                              tmin=times[first_ind], tstep=stcs[0].tstep)
+    if temporal_radius is not None:
+        first_ind = _get_time_patch_centers(X.shape[1], temporal_radius)[0]
+        tmin = times[first_ind]
+        tstep = stcs[0].tstep
+    else:
+        tmin = 0
+        tstep = 1
+    if spatial_radius is not None:
+        vertices = [lh_verts, rh_verts]
+    else:
+        vertices = [np.array([1]), np.array([])]
+    return mne.SourceEstimate(data, vertices, tmin, tstep,
+                              subject=stcs[0].subject)
