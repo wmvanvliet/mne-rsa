@@ -17,7 +17,7 @@ from scipy.spatial import distance
 
 def rsa_spattemp(X, dsm_Y, dist, spatial_radius, temporal_radius,
                  data_dsm_metric='correlation', rsa_metric='spearman',
-                 break_after=-1, n_jobs=1, verbose=False):
+                 n_jobs=1, verbose=False):
     """Compute spatio-temporal RSA using a searchlight pattern.
 
     Parameters
@@ -42,9 +42,6 @@ def rsa_spattemp(X, dsm_Y, dist, spatial_radius, temporal_radius,
     rsa_metric : 'spearman' | 'pearson'
         The metric to use to compare the stc and model DSMs, either Spearman or
         Pearson correlation. Defaults to 'spearman'.
-    break_after : int
-        Abort the computation after this many steps. Useful for debugging. Set
-        to -1 to continue until the end. Defaults to -1.
     n_jobs : int
         The number of processes (=number of CPU cores) to use. Specify -1 to
         use all available cores. Defaults to 1.
@@ -58,7 +55,7 @@ def rsa_spattemp(X, dsm_Y, dist, spatial_radius, temporal_radius,
         The RSA correlation values for each spatio-temporal patch.
     """
     n_series, n_samples = X.shape[1:]
-    dsm_Y = _ensure_condensed(dsm_Y)
+    dsm_Y = _ensure_condensed(dsm_Y, 'dsm_Y')
 
     # Progress bar
     if verbose:
@@ -70,8 +67,6 @@ def rsa_spattemp(X, dsm_Y, dist, spatial_radius, temporal_radius,
         for item in sequence:
             if verbose:
                 pbar.update(1)
-            if break_after >= 0 and step > break_after:
-                break
             step += 1
             yield item
         if verbose:
@@ -86,7 +81,7 @@ def rsa_spattemp(X, dsm_Y, dist, spatial_radius, temporal_radius,
     results += parallel(
         my_rsa_searchlight_step(
             X[:, np.flatnonzero(series_dist < spatial_radius), :],
-            dsm_Y, data_dsm_metric, rsa_metric, temporal_radius, verbose=False)
+            dsm_Y, temporal_radius, data_dsm_metric, rsa_metric, verbose=False)
         for series_dist in progress(dist)
     )
 
@@ -94,7 +89,7 @@ def rsa_spattemp(X, dsm_Y, dist, spatial_radius, temporal_radius,
 
 
 def rsa_spat(X, dsm_Y, dist, spatial_radius, data_dsm_metric='correlation',
-             rsa_metric='spearman', break_after=-1, n_jobs=1, verbose=False):
+             rsa_metric='spearman', n_jobs=1, verbose=False):
     """Compute spatial RSA using a searchlight pattern.
 
     Computes RSA across space using a searchlight pattern, flattens the
@@ -120,9 +115,6 @@ def rsa_spat(X, dsm_Y, dist, spatial_radius, data_dsm_metric='correlation',
     rsa_metric : 'spearman' | 'pearson'
         The metric to use to compare the stc and model DSMs, either Spearman or
         Pearson correlation. Defaults to 'spearman'.
-    break_after : int
-        Abort the computation after this many steps. Useful for debugging. Set
-        to -1 to continue until the end. Defaults to -1.
     n_jobs : int
         The number of processes (=number of CPU cores) to use. Specify -1 to
         use all available cores. Defaults to 1.
@@ -135,7 +127,7 @@ def rsa_spat(X, dsm_Y, dist, spatial_radius, data_dsm_metric='correlation',
     results : ndarray, shape (n_series, n_times)
         The RSA correlation values for each spatio-temporal patch.
     """
-    dsm_Y = _ensure_condensed(dsm_Y)
+    dsm_Y = _ensure_condensed(dsm_Y, 'dsm_Y')
     results = []
 
     # Progress bar
@@ -156,7 +148,7 @@ def rsa_spat(X, dsm_Y, dist, spatial_radius, data_dsm_metric='correlation',
 
 
 def rsa_temp(X, dsm_Y, temporal_radius, data_dsm_metric='correlation',
-             rsa_metric='spearman', break_after=-1, n_jobs=1, verbose=False):
+             rsa_metric='spearman', n_jobs=1, verbose=False):
     """Perform temporal RSA analysis using a searchlight in time.
 
     Computes RSA across time using a searchlight, flattens the spatial
@@ -177,9 +169,6 @@ def rsa_temp(X, dsm_Y, temporal_radius, data_dsm_metric='correlation',
     rsa_metric : 'spearman' | 'pearson'
         The metric to use to compare the stc and model DSMs, either Spearman or
         Pearson correlation. Defaults to 'spearman'.
-    break_after : int
-        Abort the computation after this many steps. Useful for debugging. Set
-        to -1 to continue until the end. Defaults to -1.
     n_jobs : int
         The number of processes (=number of CPU cores) to use. Specify -1 to
         use all available cores. Defaults to 1.
@@ -193,18 +182,19 @@ def rsa_temp(X, dsm_Y, temporal_radius, data_dsm_metric='correlation',
         The RSA correlation values for each temporal patch.
     """
     n_samples = X.shape[-1]
-    dsm_Y = _ensure_condensed(dsm_Y)
+    dsm_Y = _ensure_condensed(dsm_Y, 'dsm_Y')
 
     # Iterate over time
     results = []
+    centers = _get_time_patch_centers(n_samples, temporal_radius)
 
     # Progress bar
     if verbose:
         from tqdm import tqdm
-        pbar = tqdm(total=n_samples)
+        pbar = tqdm(total=len(centers))
 
-    for sample in _get_time_patch_centers(n_samples, temporal_radius):
-        x = X[..., sample - temporal_radius:sample + temporal_radius]
+    for center in centers:
+        x = X[..., center - temporal_radius:center + temporal_radius]
         results.append(_rsa(x, dsm_Y, data_dsm_metric, rsa_metric))
         if verbose:
             pbar.update(1)

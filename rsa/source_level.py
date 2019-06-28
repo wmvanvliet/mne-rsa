@@ -20,7 +20,7 @@ import mne
 from scipy.linalg import block_diag
 
 from .rsa import (_get_time_patch_centers, rsa_spattemp, rsa_spat, rsa_temp,
-                  compute_dsm, rsa)
+                  compute_dsm, _rsa)
 
 
 def rsa_source_level(stcs, model, src, spatial_radius=0.04,
@@ -133,21 +133,22 @@ def rsa_source_level(stcs, model, src, spatial_radius=0.04,
     # Perform the RSA
     if spatial_radius is not None and temporal_radius is not None:
         data = rsa_spattemp(X, dsm_Y, dist, spatial_radius, temporal_radius,
-                            stc_dsm_metric, model_dsm_metric, rsa_metric,
-                            n_jobs, verbose)
+                            stc_dsm_metric, rsa_metric, n_jobs, verbose)
     elif spatial_radius is not None:
         data = rsa_spat(X, dsm_Y, dist, spatial_radius, stc_dsm_metric,
-                        model_dsm_metric, rsa_metric, n_jobs, verbose)
-    elif temporal_radius is not None:
-        data = rsa_temp(X, dsm_Y, stc_dsm_metric, model_dsm_metric,
                         rsa_metric, n_jobs, verbose)
+        data = data[:, np.newaxis]
+    elif temporal_radius is not None:
+        data = rsa_temp(X, dsm_Y, temporal_radius, stc_dsm_metric, rsa_metric,
+                        n_jobs, verbose)
+        data = data[np.newaxis, :]
     else:
-        data = rsa(X, dsm_Y, stc_dsm_metric, model_dsm_metric,
-                   rsa_metric, n_jobs, verbose)
+        data = _rsa(X, dsm_Y, stc_dsm_metric, rsa_metric, n_jobs, verbose)
+        data = data[np.newaxis, np.newaxis]
 
     # Pack the result in a SourceEstimate object
     if temporal_radius is not None:
-        first_ind = _get_time_patch_centers(X.shape[1], temporal_radius)[0]
+        first_ind = _get_time_patch_centers(X.shape[-1], temporal_radius)[0]
         tmin = times[first_ind]
         tstep = stcs[0].tstep
     else:

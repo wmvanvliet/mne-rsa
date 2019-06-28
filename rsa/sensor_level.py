@@ -17,7 +17,7 @@ from scipy.spatial import distance
 import mne
 
 from .rsa import (_get_time_patch_centers, rsa_spattemp, rsa_spat, rsa_temp,
-                  compute_dsm, rsa)
+                  compute_dsm, _rsa)
 
 
 def rsa_evokeds(evokeds, model, noise_cov=None, spatial_radius=0.04,
@@ -99,6 +99,12 @@ def rsa_evokeds(evokeds, model, noise_cov=None, spatial_radius=0.04,
         if temporal_radius < 1:
             raise ValueError('Temporal radius is less than one sample.')
 
+    # Normalize with the noise cov
+    if noise_cov is not None:
+        diag = spatial_radius is not None
+        evokeds = [mne.whiten_evoked(evoked, noise_cov, diag=diag)
+                   for evoked in evokeds]
+
     # Construct a big array containing all brain data
     X = np.array([evoked.data for evoked in evokeds])
 
@@ -109,26 +115,27 @@ def rsa_evokeds(evokeds, model, noise_cov=None, spatial_radius=0.04,
     # Perform the RSA
     if spatial_radius is not None and temporal_radius is not None:
         data = rsa_spattemp(X, dsm_Y, dist, spatial_radius, temporal_radius,
-                            evoked_dsm_metric, model_dsm_metric, rsa_metric,
-                            n_jobs, verbose)
+                            evoked_dsm_metric, rsa_metric, n_jobs, verbose)
     elif spatial_radius is not None:
         data = rsa_spat(X, dsm_Y, dist, spatial_radius, evoked_dsm_metric,
-                        model_dsm_metric, rsa_metric, n_jobs, verbose)
-    elif temporal_radius is not None:
-        data = rsa_temp(X, dsm_Y, evoked_dsm_metric, model_dsm_metric,
                         rsa_metric, n_jobs, verbose)
+        data = data[:, np.newaxis]
+    elif temporal_radius is not None:
+        data = rsa_temp(X, dsm_Y, temporal_radius, evoked_dsm_metric,
+                        rsa_metric, n_jobs, verbose)
+        data = data[np.newaxis, :]
     else:
-        data = rsa(X, dsm_Y, evoked_dsm_metric, model_dsm_metric,
-                   rsa_metric, n_jobs, verbose)
+        data = _rsa(X, dsm_Y, evoked_dsm_metric, rsa_metric, n_jobs, verbose)
+        data = data[np.newaxis, np.newaxis]
 
     # Pack the result in an Evoked object
     if temporal_radius is not None:
-        first_ind = _get_time_patch_centers(X.shape[1], temporal_radius)[0]
+        first_ind = _get_time_patch_centers(X.shape[-1], temporal_radius)[0]
         tmin = times[first_ind]
     else:
         tmin = 0
     if spatial_radius is not None:
         info = evokeds[0].info
     else:
-        info = mne.create_info(['rsa'], evoked[0].info['sfreq'])
+        info = mne.create_info(['rsa'], evokeds[0].info['sfreq'])
     return mne.EvokedArray(data, info, tmin, comment='RSA', nave=len(evokeds))
