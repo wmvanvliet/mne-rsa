@@ -19,14 +19,13 @@ import numpy as np
 import mne
 from scipy.linalg import block_diag
 
-from .searchlight import (_temporal_radius_to_samples, _get_time_patch_centers,
-                          _rsa_searchlight)
+from .rsa import _get_time_patch_centers, rsa_spattemp, compute_dsm
 
 
-def rsa_source_level(stcs, model, src, stc_dsm_metric='correlation',
+def rsa_source_level(stcs, model, src, spatial_radius=0.04,
+                     temporal_radius=0.1, stc_dsm_metric='correlation',
                      model_dsm_metric='correlation', rsa_metric='spearman',
-                     spatial_radius=0.04, temporal_radius=0.1, break_after=-1,
-                     n_jobs=1, verbose=False):
+                     break_after=-1, n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern across the cortex. The inputs are:
 
     1) a list of SourceEstimate objects that hold the source estimate for each
@@ -46,6 +45,12 @@ def rsa_source_level(stcs, model, src, stc_dsm_metric='correlation',
     src : instance of mne.SourceSpaces
         The source space used by the source estimates specified in the `stcs`
         parameter.
+    spatial_radius : float
+        The spatial radius of the searchlight patch in meters.
+        Defaults to 0.04.
+    temporal_radius : float
+        The temporal radius of the searchlight patch in seconds.
+        Defaults to 0.1.
     stc_dsm_metric : str
         The metric to use to compute the DSM for the source estimates. This can
         be any metric supported by the scipy.distance.pdist function. Defaults
@@ -59,12 +64,6 @@ def rsa_source_level(stcs, model, src, stc_dsm_metric='correlation',
         The metric to use to compare the stc and model DSMs. This can either be
         'spearman' correlation or 'pearson' correlation.
         Defaults to 'spearman'.
-    spatial_radius : float
-        The spatial radius of the searchlight patch in meters.
-        Defaults to 0.04.
-    temporal_radius : float
-        The temporal radius of the searchlight patch in seconds.
-        Defaults to 0.1.
     break_after : int
         Abort the computation after this many steps. Useful for debugging.
         Defaults to -1 which means to perform the computation until the end.
@@ -104,16 +103,10 @@ def rsa_source_level(stcs, model, src, stc_dsm_metric='correlation',
             raise ValueError('Not all source estimates have the same '
                              'time points.')
 
-    # Be careful with the default value for model_dsm_metric
-    if model_dsm_metric in ['correlation', 'cosine'] and n_features == 1:
-        raise ValueError("There is only a single model feature, so "
-                         "'correlation' or 'cosine' can not be used as "
-                         "model_dsm_metric. Consider using 'euclidean' "
-                         "instead.")
+    dsm_Y = compute_dsm(model, metric=model_dsm_metric)
 
     # Convert the temporal radius to samples
-    temporal_radius = _temporal_radius_to_samples(stcs[0].tstep,
-                                                  temporal_radius)
+    temporal_radius = int(temporal_radius // stcs[0].tstep)
 
     if temporal_radius < 1:
         raise ValueError('Temporal radius is less than one sample.')
@@ -135,9 +128,9 @@ def rsa_source_level(stcs, model, src, stc_dsm_metric='correlation',
     X = np.array([stc.data for stc in stcs])
 
     # Perform the RSA
-    rsa = _rsa_searchlight(X, model, dist, stc_dsm_metric, model_dsm_metric,
-                           rsa_metric, spatial_radius, temporal_radius,
-                           break_after, n_jobs, verbose)
+    rsa = rsa_spattemp(X, dsm_Y, dist, spatial_radius, temporal_radius,
+                       stc_dsm_metric, rsa_metric, break_after, n_jobs,
+                       verbose)
 
     # Pack the result in a SourceEstimate object
     first_ind = _get_time_patch_centers(X.shape[1], temporal_radius)[0]

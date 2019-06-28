@@ -16,14 +16,13 @@ import numpy as np
 from scipy.spatial import distance
 import mne
 
-from .searchlight import (_temporal_radius_to_samples, _get_time_patch_centers,
-                          _rsa_searchlight)
+from .rsa import _get_time_patch_centers, rsa_spattemp, compute_dsm
 
 
-def rsa_evokeds(evokeds, model, evoked_dsm_metric='correlation',
+def rsa_evokeds(evokeds, model, spatial_radius=0.04, temporal_radius=0.1,
+                evoked_dsm_metric='correlation',
                 model_dsm_metric='correlation', rsa_metric='spearman',
-                spatial_radius=0.04, temporal_radius=0.1, break_after=-1,
-                n_jobs=1, verbose=False):
+                break_after=-1, n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern on evokeds. The inputs are:
 
     1) a list of Evoked objects that hold the evoked data for each item in the
@@ -40,6 +39,13 @@ def rsa_evokeds(evokeds, model, evoked_dsm_metric='correlation',
         For each item, the evoked brain activity.
     model : ndarray, shape (n_items, n_features)
         For each item, the model features corresponding to the item.
+    spatial_radius : float
+        The spatial radius of the searchlight patch in meters. All sensors
+        within this radius will belong to the searchlight patch.
+        Defaults to 0.04.
+    temporal_radius : float
+        The temporal radius of the searchlight patch in seconds.
+        Defaults to 0.1.
     evoked_dsm_metric : str
         The metric to use to compute the DSM for the evokeds. This can be any
         metric supported by the scipy.distance.pdist function. Defaults to
@@ -53,13 +59,6 @@ def rsa_evokeds(evokeds, model, evoked_dsm_metric='correlation',
         The metric to use to compare the stc and model DSMs. This can either be
         'spearman' correlation or 'pearson' correlation.
         Defaults to 'spearman'.
-    spatial_radius : float
-        The spatial radius of the searchlight patch in meters. All sensors
-        within this radius will belong to the searchlight patch.
-        Defaults to 0.04.
-    temporal_radius : float
-        The temporal radius of the searchlight patch in seconds.
-        Defaults to 0.1.
     break_after : int
         Abort the computation after this many steps. Useful for debugging.
         Defaults to -1 which means to perform the computation until the end.
@@ -86,12 +85,7 @@ def rsa_evokeds(evokeds, model, evoked_dsm_metric='correlation',
         if np.any(evoked.times != times):
             raise ValueError('Not all evokeds have the same time points.')
 
-    # Be careful with the default value for model_dsm_metric
-    if model_dsm_metric in ['correlation', 'cosine'] and n_features == 1:
-        raise ValueError("There is only a single model feature, so "
-                         "'correlation' or 'cosine' can not be used as "
-                         "model_dsm_metric. Consider using 'euclidean' "
-                         "instead.")
+    dsm_Y = compute_dsm(model, model_dsm_metric)
 
     # Convert the temporal radius to samples
     temporal_radius = round(evokeds[0].info['sfreq'] * temporal_radius)
@@ -107,9 +101,9 @@ def rsa_evokeds(evokeds, model, evoked_dsm_metric='correlation',
     X = np.array([evoked.data for evoked in evokeds])
 
     # Perform the RSA
-    rsa = _rsa_searchlight(X, model, dist, evoked_dsm_metric, model_dsm_metric,
-                           rsa_metric, spatial_radius, temporal_radius,
-                           break_after, n_jobs, verbose)
+    rsa = rsa_spattemp(X, dsm_Y, dist, spatial_radius, temporal_radius,
+                       evoked_dsm_metric, model_dsm_metric, rsa_metric,
+                       break_after, n_jobs, verbose)
 
     # Pack the result in an Evoked object
     first_ind = _get_time_patch_centers(X.shape[1], temporal_radius)[0]
