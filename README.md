@@ -49,3 +49,19 @@ def rsa_evokeds(evokeds, model, noise_cov=None,
                 evoked_dsm_metric='correlation', model_dsm_metric='correlation', rsa_metric='spearman',
                 n_jobs=1, verbose=False)
 ```
+
+## Example usage
+
+Basic example on the EEG "kiloword" data:
+
+```python
+import mne
+import rsa
+data_path = mne.datasets.kiloword.data_path(verbose=True)
+epochs = mne.read_epochs(data_path + '/kword_metadata-epo.fif')
+evokeds = [epochs[w].average() for w in epochs.metadata['WORD']]
+model = epochs.metadata.iloc[:, 1:].values  # All word properties
+evoked_rsa = rsa.rsa_evokeds(evokeds, model,
+                             spatial_radius=0.04, temporal_radius=0.01,
+			     verbose=True)
+```
