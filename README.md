@@ -39,11 +39,13 @@ This is what it cannot do (yet) for you:
 ## Juicy bits of the API 
 
 ```python
-def rsa_source_level(stcs, model, src, spatial_radius=0.04, temporal_radius=0.1,
+def rsa_source_level(stcs, model, src,
+                     spatial_radius=0.04, temporal_radius=0.1,
 		     stc_dsm_metric='correlation', model_dsm_metric='correlation', rsa_metric='spearman',
                      n_jobs=1, verbose=False)
 
-def rsa_evokeds(evokeds, model, spatial_radius=0.04, temporal_radius=0.1,
+def rsa_evokeds(evokeds, model, noise_cov=None,
+		spatial_radius=0.04, temporal_radius=0.1,
                 evoked_dsm_metric='correlation', model_dsm_metric='correlation', rsa_metric='spearman',
                 n_jobs=1, verbose=False)
 ```
