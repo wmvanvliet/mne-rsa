@@ -1,8 +1,9 @@
 import numpy as np
 from scipy.spatial import distance
+from sklearn.decomposition import PCA
 
 
-def compute_dsm(data, metric='sqeuclidean', **kwargs):
+def compute_dsm(data, pca=False, metric='sqeuclidean', **kwargs):
     """Compute a dissimilarity matrix (DSM).
 
     Parameters
@@ -10,6 +11,8 @@ def compute_dsm(data, metric='sqeuclidean', **kwargs):
     data : ndarray, shape (n_items, ...)
         For each item, all the features. The first are the items and all other
         dimensions will be flattened and treated as features.
+    pca : bool
+        Whether to use PCA when n_features > n_items. Defaults to False.
     metric : str
         The metric to use to compute the data DSM. Can be any metric supported
         by :func:`scipy.spatial.distance.pdist`. Defaults to 'sqeuclidean'.
@@ -26,7 +29,10 @@ def compute_dsm(data, metric='sqeuclidean', **kwargs):
         See :func:`scipy.spatial.distance.squareform`.
     """
     X = np.reshape(data, (len(data), -1))
-    n_features = X.shape[1]
+    n_items, n_features = X.shape
+
+    if pca and n_features > n_items:
+        X = PCA(n_items).fit_transform(X)
 
     # Be careful with certain metrics
     if n_features == 1 and metric in ['correlation', 'cosine']:
