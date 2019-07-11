@@ -13,7 +13,7 @@ import numpy as np
 import mne
 from scipy import stats
 
-from .dsm import compute_dsm_cv, _ensure_condensed
+from .dsm import compute_dsm, compute_dsm_cv, _ensure_condensed
 from .folds import _create_folds
 
 
@@ -69,6 +69,7 @@ def rsa_spattemp(data, dsm_model, dist, spatial_radius, temporal_radius,
     # The data is now folds x items x n_series x ...
 
     centers = _get_time_patch_centers(n_samples, temporal_radius)
+
     def patch_iterator():
         if verbose:
             from tqdm import tqdm
@@ -282,7 +283,11 @@ def _rsa(folds, dsm_model, data_dsm_metric='sqeuclidean',
          data_dsm_params=None, rsa_metric='spearman'):
     """Perform RSA between some data and a model DSM."""
     if not data_dsm_params:
-        dsm_data = compute_dsm_cv(folds, metric=data_dsm_metric)
+        data_dsm_params = dict()
+
+    if len(folds) == 1:
+        dsm_data = compute_dsm(folds[0], metric=data_dsm_metric,
+                               **data_dsm_params)
     else:
         dsm_data = compute_dsm_cv(folds, metric=data_dsm_metric,
                                   **data_dsm_params)
