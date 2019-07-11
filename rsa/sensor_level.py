@@ -17,13 +17,14 @@ from scipy.spatial import distance
 import mne
 
 from .rsa import (_get_time_patch_centers, rsa_spattemp, rsa_spat, rsa_temp,
-                  compute_dsm, _rsa)
+                  _rsa)
+from .dsm import compute_dsm
 
 
-def rsa_evokeds(evokeds, model, noise_cov=None, spatial_radius=0.04,
-                temporal_radius=0.1, evoked_dsm_metric='correlation',
-                model_dsm_metric='correlation', rsa_metric='spearman',
-                n_jobs=1, verbose=False):
+def rsa_evokeds(evokeds, model, y=None, noise_cov=None, spatial_radius=0.04,
+                temporal_radius=0.1, evoked_dsm_metric='sqeuclidean',
+                evoked_dsm_params=None, model_dsm_metric='correlation',
+                rsa_metric='spearman', n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern on evokeds. The inputs are:
 
     1) a list of Evoked objects that hold the evoked data for each item in the
@@ -37,9 +38,15 @@ def rsa_evokeds(evokeds, model, noise_cov=None, spatial_radius=0.04,
     Parameters
     ----------
     evokeds : list of mne.Evoked
-        For each item, the evoked brain activity.
-    model : ndarray, shape (n_items, n_features)
+        The evoked brain activity for each item. If you have more than one
+        Evoked object per item (i.e. repetitions), you can use the ``y``
+        parameter to assign evokeds to items.
+    model : ndarray, shape (n_classes, n_features)
         For each item, the model features corresponding to the item.
+    y : ndarray of int, shape (n_items,) | None
+        For each Evoked, a number indicating the item to which it belongs.
+        When ``None``, each Evoked is assumed to belong to a different item.
+        Defaults to ``None``.
     noise_cov : mne.Covariance | None
         When specified, the data will by normalized using the noise covariance.
         This is recommended in all cases, but a hard requirement when the data
@@ -77,21 +84,27 @@ def rsa_evokeds(evokeds, model, noise_cov=None, spatial_radius=0.04,
     -------
     rsa : Evoked
         The correlation values for each searchlight patch. When spatial_radius
-        is set to None, there will only be one sensor. When temporal_radius is
-        set to None, there will only be one time point.
+        is set to None, there will only be one virtual sensor. When
+        temporal_radius is set to None, there will only be one time point.
     """
     # Check for compatibility of the source estimated and the model features
     n_items, n_features = model.shape
-    if len(evokeds) != n_items:
+    if len(evokeds) != n_items and y is None:
         raise ValueError('The number of evokeds (%d) should be equal to the '
-                         'number of items (%d).' % (len(evokeds), n_items))
+                         'number of items in `model` (%d). Alternatively, use '
+                         'the `y` parameter to assign evokeds to items.'
+                         % (len(evokeds), n_items))
+    if y is not None and np.unique(y) != n_items:
+        raise ValueError('The number of items in `model` (%d) does not match '
+                         'the number of items encoded in the `y` matrix (%d).'
+                         % (n_items, len(np.unique(y))))
 
     times = evokeds[0].times
     for evoked in evokeds:
         if np.any(evoked.times != times):
             raise ValueError('Not all evokeds have the same time points.')
 
-    dsm_Y = compute_dsm(model, model_dsm_metric)
+    dsm_model = compute_dsm(model, metric=model_dsm_metric)
 
     # Convert the temporal radius to samples
     if temporal_radius is not None:
@@ -114,18 +127,24 @@ def rsa_evokeds(evokeds, model, noise_cov=None, spatial_radius=0.04,
 
     # Perform the RSA
     if spatial_radius is not None and temporal_radius is not None:
-        data = rsa_spattemp(X, dsm_Y, dist, spatial_radius, temporal_radius,
-                            evoked_dsm_metric, rsa_metric, n_jobs, verbose)
+        print('Performing spatial-temporal RSA', spatial_radius, temporal_radius)
+        data = rsa_spattemp(X, dsm_model, dist, spatial_radius,
+                            temporal_radius, y, evoked_dsm_metric,
+                            evoked_dsm_params, rsa_metric, n_jobs, verbose)
     elif spatial_radius is not None:
-        data = rsa_spat(X, dsm_Y, dist, spatial_radius, evoked_dsm_metric,
-                        rsa_metric, n_jobs, verbose)
+        print('Performing spatial RSA', spatial_radius)
+        data = rsa_spat(X, dsm_model, dist, spatial_radius, y,
+                        evoked_dsm_metric, evoked_dsm_params, rsa_metric,
+                        n_jobs, verbose)
         data = data[:, np.newaxis]
     elif temporal_radius is not None:
-        data = rsa_temp(X, dsm_Y, temporal_radius, evoked_dsm_metric,
-                        rsa_metric, n_jobs, verbose)
+        print('Performing temporal RSA', temporal_radius)
+        data = rsa_temp(X, dsm_model, temporal_radius, y, evoked_dsm_metric,
+                        evoked_dsm_params, rsa_metric, n_jobs, verbose)
         data = data[np.newaxis, :]
     else:
-        data = _rsa(X, dsm_Y, evoked_dsm_metric, rsa_metric, n_jobs, verbose)
+        data = _rsa(X, dsm_model, y, evoked_dsm_metric, evoked_dsm_params,
+                    rsa_metric, n_jobs, verbose)
         data = data[np.newaxis, np.newaxis]
 
     # Pack the result in an Evoked object

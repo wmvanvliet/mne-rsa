@@ -20,7 +20,8 @@ import mne
 from scipy.linalg import block_diag
 
 from .rsa import (_get_time_patch_centers, rsa_spattemp, rsa_spat, rsa_temp,
-                  compute_dsm, _rsa)
+                  _rsa)
+from .dsm import compute_dsm
 
 
 def rsa_source_level(stcs, model, src, spatial_radius=0.04,
