@@ -27,6 +27,10 @@ def compute_dsm(data, pca=False, metric='sqeuclidean', **kwargs):
     dsm : ndarray, shape (n_classes * n_classes-1,)
         The cross-validated DSM, in condensed form.
         See :func:`scipy.spatial.distance.squareform`.
+
+    See Also
+    --------
+    compute_dsm_cv
     """
     X = np.reshape(data, (len(data), -1))
     n_items, n_features = X.shape
@@ -67,6 +71,10 @@ def compute_dsm_cv(folds, metric='sqeuclidean', **kwargs):
     dsm : ndarray, shape (n_classes * n_classes-1,)
         The cross-validated DSM, in condensed form.
         See :func:`scipy.spatial.distance.squareform`.
+
+    See Also
+    --------
+    compute_dsm
     """
     X = np.reshape(folds, (folds.shape[0], folds.shape[1], -1))
     n_folds, n_items, n_features = X.shape[:3]
@@ -99,6 +107,9 @@ def compute_dsm_cv(folds, metric='sqeuclidean', **kwargs):
 
 def _ensure_condensed(dsm, var_name):
     """Converts a DSM to condensed form if needed."""
+    if type(dsm) is list:
+        return [_ensure_condensed(d, var_name) for d in dsm]
+
     if dsm.ndim == 2:
         if dsm.shape[0] != dsm.shape[1]:
             raise ValueError('Invalid dimensions for "%s". The DSM should '
@@ -110,3 +121,11 @@ def _ensure_condensed(dsm, var_name):
                          'should either be a square matrix, or a one '
                          'dimensional array when in condensed form.')
     return dsm
+
+
+def _n_items_from_dsm(dsm):
+    """Get the number of items, given a DSM."""
+    if dsm.ndim == 2:
+        return dsm.shape[0]
+    elif dsm.ndim == 1:
+        return distance.squareform(dsm).shape[0]

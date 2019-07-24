@@ -7,7 +7,7 @@ def _create_folds(X, y, n_folds=None):
     """Split the observations in X into stratified folds."""
     if y is None or n_folds == 1:
         # Making one fold is easy
-        return X[None, ...]
+        return X[np.newaxis, ...]
 
     y_one_hot = _convert_to_one_hot(y)
     n_items = y_one_hot.shape[1]

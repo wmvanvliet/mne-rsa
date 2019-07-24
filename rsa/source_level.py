@@ -21,19 +21,14 @@ from scipy.linalg import block_diag
 
 from .rsa import (_get_time_patch_centers, rsa_spattemp, rsa_spat, rsa_temp,
                   _rsa)
-from .dsm import compute_dsm
+from .dsm import compute_dsm, _n_items_from_dsm
 
 
-def rsa_source_level(stcs, model, src, spatial_radius=0.04,
-                     temporal_radius=0.1, stc_dsm_metric='correlation',
-                     model_dsm_metric='correlation', rsa_metric='spearman',
-                     n_jobs=1, verbose=False):
-    """Perform RSA in a searchlight pattern across the cortex. The inputs are:
-
-    1) a list of SourceEstimate objects that hold the source estimate for each
-       item in the analysis.
-    2) an item x features matrix that holds the model features for each item.
-       The model can be other brain data, a computer model, norm data, etc.
+def rsa_source_level(stcs, dsm_model, src, y=None, spatial_radius=0.04,
+                     temporal_radius=0.1, stc_dsm_metric='sqeuclidean',
+                     rsa_metric='spearman', n_folds=None, n_jobs=1,
+                     verbose=False):
+    """Perform RSA in a searchlight pattern across the cortex.
 
     The output is a source estimate where the "signal" at each source point is
     the RSA, computed for a patch surrounding the source point.
@@ -42,11 +37,21 @@ def rsa_source_level(stcs, model, src, spatial_radius=0.04,
     ----------
     stcs : list of mne.SourceEstimate
         For each item, a source estimate for the brain activity.
-    model : ndarray, shape (n_items, n_features)
-        For each item, the model features corresponding to the item.
+    dsm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
+        The model DSM, see :func:`compute_dsm`. For efficiency, you can give it
+        in condensed form, meaning only the upper triangle of the matrix as a
+        vector. See :func:`scipy.spatial.distance.squareform`. To perform RSA
+        against multiple models at the same time, supply a list of model DSMs.
+
+        Use :func:`rsa.compute_dsm` to compute DSMs.
     src : instance of mne.SourceSpaces
         The source space used by the source estimates specified in the `stcs`
         parameter.
+    y : ndarray of int, shape (n_items,) | None
+        For each Evoked, a number indicating the item to which it belongs.
+        When ``None``, each Evoked is assumed to belong to a different item.
+        Defaults to ``None``.
+        For each item, the model features corresponding to the item.
     spatial_radius : floats | None
         The spatial radius of the searchlight patch in meters. All source
         points within this radius will belong to the searchlight patch. Set to
@@ -59,16 +64,15 @@ def rsa_source_level(stcs, model, src, spatial_radius=0.04,
     stc_dsm_metric : str
         The metric to use to compute the DSM for the source estimates. This can
         be any metric supported by the scipy.distance.pdist function. Defaults
-        to 'correlation'.
-    model_dsm_metric : str
-        The metric to use to compute the DSM for the model features. This can
-        be any metric supported by the scipy.distance.pdist function. Defaults
-        to 'correlation'. Note that if the model only defines a few features,
-        'euclidean' may be more appropriate.
+        to 'sqeuclidean'.
     rsa_metric : 'spearman' | 'pearson'
         The metric to use to compare the stc and model DSMs. This can either be
         'spearman' correlation or 'pearson' correlation.
         Defaults to 'spearman'.
+    n_folds : int | None
+        Number of folds to use when using cross-validation to compute the
+        evoked DSM metric.  Defaults to ``None``, which means the maximum
+        number of folds possible, given the data.
     n_jobs : int
         The number of processes (=number of CPU cores) to use. Specify -1 to
         use all available cores. Defaults to 1.
@@ -78,16 +82,36 @@ def rsa_source_level(stcs, model, src, spatial_radius=0.04,
 
     Returns
     -------
-    stc : SourceEstimate
+    stc : SourceEstimate | list of SourceEstimate
         The correlation values for each searchlight patch. When spatial_radius
         is set to None, there will only be one vertex. When temporal_radius is
-        set to None, there will only be one time point.
+        set to None, there will only be one time point. When multiple models
+        have been supplied, a list will be returned containing the RSA results
+        for each model.
+
+    See Also
+    --------
+    compute_dsm
     """
     # Check for compatibility of the source estimated and the model features
-    n_items, n_features = model.shape
-    if len(stcs) != n_items:
-        raise ValueError('The number of source estimates (%d) should be equal '
-                         'to the number of items (%d).' % (len(stcs), n_items))
+    one_model = type(dsm_model) is np.ndarray
+    if one_model:
+        dsm_model = [dsm_model]
+
+    # Check for compatibility of the evokeds and the model features
+    for dsm in dsm_model:
+        n_items = _n_items_from_dsm(dsm)
+        if len(stcs) != n_items and y is None:
+            raise ValueError(
+                'The number of source estimates (%d) should be equal to the '
+                'number of items in `dsm_model` (%d). Alternatively, use '
+                'the `y` parameter to assign evokeds to items.'
+                % (len(stcs), n_items))
+        if y is not None and np.unique(y) != n_items:
+            raise ValueError(
+                'The number of items in `dsm_model` (%d) does not match '
+                'the number of items encoded in the `y` matrix (%d).'
+                % (n_items, len(np.unique(y))))
 
     # Check for compatibility of the source estimates and source space
     lh_verts, rh_verts = stcs[0].vertices
@@ -106,8 +130,6 @@ def rsa_source_level(stcs, model, src, spatial_radius=0.04,
         if np.any(stc.times != times):
             raise ValueError('Not all source estimates have the same '
                              'time points.')
-
-    dsm_Y = compute_dsm(model, metric=model_dsm_metric)
 
     # Convert the temporal radius to samples
     temporal_radius = int(temporal_radius // stcs[0].tstep)
@@ -133,19 +155,21 @@ def rsa_source_level(stcs, model, src, spatial_radius=0.04,
 
     # Perform the RSA
     if spatial_radius is not None and temporal_radius is not None:
-        data = rsa_spattemp(X, dsm_Y, dist, spatial_radius, temporal_radius,
-                            stc_dsm_metric, rsa_metric, n_jobs, verbose)
+        data = rsa_spattemp(X, dsm_model, dist, spatial_radius,
+                            temporal_radius, stc_dsm_metric, rsa_metric,
+                            n_folds, n_jobs, verbose)
     elif spatial_radius is not None:
-        data = rsa_spat(X, dsm_Y, dist, spatial_radius, stc_dsm_metric,
-                        rsa_metric, n_jobs, verbose)
-        data = data[:, np.newaxis]
+        data = rsa_spat(X, dsm_model, dist, spatial_radius, stc_dsm_metric,
+                        rsa_metric, n_folds, n_jobs, verbose)
+        data = data[:, np.newaxis, :]
     elif temporal_radius is not None:
-        data = rsa_temp(X, dsm_Y, temporal_radius, stc_dsm_metric, rsa_metric,
-                        n_jobs, verbose)
-        data = data[np.newaxis, :]
+        data = rsa_temp(X, dsm_model, temporal_radius, stc_dsm_metric,
+                        rsa_metric, n_folds, n_jobs, verbose)
+        data = data[np.newaxis, :, :]
     else:
-        data = _rsa(X, dsm_Y, stc_dsm_metric, rsa_metric, n_jobs, verbose)
-        data = data[np.newaxis, np.newaxis]
+        data = _rsa(X, dsm_model, stc_dsm_metric, rsa_metric, n_folds, n_jobs,
+                    verbose)
+        data = data[np.newaxis, np.newaxis, :]
 
     # Pack the result in a SourceEstimate object
     if temporal_radius is not None:
@@ -159,5 +183,11 @@ def rsa_source_level(stcs, model, src, spatial_radius=0.04,
         vertices = [lh_verts, rh_verts]
     else:
         vertices = [np.array([1]), np.array([])]
-    return mne.SourceEstimate(data, vertices, tmin, tstep,
-                              subject=stcs[0].subject)
+
+    if one_model:
+        return mne.SourceEstimate(data[:, :, 0], vertices, tmin, tstep,
+                                  subject=stcs[0].subject)
+    else:
+        return [mne.SourceEstimate(data[:, :, i], vertices, tmin, tstep,
+                                   subject=stcs[0].subject)
+                for i in range(data.shape[-1])]

@@ -29,10 +29,13 @@ def rsa_spattemp(data, dsm_model, dist, spatial_radius, temporal_radius,
         The brain data in the form of an ndarray. The second dimension can
         either be source points for source-level analysis or channels for
         sensor-level analysis.
-    dsm_model : array, shape (n, n) | (n * (n - 1) // 2,)
+    dsm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
         The model DSM, see :func:`compute_dsm`. For efficiency, you can give it
         in condensed form, meaning only the upper triangle of the matrix as a
-        vector. See :func:`scipy.spatial.distance.squareform`.
+        vector. See :func:`scipy.spatial.distance.squareform`. To perform RSA
+        against multiple models at the same time, supply a list of model DSMs.
+
+        Use :func:`rsa.compute_dsm` to compute DSMs.
     dist : ndarray, shape (n_series, n_series)
         The distances between all source points or sensors in meters.
     spatial_radius : float
@@ -60,6 +63,10 @@ def rsa_spattemp(data, dsm_model, dist, spatial_radius, temporal_radius,
     -------
     results : ndarray, shape (n_series, n_times)
         The RSA correlation values for each spatio-temporal patch.
+
+    See Also
+    --------
+    compute_dsm
     """
     n_series, n_samples = data.shape[1:]
     dsm_model = _ensure_condensed(dsm_model, 'dsm_model')
@@ -73,7 +80,7 @@ def rsa_spattemp(data, dsm_model, dist, spatial_radius, temporal_radius,
     def patch_iterator():
         if verbose:
             from tqdm import tqdm
-            pbar = tqdm(total=n_series * n_samples)
+            pbar = tqdm(total=n_series * len(centers))
         for series in range(n_series):
             for sample in centers:
                 patch = folds[
@@ -99,8 +106,9 @@ def rsa_spattemp(data, dsm_model, dist, spatial_radius, temporal_radius,
             patch, dsm_model, data_dsm_metric, data_dsm_params, rsa_metric)
         for patch in patch_iterator()
     )
+    results = np.array(results)
 
-    return np.array(results).reshape(n_series, len(centers))
+    return results.reshape((n_series, len(centers)) + results.shape[1:])
 
 
 def rsa_spat(data, dsm_model, dist, spatial_radius, y=None,
@@ -117,10 +125,13 @@ def rsa_spat(data, dsm_model, dist, spatial_radius, y=None,
         The brain data in the form of an ndarray. The second dimension can
         either be source points for source-level analysis or channels for
         sensor-level analysis.
-    dsm_model : array, shape (n, n) | (n * (n - 1) // 2,)
+    dsm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
         The model DSM, see :func:`compute_dsm`. For efficiency, you can give it
         in condensed form, meaning only the upper triangle of the matrix as a
-        vector. See :func:`scipy.spatial.distance.squareform`.
+        vector. See :func:`scipy.spatial.distance.squareform`. To perform RSA
+        against multiple models at the same time, supply a list of model DSMs.
+
+        Use :func:`rsa.compute_dsm` to compute DSMs.
     dist : ndarray, shape (n_series, n_series)
         The distances between all source points or sensors in meters.
     spatial_radius : float
@@ -156,6 +167,10 @@ def rsa_spat(data, dsm_model, dist, spatial_radius, y=None,
     -------
     results : ndarray, shape (n_series, n_times)
         The RSA correlation values for each spatio-temporal patch.
+
+    See Also
+    --------
+    compute_dsm
     """
     dsm_model = _ensure_condensed(dsm_model, 'dsm_model')
     results = []
@@ -196,10 +211,13 @@ def rsa_temp(data, dsm_model, temporal_radius, y=None,
     data : ndarray, shape (n_items, ..., n_times)
         The brain data in the spatial patch. The last dimension should be
         consecutive time points.
-    dsm_model : array, shape (n, n) | (n * (n - 1) // 2,)
+    dsm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
         The model DSM, see :func:`compute_dsm`. For efficiency, you can give it
         in condensed form, meaning only the upper triangle of the matrix as a
-        vector. See :func:`scipy.spatial.distance.squareform`.
+        vector. See :func:`scipy.spatial.distance.squareform`. To perform RSA
+        against multiple models at the same time, supply a list of model DSMs.
+
+        Use :func:`rsa.compute_dsm` to compute DSMs.
     y : ndarray of int, shape (n_items,) | None
         For each item, a number indicating the class to which the item belongs.
         When ``None``, each item is assumed to belong to a different class.
@@ -231,6 +249,10 @@ def rsa_temp(data, dsm_model, temporal_radius, y=None,
     -------
     results : ndarray, shape (n_temporal_patches,)
         The RSA correlation values for each temporal patch.
+
+    See Also
+    --------
+    compute_dsm
     """
     n_samples = data.shape[-1]
     dsm_model = _ensure_condensed(dsm_model, 'dsm_model')
@@ -292,9 +314,18 @@ def _rsa(folds, dsm_model, data_dsm_metric='sqeuclidean',
         dsm_data = compute_dsm_cv(folds, metric=data_dsm_metric,
                                   **data_dsm_params)
 
-    if rsa_metric == 'spearman':
-        r, _ = stats.spearmanr(dsm_data.ravel(), dsm_model.ravel())
-    else:
-        r, _ = stats.pearsonr(dsm_data.ravel(), dsm_model.ravel())
+    if type(dsm_model) is not list:
+        dsm_model = [dsm_model]
 
-    return r
+    rs = []
+    for dsm_model_ in dsm_model:
+        if rsa_metric == 'spearman':
+            r, _ = stats.spearmanr(dsm_data.ravel(), dsm_model_.ravel())
+        else:
+            r, _ = stats.pearsonr(dsm_data.ravel(), dsm_model_.ravel())
+        rs.append(r)
+
+    if type(dsm_model) is not list:
+        return rs[0]
+    else:
+        return rs
