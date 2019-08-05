@@ -3,7 +3,7 @@ from scipy.spatial import distance
 from sklearn.decomposition import PCA
 
 
-def compute_dsm(data, pca=False, metric='sqeuclidean', **kwargs):
+def compute_dsm(data, pca=False, metric='correlation', **kwargs):
     """Compute a dissimilarity matrix (DSM).
 
     Parameters
@@ -15,17 +15,17 @@ def compute_dsm(data, pca=False, metric='sqeuclidean', **kwargs):
         Whether to use PCA when n_features > n_items. Defaults to False.
     metric : str
         The metric to use to compute the data DSM. Can be any metric supported
-        by :func:`scipy.spatial.distance.pdist`. Defaults to 'sqeuclidean'.
+        by :func:`scipy.spatial.distance.pdist`. Defaults to 'correlation'
+        (=Pearson correlation).
     **kwargs : dict, optional
-        Extra arguments for the distance metric. The `cv_sqeuclidean` metric
-        takes a parameter `cv` to indicate the number of folds to use during
-        the cross-validation. Refer to :mod:`scipy.spatial.distance` for a list
-        of all other metrics and their arguments.
+        Extra arguments for the distance metric. Refer to
+        :mod:`scipy.spatial.distance` for a list of all other metrics and their
+        arguments.
 
     Returns
     -------
     dsm : ndarray, shape (n_classes * n_classes-1,)
-        The cross-validated DSM, in condensed form.
+        The DSM, in condensed form.
         See :func:`scipy.spatial.distance.squareform`.
 
     See Also
@@ -48,7 +48,7 @@ def compute_dsm(data, pca=False, metric='sqeuclidean', **kwargs):
     return distance.pdist(X, metric)
 
 
-def compute_dsm_cv(folds, metric='sqeuclidean', **kwargs):
+def compute_dsm_cv(folds, metric='correlation', **kwargs):
     """Compute a dissimilarity matrix (DSM) using cross-validation.
 
     Parameters
@@ -59,12 +59,12 @@ def compute_dsm_cv(folds, metric='sqeuclidean', **kwargs):
         other dimensions will be flattened and treated as features.
     metric : str
         The metric to use to compute the data DSM. Can be any metric supported
-        by :func:`scipy.spatial.distance.pdist`. Defaults to 'sqeuclidean'.
+        by :func:`scipy.spatial.distance.pdist`. Defaults to 'correlation'
+        (=Pearson correlation).
     **kwargs : dict, optional
-        Extra arguments for the distance metric. The `cv_sqeuclidean` metric
-        takes a parameter `cv` to indicate the number of folds to use during
-        the cross-validation. Refer to :mod:`scipy.spatial.distance` for a list
-        of all other metrics and their arguments.
+        Extra arguments for the distance metric. Refer to
+        :mod:`scipy.spatial.distance` for a list of all other metrics and their
+        arguments.
 
     Returns
     -------

@@ -30,6 +30,7 @@ This is what the package can do for you:
  - Compute RSA across vertices only (source level)
  - Compute RSA across sensors only (sensor level)
  - Compute RSA across samples only (source and sensor level)
+ - Use cross-validated distance metrics
 
 This is what it cannot do (yet) for you:
 
@@ -39,14 +40,24 @@ This is what it cannot do (yet) for you:
 ## Juicy bits of the API 
 
 ```python
-def rsa_source_level(stcs, model, src,
+def compute_dsm(model, pca=False, metric='correlation', **kwargs)
+
+def rsa_source_level(stcs, model_dsm, src, y=None,
                      spatial_radius=0.04, temporal_radius=0.1,
-		     stc_dsm_metric='correlation', model_dsm_metric='correlation', rsa_metric='spearman',
+		     stc_dsm_metric='correlation', stc_dsm_params=None,
+		     rsa_metric='spearman',
                      n_jobs=1, verbose=False)
 
-def rsa_evokeds(evokeds, model, noise_cov=None,
+def rsa_evokeds(evokeds, model_dsm, y=None, noise_cov=None,
 		spatial_radius=0.04, temporal_radius=0.1,
-                evoked_dsm_metric='correlation', model_dsm_metric='correlation', rsa_metric='spearman',
+                evoked_dsm_metric='correlation', evoked_dsm_params=None,
+		rsa_metric='spearman',
+                n_jobs=1, verbose=False)
+
+def rsa_epochs(epochs, model_dsm, y=None, noise_cov=None,
+		spatial_radius=0.04, temporal_radius=0.1,
+                evoked_dsm_metric='correlation', epochs_dsm_params=None,
+		rsa_metric='spearman',
                 n_jobs=1, verbose=False)
 ```
 
@@ -60,7 +71,8 @@ import rsa
 data_path = mne.datasets.kiloword.data_path(verbose=True)
 epochs = mne.read_epochs(data_path + '/kword_metadata-epo.fif')
 evokeds = [epochs[w].average() for w in epochs.metadata['WORD']]
-model = epochs.metadata.iloc[:, 1:].values  # All word properties
+# Compute the model DSM using all word properties
+dsm_model = rsa.compute_dsm(epochs.metadata.iloc[:, 1:].values)
 evoked_rsa = rsa.rsa_evokeds(evokeds, model,
                              spatial_radius=0.04, temporal_radius=0.01,
 			     verbose=True)
