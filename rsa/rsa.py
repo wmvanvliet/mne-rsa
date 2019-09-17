@@ -12,6 +12,7 @@ Ossi Lehtonen <ossi.lehtonen@aalto.fi>
 import numpy as np
 import mne
 from scipy import stats
+from joblib import Parallel, delayed
 
 from .dsm import compute_dsm, compute_dsm_cv, _ensure_condensed
 from .folds import _create_folds
@@ -72,7 +73,7 @@ def rsa_spattemp(data, dsm_model, dist, spatial_radius, temporal_radius,
     dsm_model = _ensure_condensed(dsm_model, 'dsm_model')
 
     # Create folds for cross-validated DSM metrics
-    folds = _create_folds(data, y, n_folds)
+    folds = _create_folds(data, y, n_folds, n_jobs)
     # The data is now folds x items x n_series x ...
 
     centers = _get_time_patch_centers(n_samples, temporal_radius)
@@ -94,16 +95,10 @@ def rsa_spattemp(data, dsm_model, dist, spatial_radius, temporal_radius,
         if verbose:
             pbar.close()
 
-    # Use multiple cores to do the RSA computation
-    results = []
-    parallel, my_rsa_searchlight_step, _ = mne.parallel.parallel_func(
-        _rsa, n_jobs, verbose=False)
-
-    # Run RSA for each spatial patch
-    results = []
-    results += parallel(
-        my_rsa_searchlight_step(
-            patch, dsm_model, data_dsm_metric, data_dsm_params, rsa_metric)
+    # Run RSA for each spatial patch, use multiple cores.
+    results = Parallel(n_jobs)(
+        delayed(_rsa)(patch, dsm_model, data_dsm_metric, data_dsm_params,
+                      rsa_metric)
         for patch in patch_iterator()
     )
     results = np.array(results)
@@ -176,7 +171,7 @@ def rsa_spat(data, dsm_model, dist, spatial_radius, y=None,
     results = []
 
     # Create folds for cross-validated DSM metrics
-    folds = _create_folds(data, y, n_folds)
+    folds = _create_folds(data, y, n_folds, n_jobs)
     # The data is now folds x items x n_series x ...
 
     # Progress bar
@@ -267,7 +262,7 @@ def rsa_temp(data, dsm_model, temporal_radius, y=None,
         pbar = tqdm(total=len(centers))
 
     # Create folds for cross-validated DSM metrics
-    folds = _create_folds(data, y, n_folds)
+    folds = _create_folds(data, y, n_folds, n_jobs)
     # The data is now folds x items x ... x n_samples
 
     for center in centers:

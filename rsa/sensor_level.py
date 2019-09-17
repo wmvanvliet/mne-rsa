@@ -259,7 +259,7 @@ def rsa_epochs(epochs, dsm_model, y=None, noise_cov=None,
     # Check for compatibility of the evokeds and the model features
     for dsm in dsm_model:
         n_items = _n_items_from_dsm(dsm)
-        if np.unique(y) != n_items:
+        if len(np.unique(y)) != n_items:
             raise ValueError(
                 'The number of items in `dsm_model` (%d) does not match '
                 'the number of items encoded in the %s (%d).'
