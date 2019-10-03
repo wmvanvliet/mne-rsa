@@ -21,13 +21,13 @@ from scipy.linalg import block_diag
 
 from .rsa import (_get_time_patch_centers, rsa_spattemp, rsa_spat, rsa_temp,
                   _rsa)
-from .dsm import compute_dsm, _n_items_from_dsm
+from .dsm import _n_items_from_dsm
 
 
 def rsa_source_level(stcs, dsm_model, src, y=None, spatial_radius=0.04,
                      temporal_radius=0.1, stc_dsm_metric='sqeuclidean',
-                     rsa_metric='spearman', n_folds=None, n_jobs=1,
-                     verbose=False):
+                     stc_dsm_params=None, rsa_metric='spearman', n_folds=None,
+                     n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern across the cortex.
 
     The output is a source estimate where the "signal" at each source point is
@@ -156,19 +156,22 @@ def rsa_source_level(stcs, dsm_model, src, y=None, spatial_radius=0.04,
     # Perform the RSA
     if spatial_radius is not None and temporal_radius is not None:
         data = rsa_spattemp(X, dsm_model, dist, spatial_radius,
-                            temporal_radius, stc_dsm_metric, rsa_metric,
-                            n_folds, n_jobs, verbose)
+                            temporal_radius, y, stc_dsm_metric,
+                            stc_dsm_params, rsa_metric, n_folds, n_jobs,
+                            verbose)
     elif spatial_radius is not None:
-        data = rsa_spat(X, dsm_model, dist, spatial_radius, stc_dsm_metric,
-                        rsa_metric, n_folds, n_jobs, verbose)
+        data = rsa_spat(X, dsm_model, dist, spatial_radius, y,
+                        stc_dsm_metric, stc_dsm_params, rsa_metric,
+                        n_folds, n_jobs, verbose)
         data = data[:, np.newaxis, :]
     elif temporal_radius is not None:
-        data = rsa_temp(X, dsm_model, temporal_radius, stc_dsm_metric,
-                        rsa_metric, n_folds, n_jobs, verbose)
+        data = rsa_temp(X, dsm_model, temporal_radius, y, stc_dsm_metric,
+                        stc_dsm_params, rsa_metric, n_folds, n_jobs,
+                        verbose)
         data = data[np.newaxis, :, :]
     else:
-        data = _rsa(X, dsm_model, stc_dsm_metric, rsa_metric, n_folds, n_jobs,
-                    verbose)
+        data = _rsa(X, dsm_model, y, stc_dsm_metric, stc_dsm_params,
+                    rsa_metric, n_folds, n_jobs, verbose)
         data = data[np.newaxis, np.newaxis, :]
 
     # Pack the result in a SourceEstimate object

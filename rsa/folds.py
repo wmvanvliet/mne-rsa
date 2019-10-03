@@ -26,6 +26,7 @@ def _create_folds(X, y, n_folds=None, n_jobs=1):
         folds = Parallel(n_jobs)(
             delayed(_compute_item_means)(X, y_one_hot, fold)
             for _, fold in StratifiedKFold(n_folds).split(X, y)
+        )
     return np.array(folds)
 
 

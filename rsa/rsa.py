@@ -312,13 +312,26 @@ def _rsa(folds, dsm_model, data_dsm_metric='sqeuclidean',
     if type(dsm_model) is not list:
         dsm_model = [dsm_model]
 
-    rs = []
-    for dsm_model_ in dsm_model:
-        if rsa_metric == 'spearman':
-            r, _ = stats.spearmanr(dsm_data.ravel(), dsm_model_.ravel())
-        else:
-            r, _ = stats.pearsonr(dsm_data.ravel(), dsm_model_.ravel())
-        rs.append(r)
+    if rsa_metric == 'spearman':
+        rs = [stats.spearmanr(dsm_data.ravel(), dsm_model_.ravel())[0]
+              for dsm_model_ in dsm_model]
+    elif rsa_metric == 'pearson':
+        rs = [stats.pearsonr(dsm_data.ravel(), dsm_model_.ravel())[0]
+              for dsm_model_ in dsm_model]
+    elif rsa_metric == 'partial':
+        if len(dsm_model) == 1:
+            raise ValueError('Need more than one model DSM to use partial '
+                             'correlation as metric.')
+        X = np.hstack([dsm_data.ravel()] + dsm_model).T
+        X -= X.mean(axis=0)
+        cov_X_inv = np.linalg.pinv(X.T @ X)
+        cov_X_inv_diag = np.diag(cov_X_inv)
+        R_partial = cov_X_inv / np.sqrt(np.outer(cov_X_inv_diag))
+        rs = -R_partial[0, 1:]
+    elif rsa_metric == 'regression':
+        X = np.atleast_2d(np.hstack(dsm_model)).T
+        X -= X.mean(axis=0)
+        rs = np.linalg.lstsq(X, dsm_data.ravel(), rcond=None)[0]
 
     if type(dsm_model) is not list:
         return rs[0]
