@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import OneHotEncoder
-from joblib import Parallel, delayed
 
 
 def _create_folds(X, y, n_folds=None, n_jobs=1):
@@ -21,12 +20,9 @@ def _create_folds(X, y, n_folds=None, n_jobs=1):
         # Making one fold is easy
         folds = [_compute_item_means(X, y_one_hot)]
     else:
-        # Computing the mean for each fold can be slow on big datasets. Hence
-        # we allow for multiple cores to be used.
-        folds = Parallel(n_jobs)(
-            delayed(_compute_item_means)(X, y_one_hot, fold)
-            for _, fold in StratifiedKFold(n_folds).split(X, y)
-        )
+        folds = []
+        for _, fold in StratifiedKFold(n_folds).split(X, y):
+            folds.append(_compute_item_means(X, y_one_hot, fold))
     return np.array(folds)
 
 
@@ -52,5 +48,13 @@ def _compute_item_means(X, y_one_hot, fold=slice(None, None)):
     X = X[fold]
     y_one_hot = y_one_hot[fold]
     n_per_class = y_one_hot.sum(axis=0)
-    sums = (X.T @ y_one_hot)
-    return (sums / n_per_class).T
+
+    # The following computations go much faster when X is flattened.
+    orig_shape = X.shape
+    X_flat = X.reshape(len(X), -1)
+
+    # Compute the mean for each item using matrix multiplication
+    means = (y_one_hot.T @ X_flat) / n_per_class[:, np.newaxis]
+
+    # Undo the flattening of X
+    return means.reshape((len(means),) + orig_shape[1:])
