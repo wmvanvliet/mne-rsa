@@ -55,13 +55,13 @@ def rsa_gen(dsm_data_gen, dsm_model, metric='spearman'):
     """
     if type(dsm_model) == list:
         return_array = True
-        dsm_model = [_ensure_condensed(dsm) for dsm in dsm_model]
+        dsm_model = [_ensure_condensed(dsm, 'dsm_model') for dsm in dsm_model]
     else:
         return_array = False
-        dsm_model = [_ensure_condensed(dsm_model)]
+        dsm_model = [_ensure_condensed(dsm_model, 'dsm_model')]
 
     for dsm_data in dsm_data_gen:
-        dsm_data = _ensure_condensed(dsm_data)
+        dsm_data = _ensure_condensed(dsm_data, 'dsm_data')
         if metric == 'spearman':
             rsa_vals = [stats.spearmanr(dsm_data, dsm_model_)[0]
                         for dsm_model_ in dsm_model]
@@ -89,10 +89,10 @@ def rsa_gen(dsm_data_gen, dsm_model, metric='spearman'):
             raise ValueError("Invalid RSA metric, must be one of: 'spearman', "
                              "'pearson', 'partial', 'regression' or "
                              "'kendall-tau-a'.")
-            if return_array:
-                yield np.asarray(rsa_vals)
-            else:
-                yield rsa_vals[0]
+        if return_array:
+            yield np.asarray(rsa_vals)
+        else:
+            yield rsa_vals[0]
 
 
 def rsa(dsm_data, dsm_model, metric='spearman'):

@@ -331,7 +331,7 @@ def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
         pbar.close()
 
 
-def rsa_temp(data, temporal_radius, dist_metric='correlation',
+def dsm_temp(data, temporal_radius, dist_metric='correlation',
              dist_params=None, y=None, n_folds=1, verbose=False):
     """Generator of DSMs using a searchlight in time.
 
