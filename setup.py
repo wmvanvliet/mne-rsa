@@ -13,7 +13,7 @@ if __name__ == "__main__":
         description='Code for performing Representational Similarity Analysis on MNE-Python data structures.',
         license='BSD-3',
         url='https://version.aalto.fi/gitlab/vanvlm1/rsa',
-        version='0.2',
+        version='0.3',
         download_url='https://version.aalto.fi/gitlab/vanvlm1/rsa/repository/archive.zip?ref=master',
         long_description=open('README.md').read(),
         classifiers=['Intended Audience :: Science/Research',

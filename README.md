@@ -44,21 +44,21 @@ def compute_dsm(model, pca=False, metric='correlation', **kwargs)
 
 def rsa_source_level(stcs, model_dsm, src, y=None,
                      spatial_radius=0.04, temporal_radius=0.1,
-		     stc_dsm_metric='correlation', stc_dsm_params=None,
-		     rsa_metric='spearman',
+		             stc_dsm_metric='correlation', stc_dsm_params=None,
+		             rsa_metric='spearman',
                      n_jobs=1, verbose=False)
 
 def rsa_evokeds(evokeds, model_dsm, y=None, noise_cov=None,
-		spatial_radius=0.04, temporal_radius=0.1,
+                spatial_radius=0.04, temporal_radius=0.1,
                 evoked_dsm_metric='correlation', evoked_dsm_params=None,
-		rsa_metric='spearman',
+		        rsa_metric='spearman',
                 n_jobs=1, verbose=False)
 
 def rsa_epochs(epochs, model_dsm, y=None, noise_cov=None,
-		spatial_radius=0.04, temporal_radius=0.1,
-                evoked_dsm_metric='correlation', epochs_dsm_params=None,
-		rsa_metric='spearman',
-                n_jobs=1, verbose=False)
+		       spatial_radius=0.04, temporal_radius=0.1,
+               evoked_dsm_metric='correlation', epochs_dsm_params=None,
+		       rsa_metric='spearman',
+               n_jobs=1, verbose=False)
 ```
 
 ## Example usage
@@ -75,5 +75,5 @@ evokeds = [epochs[w].average() for w in epochs.metadata['WORD']]
 dsm_model = rsa.compute_dsm(epochs.metadata.iloc[:, 1:].values)
 evoked_rsa = rsa.rsa_evokeds(evokeds, model,
                              spatial_radius=0.04, temporal_radius=0.01,
-			     verbose=True)
+			                 verbose=True)
 ```
