@@ -16,15 +16,14 @@ import numpy as np
 from scipy.spatial import distance
 import mne
 
-from .rsa import (_get_time_patch_centers, rsa_spattemp, rsa_spat, rsa_temp,
-                  _rsa)
-from .dsm import _n_items_from_dsm
+from .dsm import _get_time_patch_centers, _n_items_from_dsm
+from .rsa import rsa_array
 
 
-def rsa_evokeds(evokeds, dsm_model, y=None, noise_cov=None,
-                spatial_radius=0.04, temporal_radius=0.1,
-                evoked_dsm_metric='sqeuclidean', evoked_dsm_params=None,
-                rsa_metric='spearman', n_folds=None, n_jobs=1, verbose=False):
+def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
+                temporal_radius=0.1, evoked_dsm_metric='sqeuclidean',
+                evoked_dsm_params=None, rsa_metric='spearman', y=None,
+                n_folds=None, n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern on evokeds.
 
     The output is an Evoked object where the "signal" at each sensor is
@@ -43,10 +42,6 @@ def rsa_evokeds(evokeds, dsm_model, y=None, noise_cov=None,
         against multiple models at the same time, supply a list of model DSMs.
 
         Use :func:`rsa.compute_dsm` to compute DSMs.
-    y : ndarray of int, shape (n_items,) | None
-        For each Evoked, a number indicating the item to which it belongs.
-        When ``None``, each Evoked is assumed to belong to a different item.
-        Defaults to ``None``.
     noise_cov : mne.Covariance | None
         When specified, the data will by normalized using the noise covariance.
         This is recommended in all cases, but a hard requirement when the data
@@ -68,10 +63,15 @@ def rsa_evokeds(evokeds, dsm_model, y=None, noise_cov=None,
         The metric to use to compare the stc and model DSMs. This can either be
         'spearman' correlation or 'pearson' correlation.
         Defaults to 'spearman'.
+    y : ndarray of int, shape (n_items,) | None
+        For each Evoked, a number indicating the item to which it belongs.
+        When ``None``, each Evoked is assumed to belong to a different item.
+        Defaults to ``None``.
     n_folds : int | None
-        Number of folds to use when using cross-validation to compute the
-        evoked DSM metric.  Defaults to ``None``, which means the maximum
-        number of folds possible, given the data.
+        Number of cross-validation folds to use when computing the distance
+        metric. Folds are created based on the ``y`` parameter. Specify -1 to
+        use the maximum number of folds possible, given the data.
+        Defaults to 1 (no cross-validation).
     n_jobs : int
         The number of processes (=number of CPU cores) to use. Specify -1 to
         use all available cores. Defaults to 1.
@@ -92,7 +92,7 @@ def rsa_evokeds(evokeds, dsm_model, y=None, noise_cov=None,
     --------
     compute_dsm
     """
-    one_model = type(dsm_model) is np.ndarray
+    one_model = type(dsm_model) != list
     if one_model:
         dsm_model = [dsm_model]
 
@@ -136,25 +136,11 @@ def rsa_evokeds(evokeds, dsm_model, y=None, noise_cov=None,
     dist = distance.squareform(distance.pdist(locs))
 
     # Perform the RSA
-    if spatial_radius is not None and temporal_radius is not None:
-        data = rsa_spattemp(X, dsm_model, dist, spatial_radius,
-                            temporal_radius, y, evoked_dsm_metric,
-                            evoked_dsm_params, rsa_metric, n_folds, n_jobs,
-                            verbose)
-    elif spatial_radius is not None:
-        data = rsa_spat(X, dsm_model, dist, spatial_radius, y,
-                        evoked_dsm_metric, evoked_dsm_params, rsa_metric,
-                        n_folds, n_jobs, verbose)
-        data = data[:, np.newaxis, :]
-    elif temporal_radius is not None:
-        data = rsa_temp(X, dsm_model, temporal_radius, y, evoked_dsm_metric,
-                        evoked_dsm_params, rsa_metric, n_folds, n_jobs,
-                        verbose)
-        data = data[np.newaxis, :, :]
-    else:
-        data = _rsa(X, dsm_model, y, evoked_dsm_metric, evoked_dsm_params,
-                    rsa_metric, n_folds, n_jobs, verbose)
-        data = data[np.newaxis, np.newaxis, :]
+    data = rsa_array(X, dsm_model, dist=dist, spatial_radius=spatial_radius,
+                     temporal_radius=temporal_radius,
+                     data_dsm_metric=evoked_dsm_metric,
+                     data_dsm_params=evoked_dsm_params, rsa_metric=rsa_metric,
+                     y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
 
     # Pack the result in an Evoked object
     if temporal_radius is not None:
@@ -176,10 +162,10 @@ def rsa_evokeds(evokeds, dsm_model, y=None, noise_cov=None,
                 for i in range(data.shape[-1])]
 
 
-def rsa_epochs(epochs, dsm_model, y=None, noise_cov=None,
-               spatial_radius=0.04, temporal_radius=0.1,
-               epochs_dsm_metric='sqeuclidean', epochs_dsm_params=None,
-               rsa_metric='spearman', n_folds=None, n_jobs=1, verbose=False):
+def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
+               temporal_radius=0.1, epochs_dsm_metric='sqeuclidean',
+               epochs_dsm_params=None, rsa_metric='spearman', y=None,
+               n_folds=None, n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern on epochs.
 
     The output is an Evoked object where the "signal" at each sensor is
@@ -197,10 +183,6 @@ def rsa_epochs(epochs, dsm_model, y=None, noise_cov=None,
         against multiple models at the same time, supply a list of model DSMs.
 
         Use :func:`rsa.compute_dsm` to compute DSMs.
-    y : ndarray of int, shape (n_items,) | None
-        For each Epoch, a number indicating the item to which it belongs.
-        When ``None``, the event codes are used to differentiate between items.
-        Defaults to ``None``.
     noise_cov : mne.Covariance | None
         When specified, the data will by normalized using the noise covariance.
         This is recommended in all cases, but a hard requirement when the data
@@ -222,10 +204,16 @@ def rsa_epochs(epochs, dsm_model, y=None, noise_cov=None,
         The metric to use to compare the stc and model DSMs. This can either be
         'spearman' correlation or 'pearson' correlation.
         Defaults to 'spearman'.
+    y : ndarray of int, shape (n_items,) | None
+        For each Epoch, a number indicating the item to which it belongs.
+        When ``None``, the event codes are used to differentiate between items.
+        Defaults to ``None``.
     n_folds : int | None
-        Number of folds to use when using cross-validation to compute the
-        evoked DSM metric.  Defaults to ``None``, which means the maximum
-        number of folds possible, given the data.
+        Number of cross-validation folds to use when computing the distance
+        metric. Folds are created based on the ``y`` parameter, or the event
+        codes if ``y`` is not specified. Specify -1 to use the maximum number
+        of folds possible, given the data.
+        Defaults to 1 (no cross-validation).
     n_jobs : int
         The number of processes (=number of CPU cores) to use. Specify -1 to
         use all available cores. Defaults to 1.
@@ -271,11 +259,11 @@ def rsa_epochs(epochs, dsm_model, y=None, noise_cov=None,
         if temporal_radius < 1:
             raise ValueError('Temporal radius is less than one sample.')
 
-    ## Normalize with the noise cov
-    #if noise_cov is not None:
-    #    diag = spatial_radius is not None
-    #    evokeds = [mne.whiten_evoked(evoked, noise_cov, diag=diag)
-    #               for evoked in evokeds]
+    # # Normalize with the noise cov
+    # if noise_cov is not None:
+    #     diag = spatial_radius is not None
+    #     evokeds = [mne.whiten_evoked(evoked, noise_cov, diag=diag)
+    #                for evoked in evokeds]
 
     # Construct a big array containing all brain data
     X = epochs.get_data()
@@ -285,25 +273,11 @@ def rsa_epochs(epochs, dsm_model, y=None, noise_cov=None,
     dist = distance.squareform(distance.pdist(locs))
 
     # Perform the RSA
-    if spatial_radius is not None and temporal_radius is not None:
-        data = rsa_spattemp(X, dsm_model, dist, spatial_radius,
-                            temporal_radius, y, epochs_dsm_metric,
-                            epochs_dsm_params, rsa_metric, n_folds, n_jobs,
-                            verbose)
-    elif spatial_radius is not None:
-        data = rsa_spat(X, dsm_model, dist, spatial_radius, y,
-                        epochs_dsm_metric, epochs_dsm_params, rsa_metric,
-                        n_folds, n_jobs, verbose)
-        data = data[:, np.newaxis, :]
-    elif temporal_radius is not None:
-        data = rsa_temp(X, dsm_model, temporal_radius, y, epochs_dsm_metric,
-                        epochs_dsm_params, rsa_metric, n_folds, n_jobs,
-                        verbose)
-        data = data[np.newaxis, :, :]
-    else:
-        data = _rsa(X, dsm_model, y, epochs_dsm_metric, epochs_dsm_params,
-                    rsa_metric, n_folds, n_jobs, verbose)
-        data = data[np.newaxis, np.newaxis, :]
+    data = rsa_array(X, dsm_model, dist=dist, spatial_radius=spatial_radius,
+                     temporal_radius=temporal_radius,
+                     data_dsm_metric=epochs_dsm_metric,
+                     data_dsm_params=epochs_dsm_params, rsa_metric=rsa_metric,
+                     y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
 
     # Pack the result in an Evoked object
     if temporal_radius is not None:
