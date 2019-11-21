@@ -10,7 +10,6 @@ Ossi Lehtonen <ossi.lehtonen@aalto.fi>
 """
 
 import numpy as np
-import mne
 from scipy import stats
 from joblib import Parallel, delayed
 
@@ -108,7 +107,7 @@ def rsa_spattemp(data, dsm_model, dist, spatial_radius, temporal_radius,
 
 def rsa_spat(data, dsm_model, dist, spatial_radius, y=None,
              data_dsm_metric='sqeuclidean', data_dsm_params=None,
-             rsa_metric='spearman', n_folds=None, n_jobs=1, verbose=False):
+             rsa_metric='spearman', n_folds=None, verbose=False):
     """Compute spatial RSA using a searchlight pattern.
 
     Computes RSA across space using a searchlight pattern, flattens the
@@ -151,9 +150,6 @@ def rsa_spat(data, dsm_model, dist, spatial_radius, y=None,
         Number of folds to use when using a cross-validation DSM metric.
         Defaults to ``None``, which means the maximum number of folds possible,
         given the data.
-    n_jobs : int
-        The number of processes (=number of CPU cores) to use. Specify -1 to
-        use all available cores. Defaults to 1.
     verbose : bool
         Whether to display a progress bar. In order for this to work, you need
         the tqdm python module installed. Defaults to False.
@@ -171,7 +167,7 @@ def rsa_spat(data, dsm_model, dist, spatial_radius, y=None,
     results = []
 
     # Create folds for cross-validated DSM metrics
-    folds = _create_folds(data, y, n_folds, n_jobs)
+    folds = _create_folds(data, y, n_folds)
     # The data is now folds x items x n_series x ...
 
     # Progress bar
@@ -195,7 +191,7 @@ def rsa_spat(data, dsm_model, dist, spatial_radius, y=None,
 
 def rsa_temp(data, dsm_model, temporal_radius, y=None,
              data_dsm_metric='sqeuclidean', data_dsm_params=None,
-             rsa_metric='spearman', n_folds=None, n_jobs=1, verbose=False):
+             rsa_metric='spearman', n_folds=None, verbose=False):
     """Perform temporal RSA analysis using a searchlight in time.
 
     Computes RSA across time using a searchlight, flattens the spatial
@@ -233,9 +229,6 @@ def rsa_temp(data, dsm_model, temporal_radius, y=None,
         Number of folds to use when using a cross-validation DSM metric.
         Defaults to ``None``, which means the maximum number of folds possible,
         given the data.
-    n_jobs : int
-        The number of processes (=number of CPU cores) to use. Specify -1 to
-        use all available cores. Defaults to 1.
     verbose : bool
         Whether to display a progress bar. In order for this to work, you need
         the tqdm python module installed. Defaults to False.
@@ -262,7 +255,7 @@ def rsa_temp(data, dsm_model, temporal_radius, y=None,
         pbar = tqdm(total=len(centers))
 
     # Create folds for cross-validated DSM metrics
-    folds = _create_folds(data, y, n_folds, n_jobs)
+    folds = _create_folds(data, y, n_folds)
     # The data is now folds x items x ... x n_samples
 
     for center in centers:
@@ -296,6 +289,16 @@ def _get_time_patch_centers(n_samples, temporal_radius):
     return list(range(temporal_radius, n_samples - temporal_radius + 1))
 
 
+def _kendall_tau_a(a, b):
+    n = len(a)
+    K = 0
+    for k in range(0, n - 1):
+        pair_relations_a = np.sign(a[k] - a[k + 1:])
+        pair_relations_b = np.sign(b[k] - b[k + 1:])
+        K += np.sum(pair_relations_a * pair_relations_b)
+    return K / (n * (n - 1) / 2)
+
+
 def _rsa(folds, dsm_model, data_dsm_metric='sqeuclidean',
          data_dsm_params=None, rsa_metric='spearman'):
     """Perform RSA between some data and a model DSM."""
@@ -310,19 +313,24 @@ def _rsa(folds, dsm_model, data_dsm_metric='sqeuclidean',
                                   **data_dsm_params)
 
     if type(dsm_model) is not list:
-        dsm_model = [dsm_model]
+        dsm_model = [_ensure_condensed(dsm_model)]
+    else:
+        dsm_model = [_ensure_condensed(dsm) for dsm in dsm_model]
 
     if rsa_metric == 'spearman':
-        rs = [stats.spearmanr(dsm_data.ravel(), dsm_model_.ravel())[0]
+        rs = [stats.spearmanr(dsm_data, dsm_model_)[0]
               for dsm_model_ in dsm_model]
     elif rsa_metric == 'pearson':
-        rs = [stats.pearsonr(dsm_data.ravel(), dsm_model_.ravel())[0]
+        rs = [stats.pearsonr(dsm_data, dsm_model_)[0]
+              for dsm_model_ in dsm_model]
+    elif rsa_metric == 'kendall-tau-a':
+        rs = [_kendall_tau_a(dsm_data, dsm_model_)
               for dsm_model_ in dsm_model]
     elif rsa_metric == 'partial':
         if len(dsm_model) == 1:
             raise ValueError('Need more than one model DSM to use partial '
                              'correlation as metric.')
-        X = np.hstack([dsm_data.ravel()] + dsm_model).T
+        X = np.hstack([dsm_data] + dsm_model).T
         X -= X.mean(axis=0)
         cov_X_inv = np.linalg.pinv(X.T @ X)
         cov_X_inv_diag = np.diag(cov_X_inv)
@@ -331,9 +339,9 @@ def _rsa(folds, dsm_model, data_dsm_metric='sqeuclidean',
     elif rsa_metric == 'regression':
         X = np.atleast_2d(np.hstack(dsm_model)).T
         X -= X.mean(axis=0)
-        rs = np.linalg.lstsq(X, dsm_data.ravel(), rcond=None)[0]
-
-    if type(dsm_model) is not list:
-        return rs[0]
+        rs = np.linalg.lstsq(X, dsm_data, rcond=None)[0]
     else:
-        return rs
+        raise ValueError("Invalid rsa_metric, must be one of: 'spearman', "
+                         "'pearson', 'partial', 'regression' or "
+                         "'kendall-tau-a'.")
+    return rs
