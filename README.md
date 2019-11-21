@@ -70,10 +70,9 @@ import mne
 import rsa
 data_path = mne.datasets.kiloword.data_path(verbose=True)
 epochs = mne.read_epochs(data_path + '/kword_metadata-epo.fif')
-evokeds = [epochs[w].average() for w in epochs.metadata['WORD']]
 # Compute the model DSM using all word properties
 dsm_model = rsa.compute_dsm(epochs.metadata.iloc[:, 1:].values)
-evoked_rsa = rsa.rsa_evokeds(evokeds, model,
-                             spatial_radius=0.04, temporal_radius=0.01,
-			                 verbose=True)
+evoked_rsa = rsa.rsa_epochs(epochs, dsm_model,
+                            spatial_radius=0.04, temporal_radius=0.01,
+			                verbose=True)
 ```
