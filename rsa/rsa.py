@@ -75,15 +75,15 @@ def rsa_gen(dsm_data_gen, dsm_model, metric='spearman'):
             if len(dsm_model) == 1:
                 raise ValueError('Need more than one model DSM to use partial '
                                  'correlation as metric.')
-            X = np.hstack([dsm_data] + dsm_model).T
-            X -= X.mean(axis=0)
+            X = np.vstack([dsm_data] + dsm_model).T
+            X = X - X.mean(axis=0)
             cov_X_inv = np.linalg.pinv(X.T @ X)
-            cov_X_inv_diag = np.diag(cov_X_inv)
-            R_partial = cov_X_inv / np.sqrt(np.outer(cov_X_inv_diag))
+            norm = np.sqrt(np.outer(np.diag(cov_X_inv), np.diag(cov_X_inv)))
+            R_partial = cov_X_inv / norm
             rsa_vals = -R_partial[0, 1:]
         elif metric == 'regression':
-            X = np.atleast_2d(np.hstack(dsm_model)).T
-            X -= X.mean(axis=0)
+            X = np.atleast_2d(np.array(dsm_model)).T
+            X = X - X.mean(axis=0)
             rsa_vals = np.linalg.lstsq(X, dsm_data, rcond=None)[0]
         else:
             raise ValueError("Invalid RSA metric, must be one of: 'spearman', "
