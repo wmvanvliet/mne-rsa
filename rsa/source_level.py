@@ -25,7 +25,7 @@ from .rsa import rsa_array
 
 def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
                      temporal_radius=0.1, stc_dsm_metric='sqeuclidean',
-                     stc_dsm_params=None, rsa_metric='spearman', y=None,
+                     stc_dsm_params=dict(), rsa_metric='spearman', y=None,
                      n_folds=None, n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern across the cortex.
 
@@ -57,8 +57,13 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
         Defaults to 0.1.
     stc_dsm_metric : str
         The metric to use to compute the DSM for the source estimates. This can
-        be any metric supported by the scipy.distance.pdist function. Defaults
-        to 'sqeuclidean'.
+        be any metric supported by the scipy.distance.pdist function. See also
+        the ``stc_dsm_params`` parameter to specify and additional parameter
+        for the distance function. Defaults to 'sqeuclidean'.
+    stc_dsm_params : dict
+        Extra arguments for the distance metric used to compute the DSMs.
+        Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
+        and their arguments. Defaults to an empty dictionary.
     rsa_metric : 'spearman' | 'pearson'
         The metric to use to compare the stc and model DSMs. This can either be
         'spearman' correlation or 'pearson' correlation.
@@ -105,7 +110,7 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
                 'number of items in `dsm_model` (%d). Alternatively, use '
                 'the `y` parameter to assign evokeds to items.'
                 % (len(stcs), n_items))
-        if y is not None and np.unique(y) != n_items:
+        if y is not None and len(np.unique(y)) != n_items:
             raise ValueError(
                 'The number of items in `dsm_model` (%d) does not match '
                 'the number of items encoded in the `y` matrix (%d).'
@@ -129,18 +134,19 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
             raise ValueError('Not all source estimates have the same '
                              'time points.')
 
-    # Convert the temporal radius to samples
-    temporal_radius = int(temporal_radius // stcs[0].tstep)
+    if temporal_radius is not None:
+        # Convert the temporal radius to samples
+        temporal_radius = int(temporal_radius // stcs[0].tstep)
 
-    if temporal_radius < 1:
-        raise ValueError('Temporal radius is less than one sample.')
+        if temporal_radius < 1:
+            raise ValueError('Temporal radius is less than one sample.')
 
     # During inverse computation, the source space was downsampled (i.e. using
     # ico4). Construct vertex-to-vertex distance matrices using only the
     # vertices that are defined in the source solution.
     dist = []
     for hemi in [0, 1]:
-        inuse = np.flatnonzero(src[0]['inuse'])
+        inuse = np.flatnonzero(src[hemi]['inuse'])
         dist.append(src[hemi]['dist'][np.ix_(inuse, inuse)].toarray())
 
     # Collect the distances in a single matrix

@@ -22,7 +22,7 @@ from .rsa import rsa_array
 
 def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
                 temporal_radius=0.1, evoked_dsm_metric='sqeuclidean',
-                evoked_dsm_params=None, rsa_metric='spearman', y=None,
+                evoked_dsm_params=dict(), rsa_metric='spearman', y=None,
                 n_folds=None, n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern on evokeds.
 
@@ -57,8 +57,14 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
         Defaults to 0.1.
     evoked_dsm_metric : str
         The metric to use to compute the DSM for the evokeds. This can be any
-        metric supported by the scipy.distance.pdist function. Defaults to
+        metric supported by the scipy.distance.pdist function. See also the
+        ``evoked_dsm_params`` parameter to specify and additional parameter for the
+        distance function. Defaults to
         'sqeuclidean'.
+    evoked_dsm_params : dict
+        Extra arguments for the distance metric used to compute the DSMs.
+        Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
+        and their arguments. Defaults to an empty dictionary.
     rsa_metric : 'spearman' | 'pearson'
         The metric to use to compare the stc and model DSMs. This can either be
         'spearman' correlation or 'pearson' correlation.
@@ -164,7 +170,7 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
 
 def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
                temporal_radius=0.1, epochs_dsm_metric='sqeuclidean',
-               epochs_dsm_params=None, rsa_metric='spearman', y=None,
+               epochs_dsm_params=dict(), rsa_metric='spearman', y=None,
                n_folds=None, n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern on epochs.
 
@@ -196,10 +202,15 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
         The temporal radius of the searchlight patch in seconds. Set to None to
         only perform the searchlight over sensors, flattening across time.
         Defaults to 0.1.
-    evoked_dsm_metric : str
+    epochs_dsm_metric : str
         The metric to use to compute the DSM for the evokeds. This can be any
-        metric supported by the scipy.distance.pdist function. Defaults to
-        'sqeuclidean'.
+        metric supported by the scipy.distance.pdist function. See also the
+        ``epochs_dsm_params`` parameter to specify and additional parameter for
+        the distance function. Defaults to 'sqeuclidean'.
+    epochs_dsm_params : dict
+        Extra arguments for the distance metric used to compute the DSMs.
+        Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
+        and their arguments. Defaults to an empty dictionary.
     rsa_metric : 'spearman' | 'pearson'
         The metric to use to compare the stc and model DSMs. This can either be
         'spearman' correlation or 'pearson' correlation.

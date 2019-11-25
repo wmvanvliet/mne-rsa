@@ -5,7 +5,6 @@ Methods to compute dissimilarity matrices (DSMs).
 
 import numpy as np
 from scipy.spatial import distance
-from joblib import Parallel, delayed
 
 from .folds import _create_folds
 
@@ -135,8 +134,8 @@ def _n_items_from_dsm(dsm):
 
 
 def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
-                 dist_metric='correlation', dist_params=None, y=None,
-                 n_folds=1, n_jobs=1, verbose=False):
+                 dist_metric='correlation', dist_params=dict(), y=None,
+                 n_folds=1, verbose=False):
     """Generator of DSMs using a spatio-temporal searchlight pattern.
 
     For each series (i.e. channel or vertex), each time sample is visited. For
@@ -173,10 +172,10 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
         supported by :func:`scipy.spatial.distance.pdist`. See also the
         ``dist_params`` parameter to specify and additional parameter for the
         distance function. Defaults to 'correlation'.
-    dist_params : dict | None
+    dist_params : dict
         Extra arguments for the distance metric used to compute the DSMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
-        and their arguments. Defaults to ``None``.
+        and their arguments. Defaults to an empty dictionary.
     y : ndarray of int, shape (n_items,) | None
         For each item, a number indicating the class to which the item belongs.
         When ``None``, each item is assumed to belong to a different class.
@@ -186,9 +185,6 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
         metric. Folds are created based on the ``y`` parameter. Specify -1 to
         use the maximum number of folds possible, given the data.
         Defaults to 1 (no cross-validation).
-    n_jobs : int
-        The number of processes (=number of CPU cores) to use. Specify -1 to
-        use all available cores. Defaults to 1.
     verbose : bool
         Whether to display a progress bar. In order for this to work, you need
         the tqdm python module installed. Defaults to ``False``.
@@ -207,44 +203,37 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
     n_series, n_samples = data.shape[1:]
 
     # Create folds for cross-validated DSM metrics
-    folds = _create_folds(data, y, n_folds, n_jobs)
+    folds = _create_folds(data, y, n_folds)
     # The data is now folds x items x n_series x n_times
 
     centers = _get_time_patch_centers(n_samples, temporal_radius)
 
-    def patch_iterator():
-        """Yields searchlight patches and displays a progressbar."""
-        if verbose:
-            from tqdm import tqdm
-            pbar = tqdm(total=n_series * len(centers))
-        for series in range(n_series):
-            for sample in centers:
-                patch = folds[
-                    :, :,
-                    np.flatnonzero(dist[series] < spatial_radius), ...,
-                    sample - temporal_radius:sample + temporal_radius
-                ]
-                if verbose:
-                    pbar.update(1)
-                yield patch
-        if verbose:
-            pbar.close()
+    if verbose:
+        from tqdm import tqdm
+        pbar = tqdm(total=n_series * len(centers))
 
-    if len(folds) == 1:
-        dsm_func = compute_dsm
-    else:
-        dsm_func = compute_dsm_cv
+    # Iteratore over spatio-temporal searchlight patches
+    for series in range(n_series):
+        for sample in centers:
+            patch = folds[
+                :, :,
+                np.flatnonzero(dist[series] < spatial_radius), ...,
+                sample - temporal_radius:sample + temporal_radius
+            ]
+            if len(folds) == 1:
+                dsm_func = compute_dsm
+            else:
+                dsm_func = compute_dsm_cv
+            yield dsm_func(patch, dist_metric, **dist_params)
+            if verbose:
+                pbar.update(1)
 
-    # Compute a DSM for each searchlight patch, use multiple cores.
-    dsm_gen = Parallel(n_jobs)(
-        delayed(dsm_func)(patch, dist_metric, **dist_params)
-        for patch in patch_iterator()
-    )
-    yield next(dsm_gen)
+    if verbose:
+        pbar.close()
 
 
 def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
-             dist_params=None, y=None, n_folds=1, verbose=False):
+             dist_params=dict(), y=None, n_folds=1, verbose=False):
     """Generator of DSMs using a spatial searchlight pattern.
 
     Each time series (i.e. channel or vertex) is visited. For each visited
@@ -277,10 +266,10 @@ def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
         supported by :func:`scipy.spatial.distance.pdist`. See also the
         ``dist_params`` parameter to specify and additional parameter for the
         distance function. Defaults to 'correlation'.
-    dist_params : dict | None
+    dist_params : dict
         Extra arguments for the distance metric used to compute the DSMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
-        and their arguments. Defaults to ``None``.
+        and their arguments. Defaults to an empty dictionary.
     y : ndarray of int, shape (n_items,) | None
         For each item, a number indicating the class to which the item belongs.
         When ``None``, each item is assumed to belong to a different class.
@@ -332,7 +321,7 @@ def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
 
 
 def dsm_temp(data, temporal_radius, dist_metric='correlation',
-             dist_params=None, y=None, n_folds=1, verbose=False):
+             dist_params=dict(), y=None, n_folds=1, verbose=False):
     """Generator of DSMs using a searchlight in time.
 
     Each time sample is visited. For each visited sample, a DSM is computed
@@ -367,10 +356,10 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
         supported by :func:`scipy.spatial.distance.pdist`. See also the
         ``dist_params`` parameter to specify and additional parameter for the
         distance function. Defaults to 'correlation'.
-    dist_params : dict | None
+    dist_params : dict
         Extra arguments for the distance metric used to compute the DSMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
-        and their arguments. Defaults to ``None``.
+        and their arguments. Defaults to an empty dictionary.
     y : ndarray of int, shape (n_items,) | None
         For each item, a number indicating the class to which the item belongs.
         When ``None``, each item is assumed to belong to a different class.
