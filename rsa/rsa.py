@@ -6,6 +6,7 @@ Methods to compute representational similarity analysis (RSA).
 from types import GeneratorType
 import numpy as np
 from scipy import stats
+from joblib import Parallel, delayed
 
 from .dsm import (_ensure_condensed, dsm_spattemp, dsm_spat, dsm_temp,
                   compute_dsm, compute_dsm_cv)
@@ -167,10 +168,14 @@ def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
         The temporal radius of the searchlight patch in samples. Set to None to
         only perform the searchlight over sensors/vertices, flattening across
         time. Defaults to ``None``.
-    stc_dsm_metric : str
+    data_dsm_metric : str
         The metric to use to compute the data DSMs. This can be any metric
         supported by the scipy.distance.pdist function. Defaults to
         'correlation'.
+    data_dsm_params : dict
+        Extra arguments for the distance metric used to compute the DSMs.
+        Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
+        and their arguments. Defaults to an empty dictionary.
     rsa_metric : 'spearman' | 'pearson'
         The metric to use to compare the stc and model DSMs. This can either be
         'spearman' correlation or 'pearson' correlation.
@@ -193,12 +198,12 @@ def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
 
     Returns
     -------
-    stc : SourceEstimate | list of SourceEstimate
-        The correlation values for each searchlight patch. When spatial_radius
-        is set to None, there will only be one vertex. When temporal_radius is
-        set to None, there will only be one time point. When multiple models
-        have been supplied, a list will be returned containing the RSA results
-        for each model.
+    rsa_vals : ndarray, shape (n_series, n_times[, n_model_dsms])
+        The RSA value for each searchlight patch. When ``spatial_radius`` is
+        set to ``None``, there will only be one series. When
+        ``temporal_radius`` is set to ``None``, there will only be one time
+        point. When multiple models have been supplied, the last dimension will
+        contain RSA results for each model.
 
     See Also
     --------

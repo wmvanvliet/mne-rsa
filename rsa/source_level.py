@@ -19,7 +19,7 @@ import numpy as np
 import mne
 from scipy.linalg import block_diag
 
-from .dsm import _get_time_patch_centers, _n_items_from_dsm
+from .dsm import _n_items_from_dsm
 from .rsa import rsa_array
 
 
@@ -166,8 +166,7 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
 
     # Pack the result in a SourceEstimate object
     if temporal_radius is not None:
-        first_ind = _get_time_patch_centers(X.shape[-1], temporal_radius)[0]
-        tmin = times[first_ind]
+        tmin = times[temporal_radius]
         tstep = stcs[0].tstep
     else:
         tmin = 0

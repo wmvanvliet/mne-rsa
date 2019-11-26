@@ -216,7 +216,7 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
     if sel_series is None:
         sel_series = range(n_series)
 
-    centers = _get_time_patch_centers(n_samples, temporal_radius)
+    centers = np.arange(temporal_radius, n_samples - temporal_radius + 1)
 
     if verbose:
         from tqdm import tqdm
@@ -409,7 +409,7 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
 
     Yields
     ------
-    dsm : ndarray, shape (chunk_size, n_items, n_items)
+    dsm : ndarray, shape (n_items, n_items)
         A DSM for each time sample
 
     See Also
@@ -456,19 +456,79 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
         pbar.close()
 
 
-def _get_time_patch_centers(n_samples, temporal_radius):
-    """Compute the centers for the temporal patches.
+def dsm_array(X, dist=None, spatial_radius=None, temporal_radius=None,
+              dist_metric='correlation', dist_params=None, y=None,
+              n_folds=None, verbose=False):
+    """Generate DSMs from an array of data, possibly in a searchlight pattern.
 
     Parameters
     ----------
-    n_samples : int
-        The total number of samples.
-    temporal_radius : int
-        The temporal radius of the patches in samples.
+    X : ndarray, shape (n_items, n_series, n_times)
+        An array containing the data.
+    dist : ndarray, shape (n_series, n_series) | None
+        The distances between all source points or sensors in meters.
+        Defaults to ``None``.
+    spatial_radius : floats | None
+        The spatial radius of the searchlight patch in meters. All source
+        points within this radius will belong to the searchlight patch. Set to
+        None to only perform the searchlight over time, flattening across
+        sensors. When this parameter is set, the ``dist`` parameter must also
+        be specified. Defaults to ``None``.
+    temporal_radius : float | None
+        The temporal radius of the searchlight patch in samples. Set to None to
+        only perform the searchlight over sensors/vertices, flattening across
+        time. Defaults to ``None``.
+    distance_metric : str
+        The metric to use to compute the data DSMs. This can be any metric
+        supported by the scipy.distance.pdist function. Defaults to
+        'correlation'.
+    y : ndarray of int, shape (n_items,) | None
+        For each item, a number indicating the class to which the item belongs.
+        When ``None``, each item is assumed to belong to a different class.
+        Defaults to ``None``.
+    n_folds : int | None
+        Number of cross-validation folds to use when computing the distance
+        metric. Folds are created based on the ``y`` parameter. Specify -1 to
+        use the maximum number of folds possible, given the data.
+        Defaults to 1 (no cross-validation).
+    verbose : bool
+        Whether to display a progress bar. In order for this to work, you need
+        the tqdm python module installed. Defaults to False.
 
-    Returns
-    -------
-    time_inds : list of int
-        For each temporal patch, the time-index of the middle of the patch
+    Yields
+    ------
+    dsm : ndarray, shape (n_items, n_items)
+        A DSM for each searchlight patch.
     """
-    return np.arange(temporal_radius, n_samples - temporal_radius + 1)
+    # Spatio-Temporal RSA
+    if spatial_radius is not None and temporal_radius is not None:
+        if dist is None:
+            raise ValueError('A spatial radius was requested, but no distance '
+                             'information was specified (=dist parameter).')
+        yield from dsm_spattemp(
+            X, dist, spatial_radius, temporal_radius, dist_metric, dist_params,
+            y, n_folds, verbose=verbose)
+
+    # Spatial RSA
+    elif spatial_radius is not None:
+        if dist is None:
+            raise ValueError('A spatial radius was requested, but no distance '
+                             'information was specified (=dist parameter).')
+        yield from dsm_spat(
+            X, dist, spatial_radius, dist_metric, dist_params, y, n_folds,
+            verbose=verbose)
+
+    # Temporal RSA
+    elif temporal_radius is not None:
+        yield from dsm_temp(
+            X, dist, spatial_radius, dist_metric, dist_params, y, n_folds,
+            verbose=verbose)
+
+    # RSA between two DSMs
+    else:
+        folds = _create_folds(X, y, n_folds)
+        if len(folds) == 1:
+            dsm_func = compute_dsm
+        else:
+            dsm_func = compute_dsm_cv
+        yield dsm_func(X, dist_metric, dist_params)
