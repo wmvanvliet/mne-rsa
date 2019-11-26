@@ -212,15 +212,23 @@ def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
                              'information was specified (=dist parameter).')
         n_series = X.shape[1]
         # Split the data into chunks. Each chunk will be processed in parallel.
-        chunks = np.arange(n_series).reshape(n_jobs, -1)
-        data = Parallel(n_jobs, verbose=1 if verbose else 0)(
-            delayed(rsa)(
+        chunks = _split(np.arange(n_series), n_jobs)
+
+        # Joblib does not support passing a generator as a function argument.
+        # To work around this, we wrap the call to rsa() inside a temporary
+        # function.
+        def call_rsa(sel_series, position):
+            return rsa(
                 dsm_data=dsm_spattemp(
                     X, dist, spatial_radius, temporal_radius, data_dsm_metric,
-                    data_dsm_params, y, n_folds, sel_series, verbose),
+                    data_dsm_params, y, n_folds, sel_series, verbose=position),
                 dsm_model=dsm_model,
                 metric=rsa_metric)
-            for sel_series in chunks)
+
+        data = Parallel(n_jobs, verbose=1 if verbose else 0)(
+            delayed(call_rsa)(sel_series, i)
+            for i, sel_series in enumerate(chunks, 1))
+
         data = np.vstack(data)
         data = data.reshape((n_series, -1) + data.shape[1:])
 
@@ -230,29 +238,43 @@ def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
             raise ValueError('A spatial radius was requested, but no distance '
                              'information was specified (=dist parameter).')
         # Split the data into chunks. Each chunk will be processed in parallel.
-        chunks = np.arange(len(X)).reshape(n_jobs, -1)
-        data = Parallel(n_jobs, verbose=1 if verbose else 0)(
-            delayed(rsa)(
+        chunks = _split(np.arange(len(X)), n_jobs)
+
+        # Joblib does not support passing a generator as a function argument.
+        # To work around this, we wrap the call to rsa() inside a temporary
+        # function.
+        def call_rsa(sel_series, position):
+            return rsa(
                 dsm_data=dsm_spat(
                     X, dist, spatial_radius, data_dsm_metric, data_dsm_params,
-                    y, n_folds, sel_series, verbose),
+                    y, n_folds, sel_series, verbose=position),
                 dsm_model=dsm_model,
                 metric=rsa_metric)
-            for sel_series in chunks)
+
+        data = Parallel(n_jobs, verbose=1 if verbose else 0)(
+            delayed(call_rsa)(sel_series, i)
+            for i, sel_series in enumerate(chunks, 1))
         data = np.vstack(data)[:, np.newaxis, ...]
 
     # Temporal RSA
     elif temporal_radius is not None:
         # Split the data into chunks. Each chunk will be processed in parallel.
-        chunks = np.arange(X.shape[-1]).reshape(n_jobs, -1)
-        data = Parallel(n_jobs, verbose=1 if verbose else 0)(
-            delayed(rsa)(
+        chunks = _split(np.arange(X.shape[-1]), n_jobs)
+
+        # Joblib does not support passing a generator as a function argument.
+        # To work around this, we wrap the call to rsa() inside a temporary
+        # function.
+        def call_rsa(sel_series, position):
+            return rsa(
                 dsm_data=dsm_temp(
-                    X, temporal_radius, data_dsm_metric, data_dsm_params, y,
-                    n_folds, sel_times, verbose),
+                    X, dist, spatial_radius, data_dsm_metric, data_dsm_params,
+                    y, n_folds, sel_series, verbose=position),
                 dsm_model=dsm_model,
                 metric=rsa_metric)
-            for sel_times in chunks)
+
+        data = Parallel(n_jobs, verbose=1 if verbose else 0)(
+            delayed(call_rsa)(sel_times, i)
+            for i, sel_times in enumerate(chunks, 1))
         data = np.vstack(data)[np.newaxis, ...]
 
     # RSA between two DSMs
@@ -269,3 +291,9 @@ def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
         data = data[np.newaxis, np.newaxis, ...]
 
     return data
+
+
+def _split(x, n):
+    """Split x into n chunks. The last chunk may contain less items."""
+    chunk_size = int(np.ceil(len(x) / n))
+    return [x[i * chunk_size:(i + 1) * chunk_size] for i in range(n)]

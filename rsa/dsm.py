@@ -189,9 +189,12 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
         When set, the analysis will be restricted to the subset of time series
         with the given indices. Defaults to ``None``, in which case all series
         are processed.
-    verbose : bool
+    verbose : bool | int
         Whether to display a progress bar. In order for this to work, you need
-        the tqdm python module installed. Defaults to ``False``.
+        the tqdm python module installed. If an integer value is given, this
+        indicates the position of the progress bar (starting from 1, useful for
+        showing multiple progress bars at the same time when calling from
+        different threads). Defaults to ``False``.
 
     Yields
     ------
@@ -210,15 +213,20 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
     folds = _create_folds(data, y, n_folds)
     # The data is now folds x items x n_series x n_times
 
+    if sel_series is None:
+        sel_series = range(n_series)
+
     centers = _get_time_patch_centers(n_samples, temporal_radius)
 
     if verbose:
         from tqdm import tqdm
-        pbar = tqdm(total=n_series * len(centers))
+        if type(verbose) == int:
+            position = verbose - 1
+        else:
+            position = 0
+        pbar = tqdm(total=len(sel_series) * len(centers), position=position)
 
-    # Iteratore over spatio-temporal searchlight patches
-    if sel_series is None:
-        sel_series = range(n_series)
+    # Iterate over spatio-temporal searchlight patches
     for series in sel_series:
         for sample in centers:
             patch = folds[
@@ -290,9 +298,12 @@ def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
         When set, the analysis will be restricted to the subset of time series
         with the given indices. Defaults to ``None``, in which case all series
         are processed.
-    verbose : bool
+    verbose : bool | int
         Whether to display a progress bar. In order for this to work, you need
-        the tqdm python module installed. Defaults to False.
+        the tqdm python module installed. If an integer value is given, this
+        indicates the position of the progress bar (starting from 1, useful for
+        showing multiple progress bars at the same time when calling from
+        different threads). Defaults to ``False``.
 
     Yields
     ------
@@ -314,14 +325,19 @@ def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
     else:
         dsm_func = compute_dsm_cv
 
+    if sel_series is not None:
+        dist = dist[sel_series]
+
     # Progress bar
     if verbose:
         from tqdm import tqdm
-        pbar = tqdm(total=len(dist))
+        if type(verbose) == int:
+            position = verbose - 1
+        else:
+            position = 0
+        pbar = tqdm(total=len(dist), position=position)
 
     # Iterate over time series
-    if sel_series is not None:
-        dist = dist[sel_series]
     for series_dist in dist:
         # Construct a searchlight patch of the given radius
         patch = folds[:, :, np.flatnonzero(series_dist < spatial_radius)]
@@ -384,9 +400,12 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
         When set, the analysis will be restricted to the subset of time points
         with the given indices. Defaults to ``None``, in which case all time
         points are processed.
-    verbose : bool
+    verbose : bool | int
         Whether to display a progress bar. In order for this to work, you need
-        the tqdm python module installed. Defaults to False.
+        the tqdm python module installed. If an integer value is given, this
+        indicates the position of the progress bar (starting from 1, useful for
+        showing multiple progress bars at the same time when calling from
+        different threads). Defaults to ``False``.
 
     Yields
     ------
@@ -400,14 +419,22 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
     dsm_spattemp
     """
     n_samples = data.shape[-1]
+    if sel_times is None:
+        sel_times = np.arange(n_samples)
 
-    # Iterate over time
-    centers = _get_time_patch_centers(n_samples, temporal_radius)
+    # Get a valid time range given the size of the sliding windows
+    tmin = max(temporal_radius, sel_times[0])
+    tmax = min(n_samples - temporal_radius + 1, sel_times[-1])
+    centers = np.arange(tmin, tmax)
 
     # Progress bar
     if verbose:
         from tqdm import tqdm
-        pbar = tqdm(total=len(centers))
+        if type(verbose) == int:
+            position = verbose - 1
+        else:
+            position = 0
+        pbar = tqdm(total=len(centers), position=position)
 
     # Create folds for cross-validated DSM metrics
     folds = _create_folds(data, y, n_folds)
@@ -444,45 +471,4 @@ def _get_time_patch_centers(n_samples, temporal_radius):
     time_inds : list of int
         For each temporal patch, the time-index of the middle of the patch
     """
-    return list(range(temporal_radius, n_samples - temporal_radius + 1))
-
-
-def _sliding_window(X, win_size):
-    """Expose a sliding window view of a numpy array along the last axis.
-
-    This is achieved by manipulating the strides of the numpy array, so data
-    does not need to be copied. An new dimension is prepended to the existing
-    dimensions, containing the windows. The offset between two consecutive
-    windows is 1.
-
-    Parameters
-    ----------
-    X : ndarray, shape (..., time)
-        The numpy array to compute sliding windows on.
-    win_size : int
-        The size of the window.
-
-    Returns
-    -------
-    windows : ndarray, shape (n_windows, ..., win_size)
-        The numpy array with an added dimension. Selecting along this dimension
-        selects sliding windows.
-
-    Examples
-    --------
-    >>> A = np.arange(5)
-    >>> _sliding_window(A, 3)
-    array([[0, 1, 2],
-           [1, 2, 3],
-           [2, 3, 4]])
-
-    Notes
-    -----
-    If the window size is larger than the last dimension of the numpy array, no
-    windows can be created and an empty array is returned (i.e the length of
-    the first dimension of the returned array will be 0).
-    """
-    n_windows = max(0, 1 + X.shape[-1] - win_size)
-    new_shape = (n_windows, *X.shape[:-1], win_size)
-    new_strides = (X.strides[-1], *X.strides[:-1], X.strides[-1])
-    return np.ndarray(new_shape, dtype=X.dtype, buffer=X, strides=new_strides)
+    return np.arange(temporal_radius, n_samples - temporal_radius + 1)
