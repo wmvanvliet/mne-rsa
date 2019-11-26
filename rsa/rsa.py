@@ -96,7 +96,7 @@ def rsa_gen(dsm_data_gen, dsm_model, metric='spearman'):
             yield rsa_vals[0]
 
 
-def rsa(dsm_data, dsm_model, metric='spearman', n_jobs=1):
+def rsa(dsm_data, dsm_model, metric='spearman'):
     """Perform RSA between data and model DSMs.
 
     Parameters
@@ -112,9 +112,6 @@ def rsa(dsm_data, dsm_model, metric='spearman', n_jobs=1):
          - 'kendall-tau-a' for Kendall's Tau (alpha variant)
          - 'partial' for partial Pearson correlations
          - 'regression' for linear regression weights
-    n_jobs : int
-        The number of processes (=number of CPU cores) to use. Specify -1 to
-        use all available cores. Defaults to 1.
 
     Returns
     -------
@@ -133,10 +130,6 @@ def rsa(dsm_data, dsm_model, metric='spearman', n_jobs=1):
     else:
         dsm_data = [dsm_data]
 
-    # rsa_vals = list(Parallel(n_jobs)(
-    #     delayed(rsa_gen)(dsm_data, dsm_model, metric)
-    #     for dsm_data_ in dsm_data
-    # ))
     rsa_vals = list(rsa_gen(dsm_data, dsm_model, metric))
 
     if return_array:
@@ -212,40 +205,58 @@ def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
     --------
     compute_dsm
     """
+    # Spatio-Temporal RSA
     if spatial_radius is not None and temporal_radius is not None:
         if dist is None:
             raise ValueError('A spatial radius was requested, but no distance '
                              'information was specified (=dist parameter).')
-        data = rsa(
-            dsm_data=dsm_spattemp(X, dist, spatial_radius, temporal_radius,
-                                  data_dsm_metric, data_dsm_params, y,
-                                  n_folds, verbose),
-            dsm_model=dsm_model,
-            metric=rsa_metric,
-            n_jobs=n_jobs)
-        data = data.reshape((X.shape[1], -1) + data.shape[1:])
+        n_series = X.shape[1]
+        # Split the data into chunks. Each chunk will be processed in parallel.
+        chunks = np.arange(n_series).reshape(n_jobs, -1)
+        data = Parallel(n_jobs, verbose=1 if verbose else 0)(
+            delayed(rsa)(
+                dsm_data=dsm_spattemp(
+                    X, dist, spatial_radius, temporal_radius, data_dsm_metric,
+                    data_dsm_params, y, n_folds, sel_series, verbose),
+                dsm_model=dsm_model,
+                metric=rsa_metric)
+            for sel_series in chunks)
+        data = np.vstack(data)
+        data = data.reshape((n_series, -1) + data.shape[1:])
 
+    # Spatial RSA
     elif spatial_radius is not None:
         if dist is None:
             raise ValueError('A spatial radius was requested, but no distance '
                              'information was specified (=dist parameter).')
-        data = rsa(
-            dsm_data=dsm_spat(X, dist, spatial_radius, data_dsm_metric,
-                              data_dsm_params, y, n_folds, verbose),
-            dsm_model=dsm_model,
-            metric=rsa_metric,
-            n_jobs=n_jobs)
-        data = data[:, np.newaxis, ...]
+        # Split the data into chunks. Each chunk will be processed in parallel.
+        chunks = np.arange(len(X)).reshape(n_jobs, -1)
+        data = Parallel(n_jobs, verbose=1 if verbose else 0)(
+            delayed(rsa)(
+                dsm_data=dsm_spat(
+                    X, dist, spatial_radius, data_dsm_metric, data_dsm_params,
+                    y, n_folds, sel_series, verbose),
+                dsm_model=dsm_model,
+                metric=rsa_metric)
+            for sel_series in chunks)
+        data = np.vstack(data)[:, np.newaxis, ...]
+
+    # Temporal RSA
     elif temporal_radius is not None:
-        data = rsa(
-            dsm_data=dsm_temp(X, temporal_radius, data_dsm_metric,
-                              data_dsm_params, y, n_folds, verbose),
-            dsm_model=dsm_model,
-            metric=rsa_metric,
-            n_jobs=n_jobs)
-        data = data[np.newaxis, ...]
+        # Split the data into chunks. Each chunk will be processed in parallel.
+        chunks = np.arange(X.shape[-1]).reshape(n_jobs, -1)
+        data = Parallel(n_jobs, verbose=1 if verbose else 0)(
+            delayed(rsa)(
+                dsm_data=dsm_temp(
+                    X, temporal_radius, data_dsm_metric, data_dsm_params, y,
+                    n_folds, sel_times, verbose),
+                dsm_model=dsm_model,
+                metric=rsa_metric)
+            for sel_times in chunks)
+        data = np.vstack(data)[np.newaxis, ...]
+
+    # RSA between two DSMs
     else:
-        # Create folds for cross-validated DSM metrics
         folds = _create_folds(X, y, n_folds)
         if len(folds) == 1:
             dsm_func = compute_dsm

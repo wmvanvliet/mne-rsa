@@ -135,7 +135,7 @@ def _n_items_from_dsm(dsm):
 
 def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
                  dist_metric='correlation', dist_params=dict(), y=None,
-                 n_folds=1, verbose=False):
+                 n_folds=1, sel_series=None, verbose=False):
     """Generator of DSMs using a spatio-temporal searchlight pattern.
 
     For each series (i.e. channel or vertex), each time sample is visited. For
@@ -185,6 +185,10 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
         metric. Folds are created based on the ``y`` parameter. Specify -1 to
         use the maximum number of folds possible, given the data.
         Defaults to 1 (no cross-validation).
+    sel_series : ndarray, shape (n_selected_series,) | None
+        When set, the analysis will be restricted to the subset of time series
+        with the given indices. Defaults to ``None``, in which case all series
+        are processed.
     verbose : bool
         Whether to display a progress bar. In order for this to work, you need
         the tqdm python module installed. Defaults to ``False``.
@@ -213,7 +217,9 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
         pbar = tqdm(total=n_series * len(centers))
 
     # Iteratore over spatio-temporal searchlight patches
-    for series in range(n_series):
+    if sel_series is None:
+        sel_series = range(n_series)
+    for series in sel_series:
         for sample in centers:
             patch = folds[
                 :, :,
@@ -233,7 +239,8 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
 
 
 def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
-             dist_params=dict(), y=None, n_folds=1, verbose=False):
+             dist_params=dict(), y=None, n_folds=1, sel_series=None,
+             verbose=False):
     """Generator of DSMs using a spatial searchlight pattern.
 
     Each time series (i.e. channel or vertex) is visited. For each visited
@@ -279,6 +286,10 @@ def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
         metric. Folds are created based on the ``y`` parameter. Specify -1 to
         use the maximum number of folds possible, given the data.
         Defaults to 1 (no cross-validation).
+    sel_series : ndarray, shape (n_selected_series, ) | None
+        When set, the analysis will be restricted to the subset of time series
+        with the given indices. Defaults to ``None``, in which case all series
+        are processed.
     verbose : bool
         Whether to display a progress bar. In order for this to work, you need
         the tqdm python module installed. Defaults to False.
@@ -308,7 +319,9 @@ def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
         from tqdm import tqdm
         pbar = tqdm(total=len(dist))
 
-    # Iterate over space
+    # Iterate over time series
+    if sel_series is not None:
+        dist = dist[sel_series]
     for series_dist in dist:
         # Construct a searchlight patch of the given radius
         patch = folds[:, :, np.flatnonzero(series_dist < spatial_radius)]
@@ -321,7 +334,8 @@ def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
 
 
 def dsm_temp(data, temporal_radius, dist_metric='correlation',
-             dist_params=dict(), y=None, n_folds=1, verbose=False):
+             dist_params=dict(), y=None, n_folds=1, sel_times=None,
+             verbose=False):
     """Generator of DSMs using a searchlight in time.
 
     Each time sample is visited. For each visited sample, a DSM is computed
@@ -342,15 +356,12 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
     ----------
     data : ndarray, shape (n_items, n_series, ..., n_times)
         The brain data in the form of an ndarray. The last dimension should be
-        consecutive time samples.  All dimensions between the second (n_series)
+        consecutive time samples. All dimensions between the second (n_series)
         and final (n_times) dimesions will be flattened into a single vector.
-    data : ndarray, shape (n_items, ..., n_times)
-        The brain data in the spatial patch. The last dimension should be
-        consecutive time points.
     dist : ndarray, shape (n_series, n_series)
         The distances between all source points or sensors in meters.
-    spatial_radius : float
-        The spatial radius of the searchlight patch in meters.
+    temporal_radius : float
+        The temporal radius of the searchlight patch in samples.
     dist_metric : str
         The distance metric to use to compute the DSMs. Can be any metric
         supported by :func:`scipy.spatial.distance.pdist`. See also the
@@ -369,13 +380,17 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
         metric. Folds are created based on the ``y`` parameter. Specify -1 to
         use the maximum number of folds possible, given the data.
         Defaults to 1 (no cross-validation).
+    sel_times : ndarray, shape (n_selected_times,) | None
+        When set, the analysis will be restricted to the subset of time points
+        with the given indices. Defaults to ``None``, in which case all time
+        points are processed.
     verbose : bool
         Whether to display a progress bar. In order for this to work, you need
         the tqdm python module installed. Defaults to False.
 
     Yields
     ------
-    dsm : ndarray, shape (n_items, n_items)
+    dsm : ndarray, shape (chunk_size, n_items, n_items)
         A DSM for each time sample
 
     See Also
@@ -430,3 +445,44 @@ def _get_time_patch_centers(n_samples, temporal_radius):
         For each temporal patch, the time-index of the middle of the patch
     """
     return list(range(temporal_radius, n_samples - temporal_radius + 1))
+
+
+def _sliding_window(X, win_size):
+    """Expose a sliding window view of a numpy array along the last axis.
+
+    This is achieved by manipulating the strides of the numpy array, so data
+    does not need to be copied. An new dimension is prepended to the existing
+    dimensions, containing the windows. The offset between two consecutive
+    windows is 1.
+
+    Parameters
+    ----------
+    X : ndarray, shape (..., time)
+        The numpy array to compute sliding windows on.
+    win_size : int
+        The size of the window.
+
+    Returns
+    -------
+    windows : ndarray, shape (n_windows, ..., win_size)
+        The numpy array with an added dimension. Selecting along this dimension
+        selects sliding windows.
+
+    Examples
+    --------
+    >>> A = np.arange(5)
+    >>> _sliding_window(A, 3)
+    array([[0, 1, 2],
+           [1, 2, 3],
+           [2, 3, 4]])
+
+    Notes
+    -----
+    If the window size is larger than the last dimension of the numpy array, no
+    windows can be created and an empty array is returned (i.e the length of
+    the first dimension of the returned array will be 0).
+    """
+    n_windows = max(0, 1 + X.shape[-1] - win_size)
+    new_shape = (n_windows, *X.shape[:-1], win_size)
+    new_strides = (X.strides[-1], *X.strides[:-1], X.strides[-1])
+    return np.ndarray(new_shape, dtype=X.dtype, buffer=X, strides=new_strides)
