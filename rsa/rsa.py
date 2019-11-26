@@ -6,7 +6,6 @@ Methods to compute representational similarity analysis (RSA).
 from types import GeneratorType
 import numpy as np
 from scipy import stats
-from joblib import Parallel, delayed
 
 from .dsm import (_ensure_condensed, dsm_spattemp, dsm_spat, dsm_temp,
                   compute_dsm, compute_dsm_cv)
