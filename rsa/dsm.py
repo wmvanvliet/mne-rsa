@@ -135,7 +135,7 @@ def _n_items_from_dsm(dsm):
 
 def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
                  dist_metric='correlation', dist_params=dict(), y=None,
-                 n_folds=1, verbose=False):
+                 n_folds=1, sel_series=None, verbose=False):
     """Generator of DSMs using a spatio-temporal searchlight pattern.
 
     For each series (i.e. channel or vertex), each time sample is visited. For
@@ -185,9 +185,16 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
         metric. Folds are created based on the ``y`` parameter. Specify -1 to
         use the maximum number of folds possible, given the data.
         Defaults to 1 (no cross-validation).
-    verbose : bool
+    sel_series : ndarray, shape (n_selected_series,) | None
+        When set, the analysis will be restricted to the subset of time series
+        with the given indices. Defaults to ``None``, in which case all series
+        are processed.
+    verbose : bool | int
         Whether to display a progress bar. In order for this to work, you need
-        the tqdm python module installed. Defaults to ``False``.
+        the tqdm python module installed. If an integer value is given, this
+        indicates the position of the progress bar (starting from 1, useful for
+        showing multiple progress bars at the same time when calling from
+        different threads). Defaults to ``False``.
 
     Yields
     ------
@@ -206,14 +213,21 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
     folds = _create_folds(data, y, n_folds)
     # The data is now folds x items x n_series x n_times
 
+    if sel_series is None:
+        sel_series = range(n_series)
+
     centers = _get_time_patch_centers(n_samples, temporal_radius)
 
     if verbose:
         from tqdm import tqdm
-        pbar = tqdm(total=n_series * len(centers))
+        if type(verbose) == int:
+            position = verbose - 1
+        else:
+            position = 0
+        pbar = tqdm(total=len(sel_series) * len(centers), position=position)
 
-    # Iteratore over spatio-temporal searchlight patches
-    for series in range(n_series):
+    # Iterate over spatio-temporal searchlight patches
+    for series in sel_series:
         for sample in centers:
             patch = folds[
                 :, :,
@@ -233,7 +247,8 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
 
 
 def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
-             dist_params=dict(), y=None, n_folds=1, verbose=False):
+             dist_params=dict(), y=None, n_folds=1, sel_series=None,
+             verbose=False):
     """Generator of DSMs using a spatial searchlight pattern.
 
     Each time series (i.e. channel or vertex) is visited. For each visited
@@ -279,9 +294,16 @@ def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
         metric. Folds are created based on the ``y`` parameter. Specify -1 to
         use the maximum number of folds possible, given the data.
         Defaults to 1 (no cross-validation).
-    verbose : bool
+    sel_series : ndarray, shape (n_selected_series, ) | None
+        When set, the analysis will be restricted to the subset of time series
+        with the given indices. Defaults to ``None``, in which case all series
+        are processed.
+    verbose : bool | int
         Whether to display a progress bar. In order for this to work, you need
-        the tqdm python module installed. Defaults to False.
+        the tqdm python module installed. If an integer value is given, this
+        indicates the position of the progress bar (starting from 1, useful for
+        showing multiple progress bars at the same time when calling from
+        different threads). Defaults to ``False``.
 
     Yields
     ------
@@ -303,12 +325,19 @@ def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
     else:
         dsm_func = compute_dsm_cv
 
+    if sel_series is not None:
+        dist = dist[sel_series]
+
     # Progress bar
     if verbose:
         from tqdm import tqdm
-        pbar = tqdm(total=len(dist))
+        if type(verbose) == int:
+            position = verbose - 1
+        else:
+            position = 0
+        pbar = tqdm(total=len(dist), position=position)
 
-    # Iterate over space
+    # Iterate over time series
     for series_dist in dist:
         # Construct a searchlight patch of the given radius
         patch = folds[:, :, np.flatnonzero(series_dist < spatial_radius)]
@@ -321,7 +350,8 @@ def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
 
 
 def dsm_temp(data, temporal_radius, dist_metric='correlation',
-             dist_params=dict(), y=None, n_folds=1, verbose=False):
+             dist_params=dict(), y=None, n_folds=1, sel_times=None,
+             verbose=False):
     """Generator of DSMs using a searchlight in time.
 
     Each time sample is visited. For each visited sample, a DSM is computed
@@ -342,15 +372,12 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
     ----------
     data : ndarray, shape (n_items, n_series, ..., n_times)
         The brain data in the form of an ndarray. The last dimension should be
-        consecutive time samples.  All dimensions between the second (n_series)
+        consecutive time samples. All dimensions between the second (n_series)
         and final (n_times) dimesions will be flattened into a single vector.
-    data : ndarray, shape (n_items, ..., n_times)
-        The brain data in the spatial patch. The last dimension should be
-        consecutive time points.
     dist : ndarray, shape (n_series, n_series)
         The distances between all source points or sensors in meters.
-    spatial_radius : float
-        The spatial radius of the searchlight patch in meters.
+    temporal_radius : float
+        The temporal radius of the searchlight patch in samples.
     dist_metric : str
         The distance metric to use to compute the DSMs. Can be any metric
         supported by :func:`scipy.spatial.distance.pdist`. See also the
@@ -369,13 +396,20 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
         metric. Folds are created based on the ``y`` parameter. Specify -1 to
         use the maximum number of folds possible, given the data.
         Defaults to 1 (no cross-validation).
-    verbose : bool
+    sel_times : ndarray, shape (n_selected_times,) | None
+        When set, the analysis will be restricted to the subset of time points
+        with the given indices. Defaults to ``None``, in which case all time
+        points are processed.
+    verbose : bool | int
         Whether to display a progress bar. In order for this to work, you need
-        the tqdm python module installed. Defaults to False.
+        the tqdm python module installed. If an integer value is given, this
+        indicates the position of the progress bar (starting from 1, useful for
+        showing multiple progress bars at the same time when calling from
+        different threads). Defaults to ``False``.
 
     Yields
     ------
-    dsm : ndarray, shape (n_items, n_items)
+    dsm : ndarray, shape (chunk_size, n_items, n_items)
         A DSM for each time sample
 
     See Also
@@ -385,14 +419,22 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
     dsm_spattemp
     """
     n_samples = data.shape[-1]
+    if sel_times is None:
+        sel_times = np.arange(n_samples)
 
-    # Iterate over time
-    centers = _get_time_patch_centers(n_samples, temporal_radius)
+    # Get a valid time range given the size of the sliding windows
+    tmin = max(temporal_radius, sel_times[0])
+    tmax = min(n_samples - temporal_radius + 1, sel_times[-1])
+    centers = np.arange(tmin, tmax)
 
     # Progress bar
     if verbose:
         from tqdm import tqdm
-        pbar = tqdm(total=len(centers))
+        if type(verbose) == int:
+            position = verbose - 1
+        else:
+            position = 0
+        pbar = tqdm(total=len(centers), position=position)
 
     # Create folds for cross-validated DSM metrics
     folds = _create_folds(data, y, n_folds)
@@ -429,4 +471,4 @@ def _get_time_patch_centers(n_samples, temporal_radius):
     time_inds : list of int
         For each temporal patch, the time-index of the middle of the patch
     """
-    return list(range(temporal_radius, n_samples - temporal_radius + 1))
+    return np.arange(temporal_radius, n_samples - temporal_radius + 1)

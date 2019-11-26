@@ -83,4 +83,7 @@ class TestRsa:
 class TestRsaArray:
     """Test computing RSA on a NumPy array"""
 
-    def t
+    def test_input_errors(self):
+        """Test error messages related to input parameters."""
+        pass
+
