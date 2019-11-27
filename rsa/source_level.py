@@ -21,12 +21,14 @@ from scipy.linalg import block_diag
 
 from .dsm import _n_items_from_dsm, dsm_array
 from .rsa import rsa_array
+from .sensor_level import _tmin_tmax_to_indices
 
 
 def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
                      temporal_radius=0.1, stc_dsm_metric='sqeuclidean',
                      stc_dsm_params=dict(), rsa_metric='spearman', y=None,
-                     n_folds=None, n_jobs=1, verbose=False):
+                     n_folds=None, sel_vertices=None, tmin=None, tmax=None,
+                     n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern across the cortex.
 
     The output is a source estimate where the "signal" at each source point is
@@ -76,6 +78,20 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
         Number of folds to use when using cross-validation to compute the
         evoked DSM metric.  Defaults to ``None``, which means the maximum
         number of folds possible, given the data.
+    sel_vertices : list of int | None
+        When set, searchlight patches will only be generated for the subset of
+        vertices with the given indices. Defaults to ``None``, in which case
+        patches for all vertices are generated.
+    tmin : float | None
+        When set, searchlight patches will only be generated from subsequent
+        time points starting from this time point. This value is given in
+        seconds. Defaults to ``None``, in which case patches are generated
+        starting from the first time point.
+    tmax : float | None
+        When set, searchlight patches will only be generated up to and
+        including this time point. This value is given in seconds. Defaults to
+        ``None``, in which case patches are generated up to and including the
+        last time point.
     n_jobs : int
         The number of processes (=number of CPU cores) to use. Specify -1 to
         use all available cores. Defaults to 1.
@@ -116,23 +132,8 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
                 'the number of items encoded in the `y` matrix (%d).'
                 % (n_items, len(np.unique(y))))
 
-    # Check for compatibility of the source estimates and source space
-    lh_verts, rh_verts = stcs[0].vertices
-    for stc in stcs:
-        if (np.any(stc.vertices[0] != lh_verts) or
-                np.any(stc.vertices[1] != rh_verts)):
-            raise ValueError('Not all source estimates have the same '
-                             'vertices.')
-    if (np.any(src[0]['vertno'] != lh_verts) or
-            np.any(src[1]['vertno'] != rh_verts)):
-        raise ValueError('The source space is not defined for the same '
-                         'vertices as the source estimates.')
-
-    times = stcs[0].times
-    for stc in stcs:
-        if np.any(stc.times != times):
-            raise ValueError('Not all source estimates have the same '
-                             'time points.')
+    _check_compatible(stcs, src)
+    dist = _get_distance_matrix(src)
 
     if temporal_radius is not None:
         # Convert the temporal radius to samples
@@ -141,38 +142,26 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
         if temporal_radius < 1:
             raise ValueError('Temporal radius is less than one sample.')
 
-    # During inverse computation, the source space was downsampled (i.e. using
-    # ico4). Construct vertex-to-vertex distance matrices using only the
-    # vertices that are defined in the source solution.
-    dist = []
-    for hemi in [0, 1]:
-        inuse = np.flatnonzero(src[hemi]['inuse'])
-        dist.append(src[hemi]['dist'][np.ix_(inuse, inuse)].toarray())
-
-    # Collect the distances in a single matrix
-    dist = block_diag(*dist)
-    dist[dist == 0] = np.inf  # Across hemisphere distance is infinity
-    dist[::dist.shape[0] + 1] = 0  # Distance to yourself is zero
-
-    # Construct a big array containing all brain data
-    X = np.array([stc.data for stc in stcs])
+    sel_times = _tmin_tmax_to_indices(stcs[0].times, tmin, tmax)
 
     # Perform the RSA
+    X = np.array([stc.data for stc in stcs])
     data = rsa_array(X, dsm_model, dist=dist, spatial_radius=spatial_radius,
                      temporal_radius=temporal_radius,
                      data_dsm_metric=stc_dsm_metric,
                      data_dsm_params=stc_dsm_params, rsa_metric=rsa_metric,
-                     y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
+                     y=y, n_folds=n_folds, sel_series=sel_vertices,
+                     sel_times=sel_times, n_jobs=n_jobs, verbose=verbose)
 
     # Pack the result in a SourceEstimate object
     if temporal_radius is not None:
-        tmin = times[temporal_radius]
+        tmin = stcs[0].times[temporal_radius]
         tstep = stcs[0].tstep
     else:
         tmin = 0
         tstep = 1
     if spatial_radius is not None:
-        vertices = [lh_verts, rh_verts]
+        vertices = stcs[0].vertices
     else:
         vertices = [np.array([1]), np.array([])]
 
@@ -187,7 +176,8 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
 
 def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
                      dist_metric='sqeuclidean', dist_params=dict(), y=None,
-                     n_folds=None, verbose=False):
+                     n_folds=None, sel_vertices=None, tmin=None, tmax=None,
+                     verbose=False):
     """Generate DSMs in a searchlight pattern across the cortex.
 
     The output is a source estimate where the "signal" at each source point is
@@ -226,6 +216,20 @@ def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
         Number of folds to use when using cross-validation to compute the
         evoked DSM metric.  Defaults to ``None``, which means the maximum
         number of folds possible, given the data.
+    sel_vertices : list of int | None
+        When set, searchlight patches will only be generated for the subset of
+        vertices with the given indices. Defaults to ``None``, in which case
+        patches for all vertices are generated.
+    tmin : float | None
+        When set, searchlight patches will only be generated from subsequent
+        time points starting from this time point. This value is given in
+        seconds. Defaults to ``None``, in which case patches are generated
+        starting from the first time point.
+    tmax : float | None
+        When set, searchlight patches will only be generated up to and
+        including this time point. This value is given in seconds. Defaults to
+        ``None``, in which case patches are generated up to and including the
+        last time point.
     verbose : bool
         Whether to display a progress bar. In order for this to work, you need
         the tqdm python module installed. Defaults to False.
@@ -235,7 +239,28 @@ def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
     dsm : ndarray, shape (n_items, n_items)
         A DSM for each searchlight patch.
     """
-    # Check for compatibility of the source estimates and source space
+    _check_compatible(stcs, src)
+    dist = _get_distance_matrix(src)
+
+    # Convert the temporal radius to samples
+    if temporal_radius is not None:
+        temporal_radius = int(temporal_radius // stcs[0].tstep)
+
+        if temporal_radius < 1:
+            raise ValueError('Temporal radius is less than one sample.')
+
+    sel_times = _tmin_tmax_to_indices(stcs[0].times, tmin, tmax)
+
+    X = np.array([stc.data for stc in stcs])
+    yield from dsm_array(X, dist=dist, spatial_radius=spatial_radius,
+                         temporal_radius=temporal_radius,
+                         dist_metric=dist_metric, dist_params=dist_params, y=y,
+                         n_folds=n_folds, sel_series=sel_vertices,
+                         sel_times=sel_times, verbose=verbose)
+
+
+def _check_compatible(stcs, src):
+    """Check for compatibility of the source estimates and source space."""
     lh_verts, rh_verts = stcs[0].vertices
     for stc in stcs:
         if (np.any(stc.vertices[0] != lh_verts) or
@@ -253,16 +278,24 @@ def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
             raise ValueError('Not all source estimates have the same '
                              'time points.')
 
-    if temporal_radius is not None:
-        # Convert the temporal radius to samples
-        temporal_radius = int(temporal_radius // stcs[0].tstep)
 
-        if temporal_radius < 1:
-            raise ValueError('Temporal radius is less than one sample.')
+def _get_distance_matrix(src):
+    """Get vertex-to-vertex distance matrix from source space.
 
-    # During inverse computation, the source space was downsampled (i.e. using
-    # ico4). Construct vertex-to-vertex distance matrices using only the
-    # vertices that are defined in the source solution.
+    During inverse computation, the source space was downsampled (i.e. using
+    ico4). Construct vertex-to-vertex distance matrices using only the
+    vertices that are defined in the source solution.
+
+    Parameters
+    ----------
+    src : mne.SourceSpaces
+        The source space to get the distance matrix for.
+
+    Returns
+    -------
+    dist : ndarray (n_vertices, n_vertices)
+        The vertex-to-vertex distance matrix.
+    """
     dist = []
     for hemi in [0, 1]:
         inuse = np.flatnonzero(src[hemi]['inuse'])
@@ -273,8 +306,4 @@ def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
     dist[dist == 0] = np.inf  # Across hemisphere distance is infinity
     dist[::dist.shape[0] + 1] = 0  # Distance to yourself is zero
 
-    X = np.array([stc.data for stc in stcs])
-    yield from dsm_array(X, dist=dist, spatial_radius=spatial_radius,
-                         temporal_radius=temporal_radius,
-                         dist_metric=dist_metric, dist_params=dist_params, y=y,
-                         n_folds=n_folds, verbose=verbose)
+    return dist

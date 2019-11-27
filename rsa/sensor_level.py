@@ -23,7 +23,8 @@ from .rsa import rsa_array
 def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
                 temporal_radius=0.1, evoked_dsm_metric='sqeuclidean',
                 evoked_dsm_params=dict(), rsa_metric='spearman', y=None,
-                n_folds=None, n_jobs=1, verbose=False):
+                n_folds=None, picks=None, tmin=None, tmax=None, n_jobs=1,
+                verbose=False):
     """Perform RSA in a searchlight pattern on evokeds.
 
     The output is an Evoked object where the "signal" at each sensor is
@@ -58,9 +59,8 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
     evoked_dsm_metric : str
         The metric to use to compute the DSM for the evokeds. This can be any
         metric supported by the scipy.distance.pdist function. See also the
-        ``evoked_dsm_params`` parameter to specify and additional parameter for the
-        distance function. Defaults to
-        'sqeuclidean'.
+        ``evoked_dsm_params`` parameter to specify and additional parameter for
+        the distance function. Defaults to 'sqeuclidean'.
     evoked_dsm_params : dict
         Extra arguments for the distance metric used to compute the DSMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
@@ -78,6 +78,24 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
         metric. Folds are created based on the ``y`` parameter. Specify -1 to
         use the maximum number of folds possible, given the data.
         Defaults to 1 (no cross-validation).
+    picks : str | list | slice | None
+        Channels to include. Slices and lists of integers will be interpreted
+        as channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings
+        (e.g., ``['MEG0111', 'MEG2623']`` will pick the given channels. Can
+        also be the string values "all" to pick all channels, or "data" to pick
+        data channels. ``None`` (default) will pick all MEG and EEG channels,
+        excluding those maked as "bad".
+    tmin : float | None
+        When set, searchlight patches will only be generated from subsequent
+        time points starting from this time point. This value is given in
+        seconds. Defaults to ``None``, in which case patches are generated
+        starting from the first time point.
+    tmax : float | None
+        When set, searchlight patches will only be generated up to and
+        including this time point. This value is given in seconds. Defaults to
+        ``None``, in which case patches are generated up to and including the
+        last time point.
     n_jobs : int
         The number of processes (=number of CPU cores) to use. Specify -1 to
         use all available cores. Defaults to 1.
@@ -138,13 +156,19 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
     locs = np.vstack([ch['loc'][:3] for ch in evokeds[0].info['chs']])
     dist = distance.squareform(distance.pdist(locs))
 
+    picks = mne.io.pick._picks_to_idx(evokeds[0].info, picks, none='data')
+    if len(picks) != len(set(picks)):
+        raise ValueError("`picks` are not unique. Please remove duplicates.")
+    sel_times = _tmin_tmax_to_indices(evokeds[0].times, tmin, tmax)
+
     # Perform the RSA
     X = np.array([evoked.data for evoked in evokeds])
     data = rsa_array(X, dsm_model, dist=dist, spatial_radius=spatial_radius,
                      temporal_radius=temporal_radius,
                      data_dsm_metric=evoked_dsm_metric,
                      data_dsm_params=evoked_dsm_params, rsa_metric=rsa_metric,
-                     y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
+                     y=y, n_folds=n_folds, sel_series=picks,
+                     sel_times=sel_times, n_jobs=n_jobs, verbose=verbose)
 
     # Pack the result in an Evoked object
     if temporal_radius is not None:
@@ -169,7 +193,8 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
 def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
                temporal_radius=0.1, epochs_dsm_metric='sqeuclidean',
                epochs_dsm_params=dict(), rsa_metric='spearman', y=None,
-               n_folds=None, n_jobs=1, verbose=False):
+               n_folds=None, picks=None, tmin=None, tmax=None, n_jobs=1,
+               verbose=False):
     """Perform RSA in a searchlight pattern on epochs.
 
     The output is an Evoked object where the "signal" at each sensor is
@@ -223,6 +248,24 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
         codes if ``y`` is not specified. Specify -1 to use the maximum number
         of folds possible, given the data.
         Defaults to 1 (no cross-validation).
+    picks : str | list | slice | None
+        Channels to include. Slices and lists of integers will be interpreted
+        as channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings
+        (e.g., ``['MEG0111', 'MEG2623']`` will pick the given channels. Can
+        also be the string values "all" to pick all channels, or "data" to pick
+        data channels. ``None`` (default) will pick all MEG and EEG channels,
+        excluding those maked as "bad".
+    tmin : float | None
+        When set, searchlight patches will only be generated from subsequent
+        time points starting from this time point. This value is given in
+        seconds. Defaults to ``None``, in which case patches are generated
+        starting from the first time point.
+    tmax : float | None
+        When set, searchlight patches will only be generated up to and
+        including this time point. This value is given in seconds. Defaults to
+        ``None``, in which case patches are generated up to and including the
+        last time point.
     n_jobs : int
         The number of processes (=number of CPU cores) to use. Specify -1 to
         use all available cores. Defaults to 1.
@@ -278,13 +321,19 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
     locs = np.vstack([ch['loc'][:3] for ch in epochs.info['chs']])
     dist = distance.squareform(distance.pdist(locs))
 
+    picks = mne.io.pick._picks_to_idx(epochs.info, picks, none='data')
+    if len(picks) != len(set(picks)):
+        raise ValueError("`picks` are not unique. Please remove duplicates.")
+    sel_times = _tmin_tmax_to_indices(epochs.times, tmin, tmax)
+
     # Perform the RSA
     X = epochs.get_data()
     data = rsa_array(X, dsm_model, dist=dist, spatial_radius=spatial_radius,
                      temporal_radius=temporal_radius,
                      data_dsm_metric=epochs_dsm_metric,
                      data_dsm_params=epochs_dsm_params, rsa_metric=rsa_metric,
-                     y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
+                     y=y, n_folds=n_folds, sel_series=picks,
+                     sel_times=sel_times, n_jobs=n_jobs, verbose=verbose)
 
     # Pack the result in an Evoked object
     if temporal_radius is not None:
@@ -306,9 +355,116 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
                 for i in range(data.shape[-1])]
 
 
+def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
+                temporal_radius=0.1, dist_metric='sqeuclidean',
+                dist_params=dict(), y=None, n_folds=None, picks=None,
+                tmin=None, tmax=None, verbose=False):
+    """Generate DSMs in a searchlight pattern on evokeds.
+
+    Parameters
+    ----------
+    evokeds : list of mne.Evoked
+        The evoked brain activity for each item. If you have more than one
+        Evoked object per item (i.e. repetitions), you can use the ``y``
+        parameter to assign evokeds to items.
+    noise_cov : mne.Covariance | None
+        When specified, the data will by normalized using the noise covariance.
+        This is recommended in all cases, but a hard requirement when the data
+        contains sensors of different types. Defaults to None.
+    spatial_radius : floats | None
+        The spatial radius of the searchlight patch in meters. All sensors
+        within this radius will belong to the searchlight patch. Set to None to
+        only perform the searchlight over time, flattening across sensors.
+        Defaults to 0.04.
+    temporal_radius : float | None
+        The temporal radius of the searchlight patch in seconds. Set to None to
+        only perform the searchlight over sensors, flattening across time.
+        Defaults to 0.1.
+    dist_metric : str
+        The metric to use to compute the DSM for the evokeds. This can be any
+        metric supported by the scipy.distance.pdist function. See also the
+        ``dist_params`` parameter to specify and additional parameter for the
+        distance function. Defaults to 'sqeuclidean'.
+    dist_params : dict
+        Extra arguments for the distance metric used to compute the DSMs.
+        Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
+        and their arguments. Defaults to an empty dictionary.
+    y : ndarray of int, shape (n_items,) | None
+        For each Evoked, a number indicating the item to which it belongs.
+        When ``None``, each Evoked is assumed to belong to a different item.
+        Defaults to ``None``.
+    n_folds : int | None
+        Number of cross-validation folds to use when computing the distance
+        metric. Folds are created based on the ``y`` parameter, or the event
+        codes if ``y`` is not specified. Specify -1 to use the maximum number
+        of folds possible, given the data.
+        Defaults to 1 (no cross-validation).
+    picks : str | list | slice | None
+        Channels to include. Slices and lists of integers will be interpreted
+        as channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings
+        (e.g., ``['MEG0111', 'MEG2623']`` will pick the given channels. Can
+        also be the string values "all" to pick all channels, or "data" to pick
+        data channels. ``None`` (default) will pick all MEG and EEG channels,
+        excluding those maked as "bad".
+    tmin : float | None
+        When set, searchlight patches will only be generated from subsequent
+        time points starting from this time point. This value is given in
+        seconds. Defaults to ``None``, in which case patches are generated
+        starting from the first time point.
+    tmax : float | None
+        When set, searchlight patches will only be generated up to and
+        including this time point. This value is given in seconds. Defaults to
+        ``None``, in which case patches are generated up to and including the
+        last time point.
+    verbose : bool
+        Whether to display a progress bar. In order for this to work, you need
+        the tqdm python module installed. Defaults to False.
+
+    Yields
+    ------
+    dsm : ndarray, shape (n_items, n_items)
+        A DSM for each searchlight patch.
+    """
+    times = evokeds[0].times
+    for evoked in evokeds:
+        if np.any(evoked.times != times):
+            raise ValueError('Not all evokeds have the same time points.')
+
+    # Convert the temporal radius to samples
+    if temporal_radius is not None:
+        temporal_radius = round(evokeds[0].info['sfreq'] * temporal_radius)
+        if temporal_radius < 1:
+            raise ValueError('Temporal radius is less than one sample.')
+
+    # Normalize with the noise cov
+    if noise_cov is not None:
+        diag = spatial_radius is not None
+        evokeds = [mne.whiten_evoked(evoked, noise_cov, diag=diag)
+                   for evoked in evokeds]
+
+    # Compute the distances between the sensors
+    locs = np.vstack([ch['loc'][:3] for ch in evokeds[0].info['chs']])
+    dist = distance.squareform(distance.pdist(locs))
+
+    picks = mne.io.pick._picks_to_idx(evokeds[0].info, picks, none='data')
+    if len(picks) != len(set(picks)):
+        raise ValueError("`picks` are not unique. Please remove duplicates.")
+    sel_times = _tmin_tmax_to_indices(times, tmin, tmax)
+
+    # Compute the DSMs
+    X = np.array([evoked.data for evoked in evokeds])
+    yield from dsm_array(X, dist=dist, spatial_radius=spatial_radius,
+                         temporal_radius=temporal_radius,
+                         dist_metric=dist_metric, dist_params=dist_params, y=y,
+                         n_folds=n_folds, sel_series=picks,
+                         sel_times=sel_times, verbose=verbose)
+
+
 def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
                temporal_radius=0.1, dist_metric='sqeuclidean',
-               dist_params=dict(), y=None, n_folds=None, verbose=False):
+               dist_params=dict(), y=None, n_folds=None, picks=None,
+               tmin=None, tmax=None, verbose=False):
     """Generate DSMs in a searchlight pattern on epochs.
 
     Parameters
@@ -348,6 +504,24 @@ def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
         codes if ``y`` is not specified. Specify -1 to use the maximum number
         of folds possible, given the data.
         Defaults to 1 (no cross-validation).
+    picks : str | list | slice | None
+        Channels to include. Slices and lists of integers will be interpreted
+        as channel indices. In lists, channel *type* strings (e.g., ``['meg',
+        'eeg']``) will pick channels of those types, channel *name* strings
+        (e.g., ``['MEG0111', 'MEG2623']`` will pick the given channels. Can
+        also be the string values "all" to pick all channels, or "data" to pick
+        data channels. ``None`` (default) will pick all MEG and EEG channels,
+        excluding those maked as "bad".
+    tmin : float | None
+        When set, searchlight patches will only be generated from subsequent
+        time points starting from this time point. This value is given in
+        seconds. Defaults to ``None``, in which case patches are generated
+        starting from the first time point.
+    tmax : float | None
+        When set, searchlight patches will only be generated up to and
+        including this time point. This value is given in seconds. Defaults to
+        ``None``, in which case patches are generated up to and including the
+        last time point.
     verbose : bool
         Whether to display a progress bar. In order for this to work, you need
         the tqdm python module installed. Defaults to False.
@@ -376,9 +550,30 @@ def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
     locs = np.vstack([ch['loc'][:3] for ch in epochs.info['chs']])
     dist = distance.squareform(distance.pdist(locs))
 
+    picks = mne.io.pick._picks_to_idx(epochs.info, picks, none='data')
+    if len(picks) != len(set(picks)):
+        raise ValueError("`picks` are not unique. Please remove duplicates.")
+    sel_times = _tmin_tmax_to_indices(epochs.times, tmin, tmax)
+
     # Compute the DSMs
     X = epochs.get_data()
     yield from dsm_array(X, dist=dist, spatial_radius=spatial_radius,
                          temporal_radius=temporal_radius,
                          dist_metric=dist_metric, dist_params=dist_params, y=y,
-                         n_folds=n_folds, verbose=verbose)
+                         n_folds=n_folds, sel_series=picks,
+                         sel_times=sel_times, verbose=verbose)
+
+
+def _tmin_tmax_to_indices(times, tmin, tmax):
+    """Convert tmin tmax parameters to an array of sample indices."""
+    if tmin is None and tmax is None:
+        sel_times = None
+    else:
+        if tmin is None:
+            tmin = times[0]
+        if tmax is None:
+            tmin = times[-1]
+        assert times[0] <= tmin < tmax <= times[-1], 'Invalid time range'
+        sel_times = np.arange(np.searchsorted(times, tmin),
+                              np.searchsorted(times, tmax) + 1)
+    return sel_times

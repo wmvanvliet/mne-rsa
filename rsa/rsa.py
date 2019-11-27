@@ -140,7 +140,8 @@ def rsa(dsm_data, dsm_model, metric='spearman'):
 def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
               temporal_radius=None, data_dsm_metric='correlation',
               data_dsm_params=None, rsa_metric='spearman', y=None,
-              n_folds=None, n_jobs=1, verbose=False):
+              n_folds=None, sel_series=None, sel_times=None, n_jobs=1,
+              verbose=False):
     """Perform RSA on an array of data, possibly in a searchlight pattern.
 
     Parameters
@@ -188,6 +189,14 @@ def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
         metric. Folds are created based on the ``y`` parameter. Specify -1 to
         use the maximum number of folds possible, given the data.
         Defaults to 1 (no cross-validation).
+    sel_series : ndarray, shape (n_selected_series,) | None
+        When set, searchlight patches will only be generated for the subset of
+        time series with the given indices. Defaults to ``None``, in which case
+        patches for all series are generated.
+    sel_times : ndarray, shape (n_selected_series,) | None
+        When set, searchlight patches will only be generated for the subset of
+        time samples with the given indices. Defaults to ``None``, in which
+        case patches for all samples are generated.
     n_jobs : int
         The number of processes (=number of CPU cores) to use. Specify -1 to
         use all available cores. Defaults to 1.
@@ -220,24 +229,27 @@ def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
             dsm_model=dsm_model,
             metric=rsa_metric)
 
+    # Deal with subselection of data
+    if sel_series is None:
+        sel_series = np.arange(X.shape[1])
+    if sel_times is None:
+        sel_times = np.arange(X.shape[-1])
+    n_series = len(sel_series)
+
     # Call RSA multiple times in parallel. Each thread computes the RSA on part
     # of the data.
-    n_series = X.shape[1]
-    n_times = X.shape[-1]
     if spatial_radius is not None and n_series >= n_jobs:
         # Split the data along series
-        n_series = X.shape[1]
-        series_chunks = _split(np.arange(n_series), n_jobs)
+        series_chunks = _split(sel_series, n_jobs)
         data = Parallel(n_jobs, verbose=1 if verbose else 0)(
-            delayed(call_rsa)(sel_series, None, i)
-            for i, sel_series in enumerate(series_chunks, 1))
+            delayed(call_rsa)(chunk, None, i)
+            for i, chunk in enumerate(series_chunks, 1))
     elif temporal_radius is not None:
         # Split the data along time points
-        n_times = X.shape[-1]
-        times_chunks = _split(np.arange(n_times), n_jobs)
+        times_chunks = _split(sel_times, n_jobs)
         data = Parallel(n_jobs, verbose=1 if verbose else 0)(
-            delayed(call_rsa)(None, sel_times, i)
-            for i, sel_times in enumerate(times_chunks, 1))
+            delayed(call_rsa)(None, chunk, i)
+            for i, chunk in enumerate(times_chunks, 1))
 
     # Collect the RSA values that were computed in the different threads into
     # one array.
@@ -252,6 +264,7 @@ def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
         data = data[np.newaxis, np.newaxis, ...]
 
     return data
+
 
 def _split(x, n):
     """Split x into n chunks. The last chunk may contain less items."""
