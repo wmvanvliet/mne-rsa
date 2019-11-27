@@ -8,8 +8,7 @@ import numpy as np
 from scipy import stats
 from joblib import Parallel, delayed
 
-from .dsm import (_ensure_condensed, dsm_spattemp, dsm_spat, dsm_temp,
-                  compute_dsm, compute_dsm_cv)
+from .dsm import _ensure_condensed, dsm_array
 from .folds import _create_folds
 
 
@@ -209,93 +208,50 @@ def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
     --------
     compute_dsm
     """
-    # Spatio-Temporal RSA
-    if spatial_radius is not None and temporal_radius is not None:
-        if dist is None:
-            raise ValueError('A spatial radius was requested, but no distance '
-                             'information was specified (=dist parameter).')
-        n_series = X.shape[1]
-        # Split the data into chunks. Each chunk will be processed in parallel.
-        chunks = _split(np.arange(n_series), n_jobs)
-
-        # Joblib does not support passing a generator as a function argument.
-        # To work around this, we wrap the call to rsa() inside a temporary
-        # function.
-        def call_rsa(sel_series, position):
-            return rsa(
-                dsm_data=dsm_spattemp(
-                    X, dist, spatial_radius, temporal_radius, data_dsm_metric,
-                    data_dsm_params, y, n_folds, sel_series, verbose=position),
-                dsm_model=dsm_model,
-                metric=rsa_metric)
-
-        data = Parallel(n_jobs, verbose=1 if verbose else 0)(
-            delayed(call_rsa)(sel_series, i)
-            for i, sel_series in enumerate(chunks, 1))
-
-        data = np.vstack(data)
-        data = data.reshape((n_series, -1) + data.shape[1:])
-
-    # Spatial RSA
-    elif spatial_radius is not None:
-        if dist is None:
-            raise ValueError('A spatial radius was requested, but no distance '
-                             'information was specified (=dist parameter).')
-        # Split the data into chunks. Each chunk will be processed in parallel.
-        chunks = _split(np.arange(len(X)), n_jobs)
-
-        # Joblib does not support passing a generator as a function argument.
-        # To work around this, we wrap the call to rsa() inside a temporary
-        # function.
-        def call_rsa(sel_series, position):
-            return rsa(
-                dsm_data=dsm_spat(
-                    X, dist, spatial_radius, data_dsm_metric, data_dsm_params,
-                    y, n_folds, sel_series, verbose=position),
-                dsm_model=dsm_model,
-                metric=rsa_metric)
-
-        data = Parallel(n_jobs, verbose=1 if verbose else 0)(
-            delayed(call_rsa)(sel_series, i)
-            for i, sel_series in enumerate(chunks, 1))
-        data = np.vstack(data)[:, np.newaxis, ...]
-
-    # Temporal RSA
-    elif temporal_radius is not None:
-        # Split the data into chunks. Each chunk will be processed in parallel.
-        chunks = _split(np.arange(X.shape[-1]), n_jobs)
-
-        # Joblib does not support passing a generator as a function argument.
-        # To work around this, we wrap the call to rsa() inside a temporary
-        # function.
-        def call_rsa(sel_series, position):
-            return rsa(
-                dsm_data=dsm_temp(
-                    X, dist, spatial_radius, data_dsm_metric, data_dsm_params,
-                    y, n_folds, sel_series, verbose=position),
-                dsm_model=dsm_model,
-                metric=rsa_metric)
-
-        data = Parallel(n_jobs, verbose=1 if verbose else 0)(
-            delayed(call_rsa)(sel_times, i)
-            for i, sel_times in enumerate(chunks, 1))
-        data = np.vstack(data)[np.newaxis, ...]
-
-    # RSA between two DSMs
-    else:
-        folds = _create_folds(X, y, n_folds)
-        if len(folds) == 1:
-            dsm_func = compute_dsm
-        else:
-            dsm_func = compute_dsm_cv
-        data = rsa(
-            dsm_data=dsm_func(X, data_dsm_metric, data_dsm_params),
+    # Joblib does not support passing a generator as a function argument.
+    # To work around this, we wrap the call to rsa() inside a temporary
+    # function.
+    def call_rsa(sel_series, sel_times, position):
+        return rsa(
+            dsm_data=dsm_array(
+                X, dist, spatial_radius, temporal_radius, data_dsm_metric,
+                data_dsm_params, y, n_folds, sel_series=sel_series,
+                sel_times=sel_times, verbose=position),
             dsm_model=dsm_model,
             metric=rsa_metric)
+
+    # Call RSA multiple times in parallel. Each thread computes the RSA on part
+    # of the data.
+    n_series = X.shape[1]
+    n_times = X.shape[-1]
+    if spatial_radius is not None and n_series >= n_jobs:
+        # Split the data along series
+        n_series = X.shape[1]
+        series_chunks = _split(np.arange(n_series), n_jobs)
+        data = Parallel(n_jobs, verbose=1 if verbose else 0)(
+            delayed(call_rsa)(sel_series, None, i)
+            for i, sel_series in enumerate(series_chunks, 1))
+    elif temporal_radius is not None:
+        # Split the data along time points
+        n_times = X.shape[-1]
+        times_chunks = _split(np.arange(n_times), n_jobs)
+        data = Parallel(n_jobs, verbose=1 if verbose else 0)(
+            delayed(call_rsa)(None, sel_times, i)
+            for i, sel_times in enumerate(times_chunks, 1))
+
+    # Collect the RSA values that were computed in the different threads into
+    # one array.
+    if spatial_radius is not None and temporal_radius is not None:
+        data = np.vstack(data)
+        data = data.reshape((n_series, -1) + data.shape[1:])
+    elif spatial_radius is not None:
+        data = np.vstack(data)[:, np.newaxis, ...]
+    elif temporal_radius is not None:
+        data = np.vstack(data)[np.newaxis, ...]
+    else:
         data = data[np.newaxis, np.newaxis, ...]
 
     return data
-
 
 def _split(x, n):
     """Split x into n chunks. The last chunk may contain less items."""

@@ -19,7 +19,7 @@ import numpy as np
 import mne
 from scipy.linalg import block_diag
 
-from .dsm import _n_items_from_dsm
+from .dsm import _n_items_from_dsm, dsm_array
 from .rsa import rsa_array
 
 
@@ -183,3 +183,98 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
         return [mne.SourceEstimate(data[:, :, i], vertices, tmin, tstep,
                                    subject=stcs[0].subject)
                 for i in range(data.shape[-1])]
+
+
+def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
+                     dist_metric='sqeuclidean', dist_params=dict(), y=None,
+                     n_folds=None, verbose=False):
+    """Generate DSMs in a searchlight pattern across the cortex.
+
+    The output is a source estimate where the "signal" at each source point is
+    the RSA, computed for a patch surrounding the source point.
+
+    Parameters
+    ----------
+    stcs : list of mne.SourceEstimate
+        For each item, a source estimate for the brain activity.
+    src : instance of mne.SourceSpaces
+        The source space used by the source estimates specified in the `stcs`
+        parameter.
+    spatial_radius : floats | None
+        The spatial radius of the searchlight patch in meters. All source
+        points within this radius will belong to the searchlight patch. Set to
+        None to only perform the searchlight over time, flattening across
+        sensors. Defaults to 0.04.
+    temporal_radius : float | None
+        The temporal radius of the searchlight patch in seconds. Set to None to
+        only perform the searchlight over sensors, flattening across time.
+        Defaults to 0.1.
+    dist_metric : str
+        The metric to use to compute the DSM for the source estimates. This can
+        be any metric supported by the scipy.distance.pdist function. See also
+        the ``stc_dsm_params`` parameter to specify and additional parameter
+        for the distance function. Defaults to 'sqeuclidean'.
+    dist_params : dict
+        Extra arguments for the distance metric used to compute the DSMs.
+        Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
+        and their arguments. Defaults to an empty dictionary.
+    y : ndarray of int, shape (n_items,) | None
+        For each source estimate, a number indicating the item to which it
+        belongs. When ``None``, each source estimate is assumed to belong to a
+        different item. Defaults to ``None``.
+    n_folds : int | None
+        Number of folds to use when using cross-validation to compute the
+        evoked DSM metric.  Defaults to ``None``, which means the maximum
+        number of folds possible, given the data.
+    verbose : bool
+        Whether to display a progress bar. In order for this to work, you need
+        the tqdm python module installed. Defaults to False.
+
+    Yields
+    ------
+    dsm : ndarray, shape (n_items, n_items)
+        A DSM for each searchlight patch.
+    """
+    # Check for compatibility of the source estimates and source space
+    lh_verts, rh_verts = stcs[0].vertices
+    for stc in stcs:
+        if (np.any(stc.vertices[0] != lh_verts) or
+                np.any(stc.vertices[1] != rh_verts)):
+            raise ValueError('Not all source estimates have the same '
+                             'vertices.')
+    if (np.any(src[0]['vertno'] != lh_verts) or
+            np.any(src[1]['vertno'] != rh_verts)):
+        raise ValueError('The source space is not defined for the same '
+                         'vertices as the source estimates.')
+
+    times = stcs[0].times
+    for stc in stcs:
+        if np.any(stc.times != times):
+            raise ValueError('Not all source estimates have the same '
+                             'time points.')
+
+    if temporal_radius is not None:
+        # Convert the temporal radius to samples
+        temporal_radius = int(temporal_radius // stcs[0].tstep)
+
+        if temporal_radius < 1:
+            raise ValueError('Temporal radius is less than one sample.')
+
+    # During inverse computation, the source space was downsampled (i.e. using
+    # ico4). Construct vertex-to-vertex distance matrices using only the
+    # vertices that are defined in the source solution.
+    dist = []
+    for hemi in [0, 1]:
+        inuse = np.flatnonzero(src[hemi]['inuse'])
+        dist.append(src[hemi]['dist'][np.ix_(inuse, inuse)].toarray())
+
+    # Collect the distances in a single matrix
+    dist = block_diag(*dist)
+    dist[dist == 0] = np.inf  # Across hemisphere distance is infinity
+    dist[::dist.shape[0] + 1] = 0  # Distance to yourself is zero
+
+    X = np.array([stc.data for stc in stcs])
+    yield from dsm_array(X, dist=dist, spatial_radius=spatial_radius,
+                         temporal_radius=temporal_radius,
+                         dist_metric=dist_metric, dist_params=dist_params, y=y,
+                         n_folds=n_folds, verbose=verbose)

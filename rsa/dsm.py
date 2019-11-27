@@ -135,7 +135,7 @@ def _n_items_from_dsm(dsm):
 
 def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
                  dist_metric='correlation', dist_params=dict(), y=None,
-                 n_folds=1, sel_series=None, verbose=False):
+                 n_folds=1, sel_series=None, sel_times=None, verbose=False):
     """Generator of DSMs using a spatio-temporal searchlight pattern.
 
     For each series (i.e. channel or vertex), each time sample is visited. For
@@ -186,9 +186,13 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
         use the maximum number of folds possible, given the data.
         Defaults to 1 (no cross-validation).
     sel_series : ndarray, shape (n_selected_series,) | None
-        When set, the analysis will be restricted to the subset of time series
-        with the given indices. Defaults to ``None``, in which case all series
-        are processed.
+        When set, searchlight patches will only be generated for the subset of
+        time series with the given indices. Defaults to ``None``, in which
+        patches for all series are generated.
+    sel_times : ndarray, shape (n_selected_series,) | None
+        When set, searchlight patches will only be generated for the subset of
+        time samples with the given indices. Defaults to ``None``, in which
+        patches for all samples are generated.
     verbose : bool | int
         Whether to display a progress bar. In order for this to work, you need
         the tqdm python module installed. If an integer value is given, this
@@ -207,16 +211,22 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
     dsm_spat
     dsm_temp
     """
-    n_series, n_samples = data.shape[1:]
+    n_series = data.shape[1]
+    n_times = data.shape[-1]
 
     # Create folds for cross-validated DSM metrics
     folds = _create_folds(data, y, n_folds)
     # The data is now folds x items x n_series x n_times
 
     if sel_series is None:
-        sel_series = range(n_series)
+        sel_series = np.arange(n_series)
+    if sel_times is None:
+        sel_times = np.arange(n_times)
 
-    centers = np.arange(temporal_radius, n_samples - temporal_radius + 1)
+    # Get a valid time range given the size of the sliding windows
+    tmin = max(temporal_radius, sel_times[0])
+    tmax = min(n_times - temporal_radius + 1, sel_times[-1])
+    centers = np.arange(tmin, tmax)
 
     if verbose:
         from tqdm import tqdm
@@ -294,10 +304,10 @@ def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
         metric. Folds are created based on the ``y`` parameter. Specify -1 to
         use the maximum number of folds possible, given the data.
         Defaults to 1 (no cross-validation).
-    sel_series : ndarray, shape (n_selected_series, ) | None
-        When set, the analysis will be restricted to the subset of time series
-        with the given indices. Defaults to ``None``, in which case all series
-        are processed.
+    sel_series : ndarray, shape (n_selected_series,) | None
+        When set, searchlight patches will only be generated for the subset of
+        time series with the given indices. Defaults to ``None``, in which
+        patches for all series are generated.
     verbose : bool | int
         Whether to display a progress bar. In order for this to work, you need
         the tqdm python module installed. If an integer value is given, this
@@ -396,10 +406,10 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
         metric. Folds are created based on the ``y`` parameter. Specify -1 to
         use the maximum number of folds possible, given the data.
         Defaults to 1 (no cross-validation).
-    sel_times : ndarray, shape (n_selected_times,) | None
-        When set, the analysis will be restricted to the subset of time points
-        with the given indices. Defaults to ``None``, in which case all time
-        points are processed.
+    sel_times : ndarray, shape (n_selected_series,) | None
+        When set, searchlight patches will only be generated for the subset of
+        time samples with the given indices. Defaults to ``None``, in which
+        patches for all samples are generated.
     verbose : bool | int
         Whether to display a progress bar. In order for this to work, you need
         the tqdm python module installed. If an integer value is given, this
@@ -418,13 +428,13 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
     dsm_spat
     dsm_spattemp
     """
-    n_samples = data.shape[-1]
+    n_times = data.shape[-1]
     if sel_times is None:
-        sel_times = np.arange(n_samples)
+        sel_times = np.arange(n_times)
 
     # Get a valid time range given the size of the sliding windows
     tmin = max(temporal_radius, sel_times[0])
-    tmax = min(n_samples - temporal_radius + 1, sel_times[-1])
+    tmax = min(n_times - temporal_radius + 1, sel_times[-1])
     centers = np.arange(tmin, tmax)
 
     # Progress bar
@@ -438,7 +448,7 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
 
     # Create folds for cross-validated DSM metrics
     folds = _create_folds(data, y, n_folds)
-    # The data is now folds x items x ... x n_samples
+    # The data is now folds x items x ... x n_times
 
     if len(folds) == 1:
         dsm_func = compute_dsm
@@ -458,8 +468,13 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
 
 def dsm_array(X, dist=None, spatial_radius=None, temporal_radius=None,
               dist_metric='correlation', dist_params=None, y=None,
-              n_folds=None, verbose=False):
+              n_folds=None, sel_series=None, sel_times=None, verbose=False):
     """Generate DSMs from an array of data, possibly in a searchlight pattern.
+
+    This function acts as a ditchpatch: calling the :func:`dsm_spattemp`,
+    :func:`dsm_spat`, :func:`dsm_temp` or :func:`comput_dsm` functions as
+    necessary, depending on the settings of ``spatial_radius`` and
+    ``temporal_radius``.
 
     Parameters
     ----------
@@ -491,6 +506,14 @@ def dsm_array(X, dist=None, spatial_radius=None, temporal_radius=None,
         metric. Folds are created based on the ``y`` parameter. Specify -1 to
         use the maximum number of folds possible, given the data.
         Defaults to 1 (no cross-validation).
+    sel_series : ndarray, shape (n_selected_series,) | None
+        When set, searchlight patches will only be generated for the subset of
+        time series with the given indices. Defaults to ``None``, in which
+        patches for all series are generated.
+    sel_times : ndarray, shape (n_selected_series,) | None
+        When set, searchlight patches will only be generated for the subset of
+        time samples with the given indices. Defaults to ``None``, in which
+        patches for all samples are generated.
     verbose : bool
         Whether to display a progress bar. In order for this to work, you need
         the tqdm python module installed. Defaults to False.
@@ -500,31 +523,31 @@ def dsm_array(X, dist=None, spatial_radius=None, temporal_radius=None,
     dsm : ndarray, shape (n_items, n_items)
         A DSM for each searchlight patch.
     """
-    # Spatio-Temporal RSA
+    # Spatio-temporal searchlight
     if spatial_radius is not None and temporal_radius is not None:
         if dist is None:
             raise ValueError('A spatial radius was requested, but no distance '
                              'information was specified (=dist parameter).')
         yield from dsm_spattemp(
             X, dist, spatial_radius, temporal_radius, dist_metric, dist_params,
-            y, n_folds, verbose=verbose)
+            y, n_folds, sel_series, sel_times, verbose=verbose)
 
-    # Spatial RSA
+    # Spatial searchlight
     elif spatial_radius is not None:
         if dist is None:
             raise ValueError('A spatial radius was requested, but no distance '
                              'information was specified (=dist parameter).')
         yield from dsm_spat(
             X, dist, spatial_radius, dist_metric, dist_params, y, n_folds,
-            verbose=verbose)
+            sel_series, verbose=verbose)
 
-    # Temporal RSA
+    # Temporal searchlight
     elif temporal_radius is not None:
         yield from dsm_temp(
             X, dist, spatial_radius, dist_metric, dist_params, y, n_folds,
-            verbose=verbose)
+            sel_times, verbose=verbose)
 
-    # RSA between two DSMs
+    # Only a single searchlight patch
     else:
         folds = _create_folds(X, y, n_folds)
         if len(folds) == 1:
