@@ -94,3 +94,9 @@ class TestRsaArray:
         data = np.array([[1], [2], [3], [4]])
         model_dsm = np.array([1, 2, 3, 1, 2, 1])
         assert rsa_array(data, model_dsm, data_dsm_metric='euclidean') == 1
+
+    def test_rsa_temp(self):
+        """Test RSA with a temporal searchlight."""
+        data = np.array([[1, 2, 3], [2, 3, 4]])
+        model_dsm = np.array([1, 2])
+        #assert rsa_array(data, model_dsm, temporal_radius=1, data_dsm_metric='euclidean') == 1
