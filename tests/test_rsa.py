@@ -2,7 +2,7 @@ import pytest
 from types import GeneratorType
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
-from rsa import rsa, rsa_gen
+from rsa import rsa, rsa_gen, rsa_array, compute_dsm
 
 
 def dsm():
@@ -14,7 +14,7 @@ def dsm_gen(dsms):
     """Generator for DSMs"""
     for dsm in dsms:
         yield np.asarray(dsm)
-
+        
 
 class TestRsaGen:
     """Test the rsa_gen function"""
@@ -82,8 +82,15 @@ class TestRsa:
 
 class TestRsaArray:
     """Test computing RSA on a NumPy array"""
+    def invalid_input(self):
+        """Test invalid inputs."""
+        data = np.array([[1], [2], [3], [4]])
+        model_dsm = dsm()
+        with pytest.raises(ValueError, match='There is only a single feature'):
+            rsa_array(data, model_dsm)
 
-    def test_input_errors(self):
-        """Test error messages related to input parameters."""
-        pass
-
+    def test_rsa_no_searchlight(self):
+        """Test RSA without searchlight patches."""
+        data = np.array([[1], [2], [3], [4]])
+        model_dsm = np.array([1, 2, 3, 1, 2, 1])
+        assert rsa_array(data, model_dsm, data_dsm_metric='euclidean') == 1
