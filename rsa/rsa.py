@@ -140,7 +140,7 @@ def rsa(dsm_data, dsm_model, metric='spearman'):
 def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
               temporal_radius=None, data_dsm_metric='correlation',
               data_dsm_params=dict(), rsa_metric='spearman', y=None,
-              n_folds=None, sel_series=None, sel_times=None, n_jobs=1,
+              n_folds=1, sel_series=None, sel_times=None, n_jobs=1,
               verbose=False):
     """Perform RSA on an array of data, possibly in a searchlight pattern.
 

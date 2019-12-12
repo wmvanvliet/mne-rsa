@@ -446,19 +446,19 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
             position = 0
         pbar = tqdm(total=len(centers), position=position)
 
-    # Create folds for cross-validated DSM metrics
-    folds = _create_folds(data, y, n_folds)
-    # The data is now folds x items x ... x n_times
-
-    if len(folds) == 1:
+    if n_folds == 1:
         dsm_func = compute_dsm
     else:
         dsm_func = compute_dsm_cv
+        # Create folds for cross-validated DSM metrics
+        data = _create_folds(data, y, n_folds)
+        # The data is now folds x items x ... x n_times
 
     for center in centers:
         # Construct a searchlight patch of the given radius
-        patch = folds[..., center - temporal_radius:center + temporal_radius]
-        yield dsm_func(patch, dist_metric, **dist_params)
+        patch = data[..., center - temporal_radius:center + temporal_radius + 1]
+        m = dsm_func(patch, dist_metric, **dist_params)
+        yield m
         if verbose:
             pbar.update(1)
 
@@ -468,7 +468,7 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
 
 def dsm_array(X, dist=None, spatial_radius=None, temporal_radius=None,
               dist_metric='correlation', dist_params=dict(), y=None,
-              n_folds=None, sel_series=None, sel_times=None, verbose=False):
+              n_folds=1, sel_series=None, sel_times=None, verbose=False):
     """Generate DSMs from an array of data, possibly in a searchlight pattern.
 
     This function acts as a ditchpatch: calling the :func:`dsm_spattemp`,
