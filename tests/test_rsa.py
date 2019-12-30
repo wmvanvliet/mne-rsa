@@ -63,6 +63,16 @@ class TestRsaGen:
                                metric='partial'))
         assert_allclose(rsa_val, [0.919145, 0.912871])
 
+    def test_partial_spearman(self):
+        """Test computing RSA with partial spearman correlation."""
+        # Example verified with MATLAB's partialcorr function
+        model_dsm1 = np.array([1, 2, 3, 4])
+        model_dsm2 = np.array([0, 0, 1, 1])
+        data_dsm = dsm_gen([[2, 4, 20, 15]])
+        rsa_val = next(rsa_gen(data_dsm, [model_dsm1, model_dsm2],
+                               metric='partial-spearman'))
+        assert_allclose(rsa_val, [0, 2 / 3], atol=1E-15)
+
     def test_invalid_metric(self):
         """Test whether computing RSA with an invalid metric raises error."""
         with pytest.raises(ValueError, match='Invalid RSA metric'):
