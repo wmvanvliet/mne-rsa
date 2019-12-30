@@ -1,8 +1,8 @@
 import pytest
 from types import GeneratorType
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
-from rsa import rsa, rsa_gen, rsa_array, compute_dsm
+from numpy.testing import assert_allclose
+from rsa import rsa, rsa_gen, rsa_array
 
 
 def dsm():
@@ -14,9 +14,9 @@ def dsm_gen(dsms):
     """Generator for DSMs"""
     for dsm in dsms:
         yield np.asarray(dsm)
-        
 
-class TestRsaGen:
+
+class TestRSAGen:
     """Test the rsa_gen function"""
 
     def test_return_type(self):
@@ -79,9 +79,9 @@ class TestRsaGen:
             next(rsa_gen(dsm_gen([dsm()]), dsm(), metric='foo'))
 
 
-class TestRsa:
+class TestRSA:
     """Test the main RSA function"""
-    # Most of the functionality is already tested in TestRsaGen
+    # Most of the functionality is already tested in TestRSAGen
 
     def test_return_type(self):
         """Test return type of rsa_gen"""
@@ -90,7 +90,7 @@ class TestRsa:
         assert rsa(dsm(), [dsm()]).shape == (1,)
 
 
-class TestRsaArray:
+class TestRSAArray:
     """Test computing RSA on a NumPy array"""
     def invalid_input(self):
         """Test invalid inputs."""
