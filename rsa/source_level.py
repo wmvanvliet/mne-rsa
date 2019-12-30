@@ -304,6 +304,6 @@ def _get_distance_matrix(src):
     # Collect the distances in a single matrix
     dist = block_diag(*dist)
     dist[dist == 0] = np.inf  # Across hemisphere distance is infinity
-    dist[::dist.shape[0] + 1] = 0  # Distance to yourself is zero
+    dist.flat[::dist.shape[0] + 1] = 0  # Distance to yourself is zero
 
     return dist

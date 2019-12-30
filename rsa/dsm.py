@@ -245,10 +245,9 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
                 sample - temporal_radius:sample + temporal_radius
             ]
             if len(folds) == 1:
-                dsm_func = compute_dsm
+                yield compute_dsm(patch[0], dist_metric, **dist_params)
             else:
-                dsm_func = compute_dsm_cv
-            yield dsm_func(patch, dist_metric, **dist_params)
+                yield compute_dsm_cv(patch, dist_metric, **dist_params)
             if verbose:
                 pbar.update(1)
 
@@ -330,11 +329,6 @@ def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
     folds = _create_folds(data, y, n_folds)
     # The data is now folds x items x n_series x ...
 
-    if len(folds) == 1:
-        dsm_func = compute_dsm
-    else:
-        dsm_func = compute_dsm_cv
-
     if sel_series is not None:
         dist = dist[sel_series]
 
@@ -351,7 +345,10 @@ def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
     for series_dist in dist:
         # Construct a searchlight patch of the given radius
         patch = folds[:, :, np.flatnonzero(series_dist < spatial_radius)]
-        yield dsm_func(patch, dist_metric, **dist_params)
+        if len(folds) == 1:
+            yield compute_dsm(patch[0], dist_metric, **dist_params)
+        else:
+            yield compute_dsm_cv(patch, dist_metric, **dist_params)
         if verbose:
             pbar.update(1)
 
@@ -556,7 +553,6 @@ def dsm_array(X, dist=None, spatial_radius=None, temporal_radius=None,
     else:
         folds = _create_folds(X, y, n_folds)
         if len(folds) == 1:
-            dsm_func = compute_dsm
+            yield compute_dsm(folds[0], dist_metric, **dist_params)
         else:
-            dsm_func = compute_dsm_cv
-        yield dsm_func(X, dist_metric, **dist_params)
+            yield compute_dsm_cv(folds, dist_metric, **dist_params)
