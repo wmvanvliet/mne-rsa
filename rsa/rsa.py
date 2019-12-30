@@ -153,8 +153,8 @@ def rsa(dsm_data, dsm_model, metric='spearman'):
 
 def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
               temporal_radius=None, data_dsm_metric='correlation',
-              data_dsm_params=None, rsa_metric='spearman', y=None,
-              n_folds=None, sel_series=None, sel_times=None, n_jobs=1,
+              data_dsm_params=dict(), rsa_metric='spearman', y=None,
+              n_folds=1, sel_series=None, sel_times=None, n_jobs=1,
               verbose=False):
     """Perform RSA on an array of data, possibly in a searchlight pattern.
 
@@ -264,6 +264,9 @@ def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
         data = Parallel(n_jobs, verbose=1 if verbose else 0)(
             delayed(call_rsa)(None, chunk, i)
             for i, chunk in enumerate(times_chunks, 1))
+    else:
+        # No searchlight. No parallel processing.
+        data = call_rsa(None, None, 1)
 
     # Collect the RSA values that were computed in the different threads into
     # one array.

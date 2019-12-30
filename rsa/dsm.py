@@ -446,19 +446,19 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
             position = 0
         pbar = tqdm(total=len(centers), position=position)
 
-    # Create folds for cross-validated DSM metrics
-    folds = _create_folds(data, y, n_folds)
-    # The data is now folds x items x ... x n_times
-
-    if len(folds) == 1:
+    if n_folds == 1:
         dsm_func = compute_dsm
     else:
         dsm_func = compute_dsm_cv
+        # Create folds for cross-validated DSM metrics
+        data = _create_folds(data, y, n_folds)
+        # The data is now folds x items x ... x n_times
 
     for center in centers:
         # Construct a searchlight patch of the given radius
-        patch = folds[..., center - temporal_radius:center + temporal_radius]
-        yield dsm_func(patch, dist_metric, **dist_params)
+        patch = data[..., center - temporal_radius:center + temporal_radius + 1]
+        m = dsm_func(patch, dist_metric, **dist_params)
+        yield m
         if verbose:
             pbar.update(1)
 
@@ -467,8 +467,8 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
 
 
 def dsm_array(X, dist=None, spatial_radius=None, temporal_radius=None,
-              dist_metric='correlation', dist_params=None, y=None,
-              n_folds=None, sel_series=None, sel_times=None, verbose=False):
+              dist_metric='correlation', dist_params=dict(), y=None,
+              n_folds=1, sel_series=None, sel_times=None, verbose=False):
     """Generate DSMs from an array of data, possibly in a searchlight pattern.
 
     This function acts as a ditchpatch: calling the :func:`dsm_spattemp`,
@@ -493,10 +493,15 @@ def dsm_array(X, dist=None, spatial_radius=None, temporal_radius=None,
         The temporal radius of the searchlight patch in samples. Set to None to
         only perform the searchlight over sensors/vertices, flattening across
         time. Defaults to ``None``.
-    distance_metric : str
-        The metric to use to compute the data DSMs. This can be any metric
-        supported by the scipy.distance.pdist function. Defaults to
-        'correlation'.
+    dist_metric : str
+        The distance metric to use to compute the DSMs. Can be any metric
+        supported by :func:`scipy.spatial.distance.pdist`. See also the
+        ``dist_params`` parameter to specify and additional parameter for the
+        distance function. Defaults to 'correlation'.
+    dist_params : dict
+        Extra arguments for the distance metric used to compute the DSMs.
+        Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
+        and their arguments. Defaults to an empty dictionary.
     y : ndarray of int, shape (n_items,) | None
         For each item, a number indicating the class to which the item belongs.
         When ``None``, each item is assumed to belong to a different class.
@@ -544,7 +549,7 @@ def dsm_array(X, dist=None, spatial_radius=None, temporal_radius=None,
     # Temporal searchlight
     elif temporal_radius is not None:
         yield from dsm_temp(
-            X, dist, spatial_radius, dist_metric, dist_params, y, n_folds,
+            X, temporal_radius, dist_metric, dist_params, y, n_folds,
             sel_times, verbose=verbose)
 
     # Only a single searchlight patch
@@ -554,4 +559,4 @@ def dsm_array(X, dist=None, spatial_radius=None, temporal_radius=None,
             dsm_func = compute_dsm
         else:
             dsm_func = compute_dsm_cv
-        yield dsm_func(X, dist_metric, dist_params)
+        yield dsm_func(X, dist_metric, **dist_params)
