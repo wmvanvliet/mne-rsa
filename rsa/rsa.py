@@ -9,7 +9,6 @@ from scipy import stats
 from joblib import Parallel, delayed
 
 from .dsm import _ensure_condensed, dsm_array
-from .folds import _create_folds
 
 
 def _kendall_tau_a(a, b):
@@ -21,6 +20,24 @@ def _kendall_tau_a(a, b):
         pair_relations_b = np.sign(b[k] - b[k + 1:])
         K += np.sum(pair_relations_a * pair_relations_b)
     return K / (n * (n - 1) / 2)
+
+
+def _partial_correlation(dsm_data, dsm_model, type='pearson'):
+    """Compute partial Pearson/Spearman correlation."""
+    if len(dsm_model) == 1:
+        raise ValueError('Need more than one model DSM to use partial '
+                         'correlation as metric.')
+    if type not in ['pearson', 'spearman']:
+        raise ValueError("Correlation type must by either 'pearson' or "
+                         "'spearman'")
+    X = np.vstack([dsm_data] + dsm_model).T
+    if type == 'spearman':
+        X = np.apply_along_axis(stats.rankdata, 0, X)
+    X = X - X.mean(axis=0)
+    cov_X_inv = np.linalg.pinv(X.T @ X)
+    norm = np.sqrt(np.outer(np.diag(cov_X_inv), np.diag(cov_X_inv)))
+    R_partial = cov_X_inv / norm
+    return -R_partial[0, 1:]
 
 
 def rsa_gen(dsm_data_gen, dsm_model, metric='spearman'):
@@ -36,11 +53,13 @@ def rsa_gen(dsm_data_gen, dsm_model, metric='spearman'):
         The model DSM, or list of model DSMs.
     metric : str
         The RSA metric to use to compare the DSMs. Valid options are::
-         - 'spearman' for Spearman's correlation
+         - 'spearman' for Spearman's correlation (the default)
          - 'pearson' for Pearson's correlation
          - 'kendall-tau-a' for Kendall's Tau (alpha variant)
          - 'partial' for partial Pearson correlations
+         - 'partial-spearman' for partial Spearman correlations
          - 'regression' for linear regression weights
+        Defaults to 'spearman'
 
     Yields
     -------
@@ -72,15 +91,10 @@ def rsa_gen(dsm_data_gen, dsm_model, metric='spearman'):
             rsa_vals = [_kendall_tau_a(dsm_data, dsm_model_)
                         for dsm_model_ in dsm_model]
         elif metric == 'partial':
-            if len(dsm_model) == 1:
-                raise ValueError('Need more than one model DSM to use partial '
-                                 'correlation as metric.')
-            X = np.vstack([dsm_data] + dsm_model).T
-            X = X - X.mean(axis=0)
-            cov_X_inv = np.linalg.pinv(X.T @ X)
-            norm = np.sqrt(np.outer(np.diag(cov_X_inv), np.diag(cov_X_inv)))
-            R_partial = cov_X_inv / norm
-            rsa_vals = -R_partial[0, 1:]
+            rsa_vals = _partial_correlation(dsm_data, dsm_model)
+        elif metric == 'partial-spearman':
+            rsa_vals = _partial_correlation(dsm_data, dsm_model,
+                                            type='spearman')
         elif metric == 'regression':
             X = np.atleast_2d(np.array(dsm_model)).T
             X = X - X.mean(axis=0)
