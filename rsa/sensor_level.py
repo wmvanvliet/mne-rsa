@@ -177,7 +177,7 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
     else:
         tmin = 0
     if spatial_radius is not None:
-        info = evokeds[0].info
+        info = mne.pick_info(evokeds[0].info, picks)
     else:
         info = mne.create_info(['rsa'], evokeds[0].info['sfreq'])
 
@@ -269,6 +269,18 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
     n_jobs : int
         The number of processes (=number of CPU cores) to use. Specify -1 to
         use all available cores. Defaults to 1.
+rsa_results = rsa.rsa_epochs(
+    epochs,
+    [words_only_dsm, letters_only_dsm],
+    y=metadata['y'],
+    epochs_dsm_metric='correlation',
+    #rsa_metric='kendall-tau-a',
+    rsa_metric='spearman',
+    verbose=True,
+    spatial_radius=0.04,
+    temporal_radius=0.01,
+    n_jobs=4,
+)
     verbose : bool
         Whether to display a progress bar. In order for this to work, you need
         the tqdm python module installed. Defaults to False.
@@ -343,6 +355,7 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
         tmin = 0
     if spatial_radius is not None:
         info = epochs.info
+        info = mne.pick_info(info, picks)
     else:
         info = mne.create_info(['rsa'], epochs.info['sfreq'])
 

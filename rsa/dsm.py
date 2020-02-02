@@ -17,10 +17,13 @@ def compute_dsm(data, metric='correlation', **kwargs):
     data : ndarray, shape (n_items, ...)
         For each item, all the features. The first are the items and all other
         dimensions will be flattened and treated as features.
-    metric : str
-        The metric to use to compute the data DSM. Can be any metric supported
-        by :func:`scipy.spatial.distance.pdist`. Defaults to 'correlation'
-        (=Pearson correlation).
+    metric : str | function
+        The distance metric to use to compute the DSM. Can be any metric
+        supported by :func:`scipy.spatial.distance.pdist`. When a function is
+        specified, it needs to take in two vectors and output a single number.
+        See also the ``dist_params`` parameter to specify and additional
+        parameter for the distance function.
+        Defaults to 'correlation'.
     **kwargs : dict, optional
         Extra arguments for the distance metric. Refer to
         :mod:`scipy.spatial.distance` for a list of all other metrics and their
@@ -63,10 +66,13 @@ def compute_dsm_cv(folds, metric='correlation', **kwargs):
         For each item, all the features. The first dimension are the folds used
         for cross-validation, items are along the second dimension, and all
         other dimensions will be flattened and treated as features.
-    metric : str
-        The metric to use to compute the data DSM. Can be any metric supported
-        by :func:`scipy.spatial.distance.pdist`. Defaults to 'correlation'
-        (=Pearson correlation).
+    metric : str | function
+        The distance metric to use to compute the DSM. Can be any metric
+        supported by :func:`scipy.spatial.distance.pdist`. When a function is
+        specified, it needs to take in two vectors and output a single number.
+        See also the ``dist_params`` parameter to specify and additional
+        parameter for the distance function.
+        Defaults to 'correlation'.
     **kwargs : dict, optional
         Extra arguments for the distance metric. Refer to
         :mod:`scipy.spatial.distance` for a list of all other metrics and their
@@ -167,11 +173,13 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
         The spatial radius of the searchlight patch in meters.
     temporal_radius : int
         The temporal radius of the searchlight patch in samples.
-    dist_metric : str
+    dist_metric : str | function
         The distance metric to use to compute the DSMs. Can be any metric
-        supported by :func:`scipy.spatial.distance.pdist`. See also the
-        ``dist_params`` parameter to specify and additional parameter for the
-        distance function. Defaults to 'correlation'.
+        supported by :func:`scipy.spatial.distance.pdist`. When a function is
+        specified, it needs to take in two vectors and output a single number.
+        See also the ``dist_params`` parameter to specify and additional
+        parameter for the distance function.
+        Defaults to 'correlation'.
     dist_params : dict
         Extra arguments for the distance metric used to compute the DSMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
@@ -285,11 +293,13 @@ def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
         The distances between all source points or sensors in meters.
     spatial_radius : float
         The spatial radius of the searchlight patch in meters.
-    dist_metric : str
+    dist_metric : str | function
         The distance metric to use to compute the DSMs. Can be any metric
-        supported by :func:`scipy.spatial.distance.pdist`. See also the
-        ``dist_params`` parameter to specify and additional parameter for the
-        distance function. Defaults to 'correlation'.
+        supported by :func:`scipy.spatial.distance.pdist`. When a function is
+        specified, it needs to take in two vectors and output a single number.
+        See also the ``dist_params`` parameter to specify and additional
+        parameter for the distance function.
+        Defaults to 'correlation'.
     dist_params : dict
         Extra arguments for the distance metric used to compute the DSMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
@@ -385,11 +395,13 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
         The distances between all source points or sensors in meters.
     temporal_radius : float
         The temporal radius of the searchlight patch in samples.
-    dist_metric : str
+    dist_metric : str | function
         The distance metric to use to compute the DSMs. Can be any metric
-        supported by :func:`scipy.spatial.distance.pdist`. See also the
-        ``dist_params`` parameter to specify and additional parameter for the
-        distance function. Defaults to 'correlation'.
+        supported by :func:`scipy.spatial.distance.pdist`. When a function is
+        specified, it needs to take in two vectors and output a single number.
+        See also the ``dist_params`` parameter to specify and additional
+        parameter for the distance function.
+        Defaults to 'correlation'.
     dist_params : dict
         Extra arguments for the distance metric used to compute the DSMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
@@ -490,11 +502,13 @@ def dsm_array(X, dist=None, spatial_radius=None, temporal_radius=None,
         The temporal radius of the searchlight patch in samples. Set to None to
         only perform the searchlight over sensors/vertices, flattening across
         time. Defaults to ``None``.
-    dist_metric : str
+    dist_metric : str | function
         The distance metric to use to compute the DSMs. Can be any metric
-        supported by :func:`scipy.spatial.distance.pdist`. See also the
-        ``dist_params`` parameter to specify and additional parameter for the
-        distance function. Defaults to 'correlation'.
+        supported by :func:`scipy.spatial.distance.pdist`. When a function is
+        specified, it needs to take in two vectors and output a single number.
+        See also the ``dist_params`` parameter to specify and additional
+        parameter for the distance function.
+        Defaults to 'correlation'.
     dist_params : dict
         Extra arguments for the distance metric used to compute the DSMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics

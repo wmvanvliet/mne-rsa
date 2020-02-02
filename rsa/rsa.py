@@ -6,20 +6,65 @@ Methods to compute representational similarity analysis (RSA).
 from types import GeneratorType
 import numpy as np
 from scipy import stats
+from scipy.stats.stats import _kendall_dis
 from joblib import Parallel, delayed
 
 from .dsm import _ensure_condensed, dsm_array
 
 
-def _kendall_tau_a(a, b):
-    """Compute Kendall's Tau metric, alpha variant."""
-    n = len(a)
-    K = 0
-    for k in range(0, n - 1):
-        pair_relations_a = np.sign(a[k] - a[k + 1:])
-        pair_relations_b = np.sign(b[k] - b[k + 1:])
-        K += np.sum(pair_relations_a * pair_relations_b)
-    return K / (n * (n - 1) / 2)
+def _kendall_tau_a(x, y):
+    """Compute Kendall's Tau metric, A-variant.
+
+    Taken from scipy.stats.kendalltau and modified to be the tau-a variant.
+    """
+    x = np.asarray(x).ravel()
+    y = np.asarray(y).ravel()
+
+    if x.size != y.size:
+        raise ValueError("All inputs to `kendalltau` must be of the same size, "
+                         "found x-size %s and y-size %s" % (x.size, y.size))
+    elif not x.size or not y.size:
+        return np.nan  # Return NaN if arrays are empty
+
+    def count_rank_tie(ranks):
+        cnt = np.bincount(ranks).astype('int64', copy=False)
+        cnt = cnt[cnt > 1]
+        return ((cnt * (cnt - 1) // 2).sum(),
+                (cnt * (cnt - 1.) * (cnt - 2)).sum(),
+                (cnt * (cnt - 1.) * (2*cnt + 5)).sum())
+
+    size = x.size
+    perm = np.argsort(y)  # sort on y and convert y to dense ranks
+    x, y = x[perm], y[perm]
+    y = np.r_[True, y[1:] != y[:-1]].cumsum(dtype=np.intp)
+
+    # stable sort on x and convert x to dense ranks
+    perm = np.argsort(x, kind='mergesort')
+    x, y = x[perm], y[perm]
+    x = np.r_[True, x[1:] != x[:-1]].cumsum(dtype=np.intp)
+
+    dis = _kendall_dis(x, y)  # discordant pairs
+
+    obs = np.r_[True, (x[1:] != x[:-1]) | (y[1:] != y[:-1]), True]
+    cnt = np.diff(np.nonzero(obs)[0]).astype('int64', copy=False)
+
+    ntie = (cnt * (cnt - 1) // 2).sum()  # joint ties
+    xtie, x0, x1 = count_rank_tie(x)     # ties in x, stats
+    ytie, y0, y1 = count_rank_tie(y)     # ties in y, stats
+
+    tot = (size * (size - 1)) // 2
+
+    if xtie == tot or ytie == tot:
+        return np.nan
+
+    # Note that tot = con + dis + (xtie - ntie) + (ytie - ntie) + ntie
+    #               = con + dis + xtie + ytie - ntie
+    con_minus_dis = tot - xtie - ytie + ntie - 2 * dis
+    tau = con_minus_dis / tot
+    # Limit range to fix computational errors
+    tau = min(1., max(-1., tau))
+
+    return tau
 
 
 def _partial_correlation(dsm_data, dsm_model, type='pearson'):
