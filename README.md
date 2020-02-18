@@ -10,31 +10,31 @@ Here is how to install the package as a user:
 `pip install git+https://github.com/wmvanvliet/rsa.git`
 
 
-## Development
-
-Here is how to set up the package as a developer:
-
-```
-git clone git@github.com:wmvanvliet/rsa.git
-cd rsa
-python setup.py develop --user
-```
-
-
 ## Use cases
 
 This is what the package can do for you:
 
- - Compute RSA across vertices and samples (source level)
- - Compute RSA across sensors and samples (sensor level)
- - Compute RSA across vertices only (source level)
- - Compute RSA across sensors only (sensor level)
- - Compute RSA across samples only (source and sensor level)
- - Use cross-validated distance metrics
+ - Compute DSMs on arbitrary data
+ - Compute DSMs in a searchlight across:
+    - vertices and samples (source level)
+    - sensors and samples (sensor level)
+    - vertices only (source level)
+    - sensors only (sensor level)
+    - samples only (source and sensor level)
+ - Use cross-validated distance metrics when computing DSMs
+ - And of course: compute RSA between DSMs
 
 This is what it cannot do (yet) for you:
 
- - Compute RSA across voxels (volume level)
+ - Compute DSMs in a searchlight across voxels (volume level)
+
+Supported metrics for comparing DSMs:
+
+  - Spearman correlation (the default)
+  - Pearson correlation
+  - Kendall's Tau-A
+  - Linear regression (when comparing multiple DSMs at once)
+  - Partial correlation (when comparing multiple DSMs at once)
 
 
 ## Juicy bits of the API 
@@ -76,3 +76,25 @@ evoked_rsa = rsa.rsa_epochs(epochs, dsm_model,
                             spatial_radius=0.04, temporal_radius=0.01,
 			                verbose=True)
 ```
+
+
+## Integration with other packages
+
+I mainly wrote this package to perform RSA analysis in MEG data. Hence, integration functions with [MNE-Python](https://mne.tools) are provided. No integration with [nipy](https://nipy.org) yet for fMRI, feel free to submit a PR!
+
+
+## Performance
+
+This package aims to be fast and memory efficient. An important design feature is that under the hood, everything operates on generators. The searchlight routines produce a generator of DSMs which are consumed by a generator of RSA values. Parallel processing is also supported, so you can use all of your CPU cores.
+
+
+## Development
+
+Here is how to set up the package as a developer:
+
+```
+git clone git@github.com:wmvanvliet/rsa.git
+cd rsa
+python setup.py develop --user
+```
+
