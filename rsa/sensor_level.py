@@ -361,10 +361,10 @@ rsa_results = rsa.rsa_epochs(
 
     if one_model:
         return mne.EvokedArray(data[:, :, 0], info, tmin, comment='RSA',
-                               nave=len(epochs.event_id))
+                               nave=len(np.unique(y)))
     else:
         return [mne.EvokedArray(data[:, :, i], info, tmin, comment='RSA',
-                                nave=len(epochs.event_id))
+                                nave=len(np.unique(y)))
                 for i in range(data.shape[-1])]
 
 
