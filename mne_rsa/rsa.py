@@ -143,11 +143,12 @@ def rsa_gen(dsm_data_gen, dsm_model, metric='spearman'):
         elif metric == 'regression':
             X = np.atleast_2d(np.array(dsm_model)).T
             X = X - X.mean(axis=0)
-            rsa_vals = np.linalg.lstsq(X, dsm_data, rcond=None)[0]
+            y = dsm_data - dsm_data.mean()
+            rsa_vals = np.linalg.lstsq(X, y, rcond=None)[0]
         else:
             raise ValueError("Invalid RSA metric, must be one of: 'spearman', "
-                             "'pearson', 'partial', 'regression' or "
-                             "'kendall-tau-a'.")
+                             "'pearson', 'partial', 'partial-spearman', "
+                             "'regression' or 'kendall-tau-a'.")
         if return_array:
             yield np.asarray(rsa_vals)
         else:
