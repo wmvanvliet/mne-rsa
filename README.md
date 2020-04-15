@@ -56,7 +56,7 @@ def rsa_evokeds(evokeds, model_dsm, y=None, noise_cov=None,
 
 def rsa_epochs(epochs, model_dsm, y=None, noise_cov=None,
                spatial_radius=0.04, temporal_radius=0.1,
-               evoked_dsm_metric='correlation', epochs_dsm_params=None,
+               epochs_dsm_metric='correlation', epochs_dsm_params=None,
                rsa_metric='spearman',
                n_jobs=1, verbose=False)
 ```
