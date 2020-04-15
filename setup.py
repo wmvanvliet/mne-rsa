@@ -7,14 +7,14 @@ if __name__ == "__main__":
         os.remove('MANIFEST')
 
     setup(
-        name='rsa',
+        name='mne-rsa',
         maintainer='Marijn van Vliet',
         maintainer_email='w.m.vanvliet@gmail.com',
         description='Code for performing Representational Similarity Analysis on MNE-Python data structures.',
         license='BSD-3',
-        url='https://version.aalto.fi/gitlab/vanvlm1/rsa',
-        version='0.3',
-        download_url='https://version.aalto.fi/gitlab/vanvlm1/rsa/repository/archive.zip?ref=master',
+        url='https://github.com/wmvanvliet/mne-rsa',
+        version='0.4.dev0',
+        download_url='https://github.com/wmvanvliet/mne-rsa/archive/master.zip',
         long_description=open('README.md').read(),
         classifiers=['Intended Audience :: Science/Research',
                      'Intended Audience :: Developers',
@@ -27,6 +27,6 @@ if __name__ == "__main__":
                      'Operating System :: Unix',
                      'Operating System :: MacOS'],
         platforms='any',
-        packages=['rsa'],
-        install_requires=['numpy', 'scipy', 'mne'],
+        packages=['mne_rsa'],
+        install_requires=['numpy', 'scipy', 'matplotlib', 'mne'],
     )

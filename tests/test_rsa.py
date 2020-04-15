@@ -2,7 +2,7 @@ import pytest
 from types import GeneratorType
 import numpy as np
 from numpy.testing import assert_allclose
-from rsa import rsa, rsa_gen, rsa_array
+from mne_rsa import rsa, rsa_gen, rsa_array
 
 
 def dsm():
