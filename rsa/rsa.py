@@ -301,7 +301,7 @@ def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
         # Split the data along series
         series_chunks = _split(sel_series, n_jobs)
         data = Parallel(n_jobs, verbose=1 if verbose else 0)(
-            delayed(call_rsa)(chunk, None, i)
+            delayed(call_rsa)(chunk, sel_times, i)
             for i, chunk in enumerate(series_chunks, 1))
     elif temporal_radius is not None:
         # Split the data along time points
@@ -311,7 +311,7 @@ def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
             for i, chunk in enumerate(times_chunks, 1))
     else:
         # No searchlight. No parallel processing.
-        data = call_rsa(None, None, 1)
+        data = call_rsa(None, sel_times, 1)
 
     # Collect the RSA values that were computed in the different threads into
     # one array.

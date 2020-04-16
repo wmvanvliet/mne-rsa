@@ -265,7 +265,7 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
 
 def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
              dist_params=dict(), y=None, n_folds=1, sel_series=None,
-             verbose=False):
+             sel_times=None, verbose=False):
     """Generator of DSMs using a spatial searchlight pattern.
 
     Each time series (i.e. channel or vertex) is visited. For each visited
@@ -317,6 +317,10 @@ def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
         When set, searchlight patches will only be generated for the subset of
         time series with the given indices. Defaults to ``None``, in which case
         patches for all series are generated.
+    sel_times : ndarray, shape (n_selected_series,) | None
+        When set, searchlight patches will only be generated for the subset of
+        time samples with the given indices. Defaults to ``None``, in which
+        case patches for all samples are generated.
     verbose : bool | int
         Whether to display a progress bar. In order for this to work, you need
         the tqdm python module installed. If an integer value is given, this
@@ -555,7 +559,7 @@ def dsm_array(X, dist=None, spatial_radius=None, temporal_radius=None,
                              'information was specified (=dist parameter).')
         yield from dsm_spat(
             X, dist, spatial_radius, dist_metric, dist_params, y, n_folds,
-            sel_series, verbose=verbose)
+            sel_series, sel_times, verbose=verbose)
 
     # Temporal searchlight
     elif temporal_radius is not None:
