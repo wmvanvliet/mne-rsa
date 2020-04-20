@@ -253,7 +253,8 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
                 sample - temporal_radius:sample + temporal_radius
             ]
             if len(folds) == 1:
-                yield compute_dsm(patch[0], dist_metric, **dist_params)
+                dsm = compute_dsm(patch[0], dist_metric, **dist_params)
+                yield dsm
             else:
                 yield compute_dsm_cv(patch, dist_metric, **dist_params)
             if verbose:
@@ -339,12 +340,16 @@ def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
     dsm_temp
     dsm_spattemp
     """
+    n_times = data.shape[-1]
+
     # Create folds for cross-validated DSM metrics
     folds = _create_folds(data, y, n_folds)
     # The data is now folds x items x n_series x ...
 
     if sel_series is not None:
         dist = dist[sel_series]
+    if sel_times is None:
+        sel_times = np.arange(n_times)
 
     # Progress bar
     if verbose:
@@ -358,7 +363,8 @@ def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
     # Iterate over time series
     for series_dist in dist:
         # Construct a searchlight patch of the given radius
-        patch = folds[:, :, np.flatnonzero(series_dist < spatial_radius)]
+        patch = folds[..., sel_times]
+        patch = patch[..., np.flatnonzero(series_dist < spatial_radius), :]
         if len(folds) == 1:
             yield compute_dsm(patch[0], dist_metric, **dist_params)
         else:
@@ -549,23 +555,28 @@ def dsm_array(X, dist=None, spatial_radius=None, temporal_radius=None,
             raise ValueError('A spatial radius was requested, but no distance '
                              'information was specified (=dist parameter).')
         yield from dsm_spattemp(
-            X, dist, spatial_radius, temporal_radius, dist_metric, dist_params,
-            y, n_folds, sel_series, sel_times, verbose=verbose)
+            X, dist=dist, spatial_radius=spatial_radius,
+            temporal_radius=temporal_radius, dist_metric=dist_metric,
+            dist_params=dist_params, y=y, n_folds=n_folds,
+            sel_series=sel_series, sel_times=sel_times, verbose=verbose)
 
-    # Spatial searchlight
+    # Spatial searchlight only
     elif spatial_radius is not None:
         if dist is None:
             raise ValueError('A spatial radius was requested, but no distance '
                              'information was specified (=dist parameter).')
         yield from dsm_spat(
-            X, dist, spatial_radius, dist_metric, dist_params, y, n_folds,
-            sel_series, sel_times, verbose=verbose)
+            X, dist=dist, spatial_radius=spatial_radius,
+            dist_metric=dist_metric, dist_params=dist_params, y=y,
+            n_folds=n_folds, sel_series=sel_series, sel_times=sel_times,
+            verbose=verbose)
 
-    # Temporal searchlight
+    # Temporal searchlight only
     elif temporal_radius is not None:
         yield from dsm_temp(
-            X, temporal_radius, dist_metric, dist_params, y, n_folds,
-            sel_times, verbose=verbose)
+            X, temporal_radius=temporal_radius, dist_metric=dist_metric,
+            dist_params=dist_params, y=y, n_folds=n_folds, sel_times=sel_times,
+            verbose=verbose)
 
     # Only a single searchlight patch
     else:

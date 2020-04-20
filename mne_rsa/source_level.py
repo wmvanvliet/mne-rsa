@@ -21,7 +21,7 @@ from scipy.linalg import block_diag
 
 from .dsm import _n_items_from_dsm, dsm_array
 from .rsa import rsa_array
-from .sensor_level import _tmin_tmax_to_indices
+from .sensor_level import _tmin_tmax_to_indices, _construct_tmin
 
 
 def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
@@ -154,16 +154,12 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
                      sel_times=sel_times, n_jobs=n_jobs, verbose=verbose)
 
     # Pack the result in a SourceEstimate object
-    if temporal_radius is not None:
-        tmin = stcs[0].times[temporal_radius]
-        tstep = stcs[0].tstep
-    else:
-        tmin = 0
-        tstep = 1
     if spatial_radius is not None:
         vertices = stcs[0].vertices
     else:
         vertices = [np.array([1]), np.array([])]
+    tmin = _construct_tmin(stcs[0].times, sel_times, temporal_radius)
+    tstep = stcs[0].tstep
 
     if one_model:
         return mne.SourceEstimate(data[:, :, 0], vertices, tmin, tstep,

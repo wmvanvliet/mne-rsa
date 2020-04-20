@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 
 
-def plot_dsms(dsms, items=None, n_rows=1):
+def plot_dsms(dsms, items=None, n_rows=1, cmap='viridis'):
     """Plot one or more DSMs
 
     Parameters
@@ -18,6 +18,10 @@ def plot_dsms(dsms, items=None, n_rows=1):
     n_rows : int
         Number of rows to use when plotting multiple DSMs at once. Defaults to
         1.
+    cmap : str
+        Matplotlib colormap to use. See
+        https://matplotlib.org/gallery/color/colormap_reference.html
+        for all possibilities. Defaults to 'viridis'.
 
     Returns
     -------
@@ -38,7 +42,7 @@ def plot_dsms(dsms, items=None, n_rows=1):
                 dsm = distance.squareform(dsm)
             elif dsm.ndim > 2:
                 raise ValueError(f'Invalid shape {dsm.shape} for DSM')
-            im = ax[row, col].imshow(dsm, cmap='RdBu_r')
+            im = ax[row, col].imshow(dsm, cmap=cmap)
 
     plt.colorbar(im, ax=ax)
     return fig

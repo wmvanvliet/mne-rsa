@@ -21,8 +21,8 @@ def _kendall_tau_a(x, y):
     y = np.asarray(y).ravel()
 
     if x.size != y.size:
-        raise ValueError("All inputs to `kendalltau` must be of the same size, "
-                         "found x-size %s and y-size %s" % (x.size, y.size))
+        raise ValueError("All inputs to `kendalltau` must be of the same size,"
+                         " found x-size %s and y-size %s" % (x.size, y.size))
     elif not x.size or not y.size:
         return np.nan  # Return NaN if arrays are empty
 
@@ -31,7 +31,7 @@ def _kendall_tau_a(x, y):
         cnt = cnt[cnt > 1]
         return ((cnt * (cnt - 1) // 2).sum(),
                 (cnt * (cnt - 1.) * (cnt - 2)).sum(),
-                (cnt * (cnt - 1.) * (2*cnt + 5)).sum())
+                (cnt * (cnt - 1.) * (2 * cnt + 5)).sum())
 
     size = x.size
     perm = np.argsort(y)  # sort on y and convert y to dense ranks
@@ -283,9 +283,11 @@ def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
     def call_rsa(sel_series, sel_times, position):
         return rsa(
             dsm_data=dsm_array(
-                X, dist, spatial_radius, temporal_radius, data_dsm_metric,
-                data_dsm_params, y, n_folds, sel_series=sel_series,
-                sel_times=sel_times, verbose=position),
+                X, dist=dist, spatial_radius=spatial_radius,
+                temporal_radius=temporal_radius, dist_metric=data_dsm_metric,
+                dist_params=data_dsm_params, y=y, n_folds=n_folds,
+                sel_series=sel_series, sel_times=sel_times,
+                verbose=position if verbose else False),
             dsm_model=dsm_model,
             metric=rsa_metric)
 
@@ -301,18 +303,16 @@ def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
     if spatial_radius is not None and n_series >= n_jobs:
         # Split the data along series
         series_chunks = _split(sel_series, n_jobs)
-        data = Parallel(n_jobs, verbose=1 if verbose else 0)(
-            delayed(call_rsa)(chunk, sel_times, i)
-            for i, chunk in enumerate(series_chunks, 1))
+        data = Parallel(n_jobs)(delayed(call_rsa)(chunk, sel_times, i)
+                                for i, chunk in enumerate(series_chunks, 1))
     elif temporal_radius is not None:
         # Split the data along time points
         times_chunks = _split(sel_times, n_jobs)
-        data = Parallel(n_jobs, verbose=1 if verbose else 0)(
-            delayed(call_rsa)(None, chunk, i)
-            for i, chunk in enumerate(times_chunks, 1))
+        data = Parallel(n_jobs)(delayed(call_rsa)(None, chunk, i)
+                                for i, chunk in enumerate(times_chunks, 1))
     else:
-        # No searchlight. No parallel processing.
-        data = call_rsa(None, sel_times, 1)
+        # No parallel processing.
+        data = call_rsa(sel_series, sel_times, 1)
 
     # Collect the RSA values that were computed in the different threads into
     # one array.

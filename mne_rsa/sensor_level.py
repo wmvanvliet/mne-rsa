@@ -171,15 +171,11 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
                      sel_times=sel_times, n_jobs=n_jobs, verbose=verbose)
 
     # Pack the result in an Evoked object
-    if temporal_radius is not None:
-        # The first time sample used is the center of the first window
-        tmin = times[temporal_radius]
-    else:
-        tmin = 0
     if spatial_radius is not None:
         info = mne.pick_info(evokeds[0].info, picks)
     else:
         info = mne.create_info(['rsa'], evokeds[0].info['sfreq'])
+    tmin = _construct_tmin(evokeds[0].times, sel_times, temporal_radius)
 
     if one_model:
         return mne.EvokedArray(data[:, :, 0], info, tmin, comment='RSA',
@@ -269,18 +265,6 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
     n_jobs : int
         The number of processes (=number of CPU cores) to use. Specify -1 to
         use all available cores. Defaults to 1.
-rsa_results = rsa.rsa_epochs(
-    epochs,
-    [words_only_dsm, letters_only_dsm],
-    y=metadata['y'],
-    epochs_dsm_metric='correlation',
-    #rsa_metric='kendall-tau-a',
-    rsa_metric='spearman',
-    verbose=True,
-    spatial_radius=0.04,
-    temporal_radius=0.01,
-    n_jobs=4,
-)
     verbose : bool
         Whether to display a progress bar. In order for this to work, you need
         the tqdm python module installed. Defaults to False.
@@ -348,16 +332,12 @@ rsa_results = rsa.rsa_epochs(
                      sel_times=sel_times, n_jobs=n_jobs, verbose=verbose)
 
     # Pack the result in an Evoked object
-    if temporal_radius is not None:
-        # The first time sample used is the center of the first window
-        tmin = epochs.times[temporal_radius]
-    else:
-        tmin = 0
     if spatial_radius is not None:
         info = epochs.info
         info = mne.pick_info(info, picks)
     else:
         info = mne.create_info(['rsa'], epochs.info['sfreq'])
+    tmin = _construct_tmin(epochs.times, sel_times, temporal_radius)
 
     if one_model:
         return mne.EvokedArray(data[:, :, 0], info, tmin, comment='RSA',
@@ -590,3 +570,15 @@ def _tmin_tmax_to_indices(times, tmin, tmax):
         sel_times = np.arange(np.searchsorted(times, tmin),
                               np.searchsorted(times, tmax) + 1)
     return sel_times
+
+
+def _construct_tmin(times, sel_times, temporal_radius):
+    if sel_times is None and temporal_radius is None:
+        return times[int(round(len(times) / 2))]
+    elif sel_times is not None and temporal_radius is None:
+        return times[int(round(np.mean(sel_times)))]
+    elif sel_times is None and temporal_radius is not None:
+        return times[temporal_radius]
+    elif sel_times is not None and temporal_radius is not None:
+        return times[max(temporal_radius, sel_times[0])]
+    # above cases are exhaustive
