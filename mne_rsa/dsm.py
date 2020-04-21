@@ -237,7 +237,7 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
     centers = np.arange(tmin, tmax)
 
     if verbose:
-        from tqdm import tqdm
+        from tqdm.auto import tqdm
         if type(verbose) == int:
             position = verbose - 1
         else:
@@ -353,7 +353,7 @@ def dsm_spat(data, dist, spatial_radius, dist_metric='correlation',
 
     # Progress bar
     if verbose:
-        from tqdm import tqdm
+        from tqdm.auto import tqdm
         if type(verbose) == int:
             position = verbose - 1
         else:
@@ -458,7 +458,7 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
 
     # Progress bar
     if verbose:
-        from tqdm import tqdm
+        from tqdm.auto import tqdm
         if type(verbose) == int:
             position = verbose - 1
         else:
