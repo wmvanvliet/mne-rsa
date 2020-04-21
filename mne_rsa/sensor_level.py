@@ -21,7 +21,7 @@ from .rsa import rsa_array
 
 
 def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
-                temporal_radius=0.1, evoked_dsm_metric='sqeuclidean',
+                temporal_radius=0.1, evoked_dsm_metric='correlation',
                 evoked_dsm_params=dict(), rsa_metric='spearman', y=None,
                 n_folds=None, picks=None, tmin=None, tmax=None, n_jobs=1,
                 verbose=False):
@@ -60,7 +60,7 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
         The metric to use to compute the DSM for the evokeds. This can be any
         metric supported by the scipy.distance.pdist function. See also the
         ``evoked_dsm_params`` parameter to specify and additional parameter for
-        the distance function. Defaults to 'sqeuclidean'.
+        the distance function. Defaults to 'correlation'.
     evoked_dsm_params : dict
         Extra arguments for the distance metric used to compute the DSMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
@@ -187,7 +187,7 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
 
 
 def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
-               temporal_radius=0.1, epochs_dsm_metric='sqeuclidean',
+               temporal_radius=0.1, epochs_dsm_metric='correlation',
                epochs_dsm_params=dict(), rsa_metric='spearman', y=None,
                n_folds=None, picks=None, tmin=None, tmax=None, n_jobs=1,
                verbose=False):
@@ -225,7 +225,7 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
         The metric to use to compute the DSM for the epochs. This can be any
         metric supported by the scipy.distance.pdist function. See also the
         ``epochs_dsm_params`` parameter to specify and additional parameter for
-        the distance function. Defaults to 'sqeuclidean'.
+        the distance function. Defaults to 'correlation'.
     epochs_dsm_params : dict
         Extra arguments for the distance metric used to compute the DSMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
@@ -349,7 +349,7 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
 
 
 def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
-                temporal_radius=0.1, dist_metric='sqeuclidean',
+                temporal_radius=0.1, dist_metric='correlation',
                 dist_params=dict(), y=None, n_folds=None, picks=None,
                 tmin=None, tmax=None, verbose=False):
     """Generate DSMs in a searchlight pattern on evokeds.
@@ -377,7 +377,7 @@ def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
         The metric to use to compute the DSM for the evokeds. This can be any
         metric supported by the scipy.distance.pdist function. See also the
         ``dist_params`` parameter to specify and additional parameter for the
-        distance function. Defaults to 'sqeuclidean'.
+        distance function. Defaults to 'correlation'.
     dist_params : dict
         Extra arguments for the distance metric used to compute the DSMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
@@ -455,7 +455,7 @@ def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
 
 
 def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
-               temporal_radius=0.1, dist_metric='sqeuclidean',
+               temporal_radius=0.1, dist_metric='correlation',
                dist_params=dict(), y=None, n_folds=None, picks=None,
                tmin=None, tmax=None, verbose=False):
     """Generate DSMs in a searchlight pattern on epochs.
@@ -482,7 +482,7 @@ def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
         The metric to use to compute the DSM for the epochs. This can be any
         metric supported by the scipy.distance.pdist function. See also the
         ``epochs_dsm_params`` parameter to specify and additional parameter for
-        the distance function. Defaults to 'sqeuclidean'.
+        the distance function. Defaults to 'correlation'.
     dist_params : dict
         Extra arguments for the distance metric used to compute the DSMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
