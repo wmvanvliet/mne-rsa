@@ -41,6 +41,7 @@ extensions = [
 
 # generate autosummary even if no references
 autosummary_generate = True
+autosummary_imported_members = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -305,7 +306,9 @@ texinfo_documents = [
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'python': ('https://docs.python.org/3/', None),
                        'mne': ('https://mne.tools/stable/', None),
-                       'sklearn': ('https://scikit-learn.org/stable', None),
+                       'mne_rsa': ('https://users.aalto.fi/~vanvlm1/mne-rsa/', None),
+                       'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+                       'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
                        }
 
 sphinx_gallery_conf = {
@@ -315,8 +318,7 @@ sphinx_gallery_conf = {
     'image_scrapers': ['matplotlib', 'mayavi'],
     'reference_url': {
         'mne': 'http://mne-tools.github.io/stable/',
-        'numpy': 'http://docs.scipy.org/doc/numpy-1.9.1',
-        'scipy': 'http://docs.scipy.org/doc/scipy-0.17.0/reference',
-        'sklearn': 'http://scikit-learn.org/stable',
+        'numpy': 'https://numpy.org/devdocs/',
+        'scipy': 'https://docs.scipy.org/doc/scipy/reference/',
         'mayavi': 'http://docs.enthought.com/mayavi/mayavi'}
 }

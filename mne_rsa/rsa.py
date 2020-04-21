@@ -98,13 +98,15 @@ def rsa_gen(dsm_data_gen, dsm_model, metric='spearman'):
         The model DSM, or list of model DSMs.
     metric : str
         The RSA metric to use to compare the DSMs. Valid options are::
-         - 'spearman' for Spearman's correlation (the default)
-         - 'pearson' for Pearson's correlation
-         - 'kendall-tau-a' for Kendall's Tau (alpha variant)
-         - 'partial' for partial Pearson correlations
-         - 'partial-spearman' for partial Spearman correlations
-         - 'regression' for linear regression weights
-        Defaults to 'spearman'
+
+         * 'spearman' for Spearman's correlation (the default)
+         * 'pearson' for Pearson's correlation
+         * 'kendall-tau-a' for Kendall's Tau (alpha variant)
+         * 'partial' for partial Pearson correlations
+         * 'partial-spearman' for partial Spearman correlations
+         * 'regression' for linear regression weights
+
+        Defaults to 'spearman'.
 
     Yields
     -------
@@ -214,7 +216,7 @@ def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
         vector. See :func:`scipy.spatial.distance.squareform`. To perform RSA
         against multiple models at the same time, supply a list of model DSMs.
 
-        Use :func:`rsa.compute_dsm` to compute DSMs.
+        Use :func:`compute_dsm` to compute DSMs.
     dist : ndarray, shape (n_series, n_series) | None
         The distances between all source points or sensors in meters.
         Defaults to ``None``.

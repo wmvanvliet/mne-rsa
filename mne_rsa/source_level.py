@@ -44,7 +44,7 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
         vector. See :func:`scipy.spatial.distance.squareform`. To perform RSA
         against multiple models at the same time, supply a list of model DSMs.
 
-        Use :func:`rsa.compute_dsm` to compute DSMs.
+        Use :func:`compute_dsm` to compute DSMs.
     src : instance of mne.SourceSpaces
         The source space used by the source estimates specified in the `stcs`
         parameter.

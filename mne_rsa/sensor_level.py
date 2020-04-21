@@ -32,7 +32,7 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
 
     Parameters
     ----------
-    evokeds : list of mne.Evoked
+    evokeds : list of :class:`mne.Evoked`
         The evoked brain activity for each item. If you have more than one
         Evoked object per item (i.e. repetitions), you can use the ``y``
         parameter to assign evokeds to items.
@@ -42,12 +42,12 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
         vector. See :func:`scipy.spatial.distance.squareform`. To perform RSA
         against multiple models at the same time, supply a list of model DSMs.
 
-        Use :func:`rsa.compute_dsm` to compute DSMs.
-    noise_cov : mne.Covariance | None
+        Use :func:`compute_dsm` to compute DSMs.
+    noise_cov : :class:`mne.Covariance` | None
         When specified, the data will by normalized using the noise covariance.
         This is recommended in all cases, but a hard requirement when the data
         contains sensors of different types. Defaults to None.
-    spatial_radius : floats | None
+    spatial_radius : float | None
         The spatial radius of the searchlight patch in meters. All sensors
         within this radius will belong to the searchlight patch. Set to None to
         only perform the searchlight over time, flattening across sensors.
@@ -207,7 +207,7 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
         vector. See :func:`scipy.spatial.distance.squareform`. To perform RSA
         against multiple models at the same time, supply a list of model DSMs.
 
-        Use :func:`rsa.compute_dsm` to compute DSMs.
+        Use :func:`compute_dsm` to compute DSMs.
     noise_cov : mne.Covariance | None
         When specified, the data will by normalized using the noise covariance.
         This is recommended in all cases, but a hard requirement when the data
