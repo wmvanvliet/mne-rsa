@@ -181,9 +181,9 @@ def rsa(dsm_data, dsm_model, metric='spearman', n_jobs=1, n_data_dsms=None,
     n_data_dsms : int | None
         The number of data DSMs. This is useful when displaying a progress bar,
         so an estimate can be made of the computation time remaining. This
-        information is available if `dsm_data` is an array or a list, but if it
-        is a generator, this information is not available and you may want to
-        set it explicitly.
+        information is available if ``dsm_data`` is an array or a list, but if
+        it is a generator, this information is not available and you may want
+        to set it explicitly.
     verbose : bool
         Whether to display a progress bar. In order for this to work, you need
         the tqdm python module installed. Defaults to False.
@@ -191,7 +191,7 @@ def rsa(dsm_data, dsm_model, metric='spearman', n_jobs=1, n_data_dsms=None,
     Returns
     -------
     rsa_val : float | ndarray, shape (len(dsm_data), len(dsm_model))
-        Depending on whether one or mode data and model DSMs were specified, a
+        Depending on whether one or more data and model DSMs were specified, a
         single similarity value or a 2D array of similarity values for each
         data DSM versus each model DSM.
 
