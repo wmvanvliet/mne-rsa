@@ -151,13 +151,15 @@ def rsa_gen(dsm_data_gen, dsm_model, metric='spearman'):
             raise ValueError("Invalid RSA metric, must be one of: 'spearman', "
                              "'pearson', 'partial', 'partial-spearman', "
                              "'regression' or 'kendall-tau-a'.")
+
         if return_array:
             yield np.asarray(rsa_vals)
         else:
             yield rsa_vals[0]
 
 
-def rsa(dsm_data, dsm_model, metric='spearman'):
+def rsa(dsm_data, dsm_model, metric='spearman', n_jobs=1, n_data_dsms=None,
+        verbose=False):
     """Perform RSA between data and model DSMs.
 
     Parameters
@@ -173,6 +175,18 @@ def rsa(dsm_data, dsm_model, metric='spearman'):
          - 'kendall-tau-a' for Kendall's Tau (alpha variant)
          - 'partial' for partial Pearson correlations
          - 'regression' for linear regression weights
+    n_jobs : int
+        The number of processes (=number of CPU cores) to use. Specify -1 to
+        use all available cores. Defaults to 1.
+    n_data_dsms : int | None
+        The number of data DSMs. This is useful when displaying a progress bar,
+        so an estimate can be made of the computation time remaining. This
+        information is available if `dsm_data` is an array or a list, but if it
+        is a generator, this information is not available and you may want to
+        set it explicitly.
+    verbose : bool
+        Whether to display a progress bar. In order for this to work, you need
+        the tqdm python module installed. Defaults to False.
 
     Returns
     -------
@@ -191,8 +205,33 @@ def rsa(dsm_data, dsm_model, metric='spearman'):
     else:
         dsm_data = [dsm_data]
 
-    rsa_vals = list(rsa_gen(dsm_data, dsm_model, metric))
+    def wrap_in_progress_bar(dsm_data):
+        """Read a list/generator using a progress bar"""
+        if verbose:
+            from tqdm.auto import tqdm
+            if n_data_dsms is not None:
+                total = n_data_dsms
+            elif hasattr(dsm_data, '__len__'):
+                total = len(dsm_data)
+            else:
+                total = None
+            pbar = tqdm(total=total)
+        for dsm in dsm_data:
+            if verbose:
+                pbar.update(1)
+            yield dsm
+        if verbose:
+            pbar.close()
 
+    dsm_data = wrap_in_progress_bar(dsm_data)
+
+    if n_jobs == 1:
+        rsa_vals = list(rsa_gen(dsm_data, dsm_model, metric))
+    else:
+        def process_single_dsm(dsm):
+            return next(rsa_gen([dsm], dsm_model, metric))
+        rsa_vals = Parallel(n_jobs)(delayed(process_single_dsm)(dsm)
+                                    for dsm in dsm_data)
     if return_array:
         return np.asarray(rsa_vals)
     else:

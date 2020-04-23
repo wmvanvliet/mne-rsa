@@ -120,13 +120,14 @@ def _ensure_condensed(dsm, var_name):
 
     if dsm.ndim == 2:
         if dsm.shape[0] != dsm.shape[1]:
-            raise ValueError('Invalid dimensions for "%s". The DSM should '
-                             'either be a square matrix, or a one dimensional '
-                             'array when in condensed form.')
+            raise ValueError(f'Invalid dimensions for "{var_name}" '
+                             '({dsm.shape}). The DSM should either be a '
+                             'square matrix, or a one dimensional array when '
+                             'in condensed form.')
         dsm = distance.squareform(dsm)
     elif dsm.ndim != 1:
-        raise ValueError('Invalid number of dimensions for "%s". The DSM '
-                         'should either be a square matrix, or a one '
+        raise ValueError(f'Invalid dimensions for "{var_name}" ({dsm.shape}). '
+                         'The DSM should either be a square matrix, or a one '
                          'dimensional array when in condensed form.')
     return dsm
 
