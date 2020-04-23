@@ -78,9 +78,16 @@ evoked_rsa = rsa.rsa_epochs(epochs, dsm_model,
 ```
 
 
+## Documentation
+
+For quick guides on how to do specific things, see the [examples](https://users.aalto.fi/~vanvlm1/mne-rsa/auto_examples/index.html).
+
+Finally, there is the [API reference](https://users.aalto.fi/~vanvlm1/mne-rsa/api.html) documentation.
+
+
 ## Integration with other packages
 
-I mainly wrote this package to perform RSA analysis in MEG data. Hence, integration functions with [MNE-Python](https://mne.tools) are provided. No integration with [nipy](https://nipy.org) yet for fMRI, feel free to submit a PR!
+I mainly wrote this package to perform RSA analysis on MEG data. Hence, integration functions with [MNE-Python](https://mne.tools) are provided. No integration with [nipy](https://nipy.org) yet for fMRI, feel free to submit a PR!
 
 
 ## Performance

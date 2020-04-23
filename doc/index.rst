@@ -99,7 +99,7 @@ Finally, there is the `API reference <api.html>`_ documentation.
 Integration with other packages
 -------------------------------
 
-I mainly wrote this package to perform RSA analysis in MEG data. Hence,
+I mainly wrote this package to perform RSA analysis on MEG data. Hence,
 integration functions with `MNE-Python <https://mne.tools>`_ are provided. No
 integration with `nipy <https://nipy.org>`_ yet for fMRI, feel free to submit a
 PR!
