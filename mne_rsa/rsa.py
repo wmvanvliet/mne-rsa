@@ -97,14 +97,14 @@ def rsa_gen(dsm_data_gen, dsm_model, metric='spearman'):
     dsm_model : ndarray, shape (n_items, n_items) | list of ndarray
         The model DSM, or list of model DSMs.
     metric : str
-        The RSA metric to use to compare the DSMs. Valid options are::
+        The RSA metric to use to compare the DSMs. Valid options are:
 
-         * 'spearman' for Spearman's correlation (the default)
-         * 'pearson' for Pearson's correlation
-         * 'kendall-tau-a' for Kendall's Tau (alpha variant)
-         * 'partial' for partial Pearson correlations
-         * 'partial-spearman' for partial Spearman correlations
-         * 'regression' for linear regression weights
+        * 'spearman' for Spearman's correlation (the default)
+        * 'pearson' for Pearson's correlation
+        * 'kendall-tau-a' for Kendall's Tau (alpha variant)
+        * 'partial' for partial Pearson correlations
+        * 'partial-spearman' for partial Spearman correlations
+        * 'regression' for linear regression weights
 
         Defaults to 'spearman'.
 
@@ -169,12 +169,16 @@ def rsa(dsm_data, dsm_model, metric='spearman', n_jobs=1, n_data_dsms=None,
     dsm_model : ndarray, shape (n_items, n_items) | list of ndarray
         The model DSM (or list of model DSMs).
     metric : str
-        The RSA metric to use to compare the DSMs. Valid options are::
-         - 'spearman' for Spearman's correlation
-         - 'pearson' for Pearson's correlation
-         - 'kendall-tau-a' for Kendall's Tau (alpha variant)
-         - 'partial' for partial Pearson correlations
-         - 'regression' for linear regression weights
+        The RSA metric to use to compare the DSMs. Valid options are:
+
+        * 'spearman' for Spearman's correlation
+        * 'pearson' for Pearson's correlation
+        * 'kendall-tau-a' for Kendall's Tau (alpha variant)
+        * 'partial' for partial Pearson correlations
+        * 'regression' for linear regression weights
+
+        Defaults to 'spearman'.
+
     n_jobs : int
         The number of processes (=number of CPU cores) to use. Specify -1 to
         use all available cores. Defaults to 1.
