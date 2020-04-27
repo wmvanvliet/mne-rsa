@@ -48,16 +48,20 @@ def plot_dsms(dsms, names=None, items=None, n_rows=1, cmap='viridis',
     ax = fig.subplots(n_rows, n_cols, sharex=True, sharey=True, squeeze=False)
     for row in range(n_rows):
         for col in range(n_cols):
-            dsm = dsms[row * n_cols + col % n_cols]
-            if dsm.ndim == 1:
-                dsm = distance.squareform(dsm)
-            elif dsm.ndim > 2:
-                raise ValueError(f'Invalid shape {dsm.shape} for DSM')
-            im = ax[row, col].imshow(dsm, cmap=cmap)
+            i = row * n_cols + col % n_cols
+            if i < len(dsms):
+                dsm = dsms[i]
+                if dsm.ndim == 1:
+                    dsm = distance.squareform(dsm)
+                elif dsm.ndim > 2:
+                    raise ValueError(f'Invalid shape {dsm.shape} for DSM')
+                im = ax[row, col].imshow(dsm, cmap=cmap)
 
-            if names is not None:
-                name = names[row * n_cols + col % n_cols]
-                ax[row, col].set_title(name)
+                if names is not None:
+                    name = names[i]
+                    ax[row, col].set_title(name)
+            else:
+                ax[row, col].set_visible(False)
 
     plt.colorbar(im, ax=ax)
     if title is not None:
