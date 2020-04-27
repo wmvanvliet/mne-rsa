@@ -84,11 +84,7 @@ pd.DataFrame(rsa_results, index=columns[:2], columns=columns[2:])
 # your system, consider increasing the ``n_jobs`` parameter to parallelize the
 # computation over multiple CPUs.
 
-<<<<<<< Updated upstream
 epochs.resample(100)  # Downsample to speed things up for this example
-=======
-epochs.resample(100)
->>>>>>> Stashed changes
 eeg_data = epochs.get_data()
 n_trials, n_sensors, n_times = eeg_data.shape
 
