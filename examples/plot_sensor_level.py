@@ -78,16 +78,17 @@ rsa_result = mne_rsa.rsa_epochs(
     verbose=False)                    # Set to True to display a progress bar
 
 ###############################################################################
-# The result is packed inside an MNE-Python
-# [``Evoked``](https://mne.tools/stable/generated/mne.Evoked.html) object. This
-# object defines many plotting functions, for example `plot_topomap` to look at
-# the spatial distribution of the RSA values. By default, the signal is assumed
-# to represent micro-Volts, so we need to explicitly inform the plotting
-# function we are plotting RSA values and tweak the range of the colormap.
+# The result is packed inside an MNE-Python :class:`mne.Evoked` object. This
+# object defines many plotting functions, for example
+# :meth:`mne.Evoked.plot_topomap` to look at the spatial distribution of the
+# RSA values. By default, the signal is assumed to represent micro-Volts, so we
+# need to explicitly inform the plotting function we are plotting RSA values
+# and tweak the range of the colormap.
 
 rsa_result.plot_topomap(rsa_result.times, units=dict(eeg='kendall-tau-a'),
                         scalings=dict(eeg=1), cbar_fmt='%.4f', vmin=0);
 
 ###############################################################################
 # Unsurprisingly, we get the highest correspondance between number of letters
-# and EEG signal in areas in the visual cortex.
+# and EEG signal in areas in the `visual word form area
+# <https://en.wikipedia.org/wiki/Visual_word_form_area>`_.
