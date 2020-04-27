@@ -28,6 +28,7 @@ event-related potentials (ERPs) were recorded.
        words are worth a picture: Snapshots of printed-word processing in an
        event-related potential megastudy. Psychological science.
 """
+# sphinx_gallery_thumbnail_number=2
 
 # Import required packages
 import mne

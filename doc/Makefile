@@ -130,3 +130,7 @@ coverage:
 	$(SPHINXBUILD) -b coverage $(ALLSPHINXOPTS) $(BUILDDIR)/coverage
 	@echo "Testing of coverage in the sources finished, look at the " \
 		  "results in $(BUILDDIR)/coverage/python.txt."
+
+.PHONY: install
+install: html
+	cp -r _build/html/* ~/public_html/mne-rsa/

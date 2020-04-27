@@ -9,6 +9,7 @@ This example showcases the most basic version of RSA: computing the similarity
 between two DSMs. Then we continue with computing RSA between many DSMs
 efficiently.
 """
+# sphinx_gallery_thumbnail_number=2
 
 # Import required packages
 import pandas as pd
@@ -54,7 +55,7 @@ dsms = [mne_rsa.compute_dsm(metadata[col], metric='euclidean')
         for col in columns]
 
 # Plot the DSMs
-mne_rsa.plot_dsms(dsms, names=columns)
+mne_rsa.plot_dsms(dsms, names=columns, n_rows=2)
 
 # Compute RSA between the first two DSMs (Concreteness and WordFrequency) and
 # the others.
@@ -82,6 +83,7 @@ pd.DataFrame(rsa_results, index=columns[:2], columns=columns[2:])
 # your system, consider increasing the ``n_jobs`` parameter to parallelize the
 # computation over multiple CPUs.
 
+epochs.resample(100)  # Downsample to speed things up for this example
 eeg_data = epochs.get_data()
 n_trials, n_sensors, n_times = eeg_data.shape
 
