@@ -39,7 +39,7 @@ def compute_dsm(data, metric='correlation', **kwargs):
     --------
     compute_dsm_cv
     """
-    X = np.reshape(data, (len(data), -1))
+    X = np.reshape(np.asarray(data), (len(data), -1))
     n_items, n_features = X.shape
 
     # Be careful with certain metrics
