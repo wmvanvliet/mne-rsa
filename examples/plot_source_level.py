@@ -26,19 +26,19 @@ either the left or right ear or visual field.
 
 # Import required packages
 import os.path as op
+from matplotlib import pyplot as plt
 import mne
 import mne_rsa
 
 mne.set_log_level(False)  # Be less verbose
 
 ###############################################################################
-# We will use the data from the MNE-sample set. To speed up computations in
+# We'll be using the data from the MNE-sample set. To speed up computations in
 # this example, we're going to use one of the sparse source spaces from the
 # testing set. 
-sample_path = op.join(mne.datasets.sample.data_path(), 'MEG', 'sample')
-testing_path = mne.datasets.testing.data_path()
-subjects_dir = op.join(mne.datasets.sample.data_path(), 'subjects')
-
+sample_path = op.join(mne.datasets.sample.data_path(verbose=True), 'MEG', 'sample')
+testing_path = op.join(mne.datasets.testing.data_path(verbose=True), 'MEG', 'sample')
+subjects_dir = op.join(mne.datasets.sample.data_path(verbose=True), 'subjects')
 
 ###############################################################################
 # Creating epochs from the continuous (raw) data. We downsample to 100 Hz to
@@ -107,6 +107,7 @@ epochs_stc = mne.minimum_norm.apply_inverse_epochs(epochs, inv, lambda2=0.1111)
 rsa_vals = mne_rsa.rsa_source_level(
     epochs_stc,                   # The source localized epochs
     model_dsm,                    # The model DSM we constructed above
+    src=inv['src'],               # The inverse operator has our source space
     stc_dsm_metric='correlation', # Metric to compute the MEG DSMs
     rsa_metric='kendall-tau-a',   # Metric to compare model and EEG DSMs
     spatial_radius=0.02,          # Spatial radius of the searchlight patch
@@ -114,8 +115,16 @@ rsa_vals = mne_rsa.rsa_source_level(
     tmin=0, tmax=0.3,             # To save time, only analyze this time interval
     n_jobs=1,                     # Only use one CPU core. Increase this for more speed.
     verbose=False)                # Set to True to display a progress bar
-)
 
-# Plot the result at the time point where the maximum RSA value occurs.
-_, peak_time = rsa_vals.get_peak()
+# Find the searchlight patch with highest RSA score
+peak_vertex, peak_time = rsa_vals.get_peak(vert_as_index=True)
+
+# Plot the result at the timepoint where the maximum RSA value occurs.
 rsa_vals.plot('sample', subjects_dir=subjects_dir, initial_time=peak_time)
+
+# Plot the RSA timecourse at the peak vertex
+plt.figure()
+plt.plot(rsa_vals.times, rsa_vals.data[peak_vertex])
+plt.xlabel('Time (s)')
+plt.ylabel('Kendall-Tau (alpha)')
+plt.title(f'RSA values at vert {peak_vertex}')
