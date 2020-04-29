@@ -63,7 +63,7 @@ fig.set_size_inches(12, 4)
 rsa_results = mne_rsa.rsa(dsms[:2], dsms[2:], metric='spearman')
 
 # Pack the result into a Pandas DataFrame for easy viewing
-pd.DataFrame(rsa_results, index=columns[:2], columns=columns[2:])
+print(pd.DataFrame(rsa_results, index=columns[:2], columns=columns[2:]))
 
 ###############################################################################
 # What if we have many DSMs? The :func:`mne_rsa.rsa` function is optimized for
