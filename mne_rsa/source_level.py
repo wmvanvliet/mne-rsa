@@ -15,6 +15,7 @@ Annika Hultén <annika.hulten@aalto.fi>
 Ossi Lehtonen <ossi.lehtonen@aalto.fi>
 """
 
+from warnings import warn
 import numpy as np
 import mne
 from scipy.linalg import block_diag
@@ -48,7 +49,7 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
     src : instance of mne.SourceSpaces
         The source space used by the source estimates specified in the `stcs`
         parameter.
-    spatial_radius : floats | None
+    spatial_radius : float | None
         The spatial radius of the searchlight patch in meters. All source
         points within this radius will belong to the searchlight patch. Set to
         None to only perform the searchlight over time, flattening across
@@ -133,7 +134,7 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
                 % (n_items, len(np.unique(y))))
 
     _check_compatible(stcs, src)
-    dist = _get_distance_matrix(src)
+    dist = _get_distance_matrix(src, dist_lim=spatial_radius, n_jobs=n_jobs)
 
     if temporal_radius is not None:
         # Convert the temporal radius to samples
@@ -173,7 +174,7 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
 def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
                      dist_metric='sqeuclidean', dist_params=dict(), y=None,
                      n_folds=None, sel_vertices=None, tmin=None, tmax=None,
-                     verbose=False):
+                     n_jobs=1, verbose=False):
     """Generate DSMs in a searchlight pattern across the cortex.
 
     The output is a source estimate where the "signal" at each source point is
@@ -186,7 +187,7 @@ def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
     src : instance of mne.SourceSpaces
         The source space used by the source estimates specified in the `stcs`
         parameter.
-    spatial_radius : floats | None
+    spatial_radius : float | None
         The spatial radius of the searchlight patch in meters. All source
         points within this radius will belong to the searchlight patch. Set to
         None to only perform the searchlight over time, flattening across
@@ -226,6 +227,9 @@ def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
         including this time point. This value is given in seconds. Defaults to
         ``None``, in which case patches are generated up to and including the
         last time point.
+    n_jobs : int
+        The number of processes (=number of CPU cores) to use. Specify -1 to
+        use all available cores. Defaults to 1.
     verbose : bool
         Whether to display a progress bar. In order for this to work, you need
         the tqdm python module installed. Defaults to False.
@@ -236,7 +240,7 @@ def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
         A DSM for each searchlight patch.
     """
     _check_compatible(stcs, src)
-    dist = _get_distance_matrix(src)
+    dist = _get_distance_matrix(src, dist_lim=spatial_radius, n_jobs=n_jobs)
 
     # Convert the temporal radius to samples
     if temporal_radius is not None:
@@ -252,7 +256,7 @@ def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
                          temporal_radius=temporal_radius,
                          dist_metric=dist_metric, dist_params=dist_params, y=y,
                          n_folds=n_folds, sel_series=sel_vertices,
-                         sel_times=sel_times, verbose=verbose)
+                         sel_times=sel_times, n_jobs=n_jobs, verbose=verbose)
 
 
 def _check_compatible(stcs, src):
@@ -275,7 +279,7 @@ def _check_compatible(stcs, src):
                              'time points.')
 
 
-def _get_distance_matrix(src):
+def _get_distance_matrix(src, dist_lim, n_jobs=1):
     """Get vertex-to-vertex distance matrix from source space.
 
     During inverse computation, the source space was downsampled (i.e. using
@@ -286,6 +290,12 @@ def _get_distance_matrix(src):
     ----------
     src : mne.SourceSpaces
         The source space to get the distance matrix for.
+    dist_lim : float
+        Maximum distance required. We don't care about distances beyond this
+        maximum.
+    n_jobs : int
+        Number of CPU cores to use if distance computation is necessary.
+        Defaults to 1.
 
     Returns
     -------
@@ -293,8 +303,30 @@ def _get_distance_matrix(src):
         The vertex-to-vertex distance matrix.
     """
     dist = []
+
+    # Check if distances have been pre-computed in the given source space. Give
+    # a warning if the pre-computed distances may have had a too limited
+    # dist_lim setting.
+    needs_distance_computation = False
+    for hemi in src:
+        if 'dist' not in hemi or hemi['dist'] is None:
+            needs_distance_computation = True
+        else:
+            if hemi['dist'].max() < dist_lim:
+                warn(f'Source space has pre-computed distances, but all '
+                     f'distances are smaller than the searchlight radius '
+                     f'({dist_lim}). You may want to consider recomputing '
+                     f'the source space distances using the '
+                     f'mne.add_source_space_distances function.')
+
+    if needs_distance_computation:
+        if dist_lim is None:
+            dist_lim = np.inf
+        src = mne.add_source_space_distances(src, dist_lim, n_jobs=n_jobs)
+
     for hemi in [0, 1]:
         inuse = np.flatnonzero(src[hemi]['inuse'])
+
         dist.append(src[hemi]['dist'][np.ix_(inuse, inuse)].toarray())
 
     # Collect the distances in a single matrix
