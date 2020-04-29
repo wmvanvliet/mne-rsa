@@ -3,6 +3,13 @@ Representational Similarity Analysis
 
 This is a Python package for performing representational similarity analysis (RSA) using [MNE-Python](https://martinos.org/mne/stable/index.html) data structures. The RSA is computed using a "searchlight" approach.
 
+Read more on RSA in the paper that introduced the technique:
+
+Nikolaus Kriegeskorte, Marieke Mur and Peter Bandettini (2008).
+Representational similarity analysis - connecting the branches of systems
+neuroscience. Frontiers in Systems Neuroscience, 2(4).
+https://doi.org/10.3389/neuro.06.004.2008
+
 ## Installation
 
 Here is how to install the package as a user:

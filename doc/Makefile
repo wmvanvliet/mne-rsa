@@ -45,44 +45,48 @@ clean:
 	rm -rf generated/*
 	rm -rf modules/*
 
-html-noplot:
+index: ../README.md
+	pandoc ../README.md -o index.rst
+
+
+html-noplot: index
 	$(SPHINXBUILD) -D plot_gallery=0 -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
 .PHONY: html
-html:
+html: index
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
 .PHONY: dirhtml
-dirhtml:
+dirhtml: index
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/dirhtml."
 
 .PHONY: singlehtml
-singlehtml:
+singlehtml: index
 	$(SPHINXBUILD) -b singlehtml $(ALLSPHINXOPTS) $(BUILDDIR)/singlehtml
 	@echo
 	@echo "Build finished. The HTML page is in $(BUILDDIR)/singlehtml."
 
 .PHONY: pickle
-pickle:
+pickle: index
 	$(SPHINXBUILD) -b pickle $(ALLSPHINXOPTS) $(BUILDDIR)/pickle
 	@echo
 	@echo "Build finished; now you can process the pickle files."
 
 .PHONY: htmlhelp
-htmlhelp:
+htmlhelp: index
 	$(SPHINXBUILD) -b htmlhelp $(ALLSPHINXOPTS) $(BUILDDIR)/htmlhelp
 	@echo
 	@echo "Build finished; now you can run HTML Help Workshop with the" \
 		  ".hhp project file in $(BUILDDIR)/htmlhelp."
 
 .PHONY: qthelp
-qthelp:
+qthelp: index
 	$(SPHINXBUILD) -b qthelp $(ALLSPHINXOPTS) $(BUILDDIR)/qthelp
 	@echo
 	@echo "Build finished; now you can run "qcollectiongenerator" with the" \
@@ -92,7 +96,7 @@ qthelp:
 	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/workbench.qhc"
 
 .PHONY: latex
-latex:
+latex: index
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo
 	@echo "Build finished; the LaTeX files are in $(BUILDDIR)/latex."
@@ -100,7 +104,7 @@ latex:
 		  "(use \`make latexpdf' here to do that automatically)."
 
 .PHONY: latexpdf
-latexpdf:
+latexpdf: index
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo "Running LaTeX files through pdflatex..."
 	$(MAKE) -C $(BUILDDIR)/latex all-pdf
@@ -113,24 +117,24 @@ changes:
 	@echo "The overview file is in $(BUILDDIR)/changes."
 
 .PHONY: linkcheck
-linkcheck:
+linkcheck: index
 	$(SPHINXBUILD) -b linkcheck $(ALLSPHINXOPTS) $(BUILDDIR)/linkcheck
 	@echo
 	@echo "Link check complete; look for any errors in the above output " \
 		  "or in $(BUILDDIR)/linkcheck/output.txt."
 
 .PHONY: doctest
-doctest:
+doctest: index
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 		  "results in $(BUILDDIR)/doctest/output.txt."
 
 .PHONY: coverage
-coverage:
+coverage: index
 	$(SPHINXBUILD) -b coverage $(ALLSPHINXOPTS) $(BUILDDIR)/coverage
 	@echo "Testing of coverage in the sources finished, look at the " \
 		  "results in $(BUILDDIR)/coverage/python.txt."
 
 .PHONY: install
-install: html
+install: index html
 	cp -r _build/html/* ~/public_html/mne-rsa/
