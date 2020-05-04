@@ -65,9 +65,16 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
         Extra arguments for the distance metric used to compute the DSMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
         and their arguments. Defaults to an empty dictionary.
-    rsa_metric : 'spearman' | 'pearson'
-        The metric to use to compare the stc and model DSMs. This can either be
-        'spearman' correlation or 'pearson' correlation.
+    rsa_metric : str
+        The RSA metric to use to compare the DSMs. Valid options are:
+
+        * 'spearman' for Spearman's correlation (the default)
+        * 'pearson' for Pearson's correlation
+        * 'kendall-tau-a' for Kendall's Tau (alpha variant)
+        * 'partial' for partial Pearson correlations
+        * 'partial-spearman' for partial Spearman correlations
+        * 'regression' for linear regression weights
+
         Defaults to 'spearman'.
     y : ndarray of int, shape (n_items,) | None
         For each Evoked, a number indicating the item to which it belongs.
@@ -230,9 +237,16 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
         Extra arguments for the distance metric used to compute the DSMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
         and their arguments. Defaults to an empty dictionary.
-    rsa_metric : 'spearman' | 'pearson'
-        The metric to use to compare the stc and model DSMs. This can either be
-        'spearman' correlation or 'pearson' correlation.
+    rsa_metric : str
+        The RSA metric to use to compare the DSMs. Valid options are:
+
+        * 'spearman' for Spearman's correlation (the default)
+        * 'pearson' for Pearson's correlation
+        * 'kendall-tau-a' for Kendall's Tau (alpha variant)
+        * 'partial' for partial Pearson correlations
+        * 'partial-spearman' for partial Spearman correlations
+        * 'regression' for linear regression weights
+
         Defaults to 'spearman'.
     y : ndarray of int, shape (n_items,) | None
         For each Epoch, a number indicating the item to which it belongs.
