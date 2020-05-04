@@ -233,9 +233,8 @@ def dsm_spattemp(data, dist, spatial_radius, temporal_radius,
         sel_times = np.arange(n_times)
 
     # Get a valid time range given the size of the sliding windows
-    tmin = max(temporal_radius, sel_times[0])
-    tmax = min(n_times - temporal_radius + 1, sel_times[-1])
-    centers = np.arange(tmin, tmax)
+    centers = [t for t in sel_times
+               if t - temporal_radius >= 0 and t + temporal_radius < n_times]
 
     if verbose:
         from tqdm.auto import tqdm
@@ -453,9 +452,8 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
         sel_times = np.arange(n_times)
 
     # Get a valid time range given the size of the sliding windows
-    tmin = max(temporal_radius, sel_times[0])
-    tmax = min(n_times - temporal_radius + 1, sel_times[-1])
-    centers = np.arange(tmin, tmax)
+    centers = [t for t in sel_times
+               if t - temporal_radius >= 0 and t + temporal_radius < n_times]
 
     # Progress bar
     if verbose:
@@ -474,9 +472,9 @@ def dsm_temp(data, temporal_radius, dist_metric='correlation',
         data = _create_folds(data, y, n_folds)
         # The data is now folds x items x ... x n_times
 
-    for center in centers:
+    for c in centers:
         # Construct a searchlight patch of the given radius
-        patch = data[..., center - temporal_radius:center + temporal_radius + 1]
+        patch = data[..., c - temporal_radius:c + temporal_radius + 1]
         m = dsm_func(patch, dist_metric, **dist_params)
         yield m
         if verbose:

@@ -1,7 +1,7 @@
 import pytest
 from types import GeneratorType
 import numpy as np
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_equal
 from mne_rsa import rsa, rsa_gen, rsa_array
 
 
@@ -18,7 +18,6 @@ def dsm_gen(dsms):
 
 class TestRSAGen:
     """Test the rsa_gen function"""
-
     def test_return_type(self):
         """Test return type of rsa_gen"""
         assert isinstance(rsa_gen(dsm_gen([dsm()]), dsm()), GeneratorType)
@@ -82,7 +81,6 @@ class TestRSAGen:
 class TestRSA:
     """Test the main RSA function"""
     # Most of the functionality is already tested in TestRSAGen
-
     def test_return_type(self):
         """Test return type of rsa_gen"""
         assert isinstance(rsa([dsm()], dsm()), np.ndarray)
@@ -103,10 +101,67 @@ class TestRSAArray:
         """Test RSA without searchlight patches."""
         data = np.array([[1], [2], [3], [4]])
         model_dsm = np.array([1, 2, 3, 1, 2, 1])
-        assert rsa_array(data, model_dsm, data_dsm_metric='euclidean') == 1
+        rsa_result = rsa_array(data, model_dsm, data_dsm_metric='euclidean')
+        assert rsa_result.shape == (1, 1, 1)
+        assert rsa_result == 1
 
-    # def test_rsa_temp(self):
-    #     """Test RSA with a temporal searchlight."""
-    #     data = np.array([[1, 2, 3], [1, 2, 3]])
-    #     model_dsm = np.array([0])
-    #     assert rsa_array(data, model_dsm, temporal_radius=1, data_dsm_metric='euclidean') == 1
+    def test_rsa_temp(self):
+        """Test RSA with a temporal searchlight."""
+        data = np.array([[1, 2, 3, 4], [2, 3, 4, 5], [3, 4, 5, 6]])
+        model_dsm = np.array([1, 2, 1])
+
+        # One model DSM, no paralellization
+        rsa_result = rsa_array(data, model_dsm,
+                               temporal_radius=1, spatial_radius=None,
+                               data_dsm_metric='euclidean')
+        assert rsa_result.shape == (1, 2)
+        assert_equal(rsa_result, 1)
+
+        # Multiple model DSMs, no paralellization
+        rsa_result = rsa_array(data, [model_dsm, model_dsm],
+                               temporal_radius=1, spatial_radius=None,
+                               data_dsm_metric='euclidean')
+        assert rsa_result.shape == (1, 2, 2)
+        assert_equal(rsa_result, 1)
+
+        # One model DSM, paralellization across 2 CPUs
+        rsa_result = rsa_array(data, model_dsm,
+                               temporal_radius=1, spatial_radius=None,
+                               data_dsm_metric='euclidean', n_jobs=2)
+        assert rsa_result.shape == (1, 2)
+        assert_equal(rsa_result, 1)
+
+        # Multiple model DSMs, paralellization across 2 CPUs
+        rsa_result = rsa_array(data, [model_dsm, model_dsm],
+                               temporal_radius=1, spatial_radius=None,
+                               data_dsm_metric='euclidean', n_jobs=2)
+        assert rsa_result.shape == (1, 2, 2)
+        assert_equal(rsa_result, 1)
+
+    def test_rsa_spat(self):
+        """Test RSA with a spatial searchlight."""
+        data = np.array([[[1], [2], [3]], [[2], [3], [4]], [[3], [4], [5]]])
+        model_dsm = np.array([1, 2, 1])
+        dist = np.array([[0, 1, 2],
+                         [1, 0, 1],
+                         [2, 1, 0]])
+        rsa_result = rsa_array(data, model_dsm, dist,
+                               temporal_radius=None, spatial_radius=1,
+                               data_dsm_metric='euclidean')
+        assert rsa_result.shape == (3, 1)
+        assert_equal(rsa_result, 1)
+
+    def test_rsa_spat_temp(self):
+        """Test RSA with a spatial-temporal searchlight."""
+        data = np.array([[[1, 2, 3], [2, 3, 4]],
+                         [[2, 3, 4], [3, 4, 5]],
+                         [[3, 4, 5], [4, 5, 6]]])
+        model_dsm = np.array([1, 2, 1])
+        dist = np.array([[0, 1, 2],
+                         [1, 0, 1],
+                         [2, 1, 0]])
+        rsa_result = rsa_array(data, model_dsm, dist,
+                               temporal_radius=1, spatial_radius=1,
+                               data_dsm_metric='euclidean')
+        assert rsa_result.shape == (2, 1)
+        assert_equal(rsa_result, 1)

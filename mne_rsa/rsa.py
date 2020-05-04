@@ -356,6 +356,8 @@ def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
     if spatial_radius is not None and n_series >= n_jobs:
         # Split the data along series
         series_chunks = _split(sel_series, n_jobs)
+        print(series_chunks)
+        print(sel_times)
         data = Parallel(n_jobs)(delayed(call_rsa)(chunk, sel_times, i)
                                 for i, chunk in enumerate(series_chunks, 1))
     elif temporal_radius is not None:
@@ -371,11 +373,22 @@ def rsa_array(X, dsm_model, dist=None, spatial_radius=None,
     # one array.
     if spatial_radius is not None and temporal_radius is not None:
         data = np.vstack(data)
-        data = data.reshape((n_series, -1) + data.shape[1:])
+        if isinstance(dsm_model, list):
+            data = data.reshape((n_series, -1) + data.shape[1:])
+        else:
+            data = data.reshape(n_series, -1)
     elif spatial_radius is not None:
-        data = np.vstack(data)[:, np.newaxis, ...]
+        data = np.vstack(data)
+        if isinstance(dsm_model, list):
+            data = data[:, np.newaxis, :]
+        else:
+            data = data.reshape(-1, 1)
     elif temporal_radius is not None:
-        data = np.vstack(data)[np.newaxis, ...]
+        data = np.vstack(data)
+        if isinstance(dsm_model, list):
+            data = data[np.newaxis, :, :]
+        else:
+            data = data.reshape(1, -1)
     else:
         data = data[np.newaxis, np.newaxis, ...]
 
