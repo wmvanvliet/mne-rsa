@@ -1,4 +1,5 @@
 numpy
 scipy
 mne
+scikit-learn
 mayavi
