@@ -58,7 +58,7 @@ jobs:
         - run:
             name: Install pandoc
             command: |
-              apt-get install -y pandoc
+                sudo apt-get install -y pandoc
         # Build docs
         - run:
             name: make html
