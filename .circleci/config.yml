@@ -54,6 +54,11 @@ jobs:
             command: |
                which python
                python -c "import mne_rsa"
+        # Install pandoc
+        - run:
+            name: Install pandoc
+            command: |
+              apt-get install -y pandoc
         # Build docs
         - run:
             name: make html
