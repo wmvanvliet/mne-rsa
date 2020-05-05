@@ -145,10 +145,33 @@ class TestRSAArray:
         dist = np.array([[0, 1, 2],
                          [1, 0, 1],
                          [2, 1, 0]])
+
+        # One model DSM, no paralellization
         rsa_result = rsa_array(data, model_dsm, dist,
                                temporal_radius=None, spatial_radius=1,
                                data_dsm_metric='euclidean')
         assert rsa_result.shape == (3, 1)
+        assert_equal(rsa_result, 1)
+
+        # Multiple model DSMs, no paralellization
+        rsa_result = rsa_array(data, [model_dsm, model_dsm], dist,
+                               temporal_radius=None, spatial_radius=1,
+                               data_dsm_metric='euclidean')
+        assert rsa_result.shape == (3, 1, 2)
+        assert_equal(rsa_result, 1)
+
+        # One model DSM, paralellization across 2 CPUs
+        rsa_result = rsa_array(data, model_dsm, dist,
+                               temporal_radius=None, spatial_radius=1,
+                               data_dsm_metric='euclidean', n_jobs=2)
+        assert rsa_result.shape == (3, 1)
+        assert_equal(rsa_result, 1)
+
+        # Multiple model DSMs, paralellization across 2 CPUs
+        rsa_result = rsa_array(data, [model_dsm, model_dsm], dist,
+                               temporal_radius=None, spatial_radius=1,
+                               data_dsm_metric='euclidean', n_jobs=2)
+        assert rsa_result.shape == (3, 1, 2)
         assert_equal(rsa_result, 1)
 
     def test_rsa_spat_temp(self):
@@ -160,8 +183,31 @@ class TestRSAArray:
         dist = np.array([[0, 1, 2],
                          [1, 0, 1],
                          [2, 1, 0]])
+
+        # One model DSM, no paralellization
         rsa_result = rsa_array(data, model_dsm, dist,
                                temporal_radius=1, spatial_radius=1,
                                data_dsm_metric='euclidean')
         assert rsa_result.shape == (2, 1)
+        assert_equal(rsa_result, 1)
+
+        # Multiple model DSMs, no paralellization
+        rsa_result = rsa_array(data, [model_dsm, model_dsm], dist,
+                               temporal_radius=1, spatial_radius=1,
+                               data_dsm_metric='euclidean')
+        assert rsa_result.shape == (2, 1, 2)
+        assert_equal(rsa_result, 1)
+
+        # One model DSM, paralellization across 2 CPUs
+        rsa_result = rsa_array(data, model_dsm, dist,
+                               temporal_radius=1, spatial_radius=1,
+                               data_dsm_metric='euclidean', n_jobs=2)
+        assert rsa_result.shape == (2, 1)
+        assert_equal(rsa_result, 1)
+
+        # Multiple model DSMs, paralellization across 2 CPUs
+        rsa_result = rsa_array(data, [model_dsm, model_dsm], dist,
+                               temporal_radius=1, spatial_radius=1,
+                               data_dsm_metric='euclidean', n_jobs=2)
+        assert rsa_result.shape == (2, 1, 2)
         assert_equal(rsa_result, 1)
