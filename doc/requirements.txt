@@ -8,3 +8,4 @@ sphinx_gallery
 sphinx_bootstrap_theme
 numpydoc
 matplotlib
+pyqt5
