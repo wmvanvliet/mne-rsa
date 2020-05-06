@@ -25,7 +25,7 @@ data_path = mne.datasets.kiloword.data_path(verbose=True)
 epochs = mne.read_epochs(data_path + '/kword_metadata-epo.fif', preload=False)
 
 # Show the metadata of 10 random epochs
-epochs.metadata.sample(10)
+print(epochs.metadata.sample(10))
 
 ###############################################################################
 # Now we are ready to create the "model" DSM, which will encode the difference
