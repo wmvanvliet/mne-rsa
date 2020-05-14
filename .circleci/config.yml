@@ -13,7 +13,7 @@ jobs:
               echo "set -e" >> $BASH_ENV
               echo "export DISPLAY=:99" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
-              echo "export MNE_3D_BACKEND=pyvista" >> $BASH_ENV
+              echo "export MNE_3D_BACKEND=mayavi" >> $BASH_ENV
               echo "export _MNE_BRAIN_TRACES_AUTO=false" >> $BASH_ENV
               echo "BASH_ENV:"
               cat $BASH_ENV
