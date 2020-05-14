@@ -122,6 +122,7 @@ peak_vertex, peak_time = rsa_vals.get_peak(vert_as_index=True)
 # Plot the result at the timepoint where the maximum RSA value occurs.
 rsa_vals.plot('sample', subjects_dir=subjects_dir, initial_time=peak_time)
 
+###############################################################################
 # Plot the RSA timecourse at the peak vertex
 plt.figure()
 plt.plot(rsa_vals.times, rsa_vals.data[peak_vertex])
