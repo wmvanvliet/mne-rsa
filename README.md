@@ -3,7 +3,7 @@ Representational Similarity Analysis
 
 [![CircleCI](https://circleci.com/gh/wmvanvliet/mne-rsa.svg?style=shield)](https://circleci.com/gh/wmvanvliet/mne-rsa)
 
-![Overview of RSA](doc/rsa.png)
+<img src="https://raw.githubusercontent.com/wmvanvliet/mne-rsa/master/doc/rsa.png" alt="Overview of RSA" width="400">
 
 This is a Python package for performing representational similarity analysis (RSA) using [MNE-Python](https://martinos.org/mne/stable/index.html) data structures. The RSA is computed using a "searchlight" approach.
 
