@@ -2,9 +2,9 @@ numpy
 scipy
 mne
 scikit-learn
-vtk
+vtk=9
 pyvista
-mayavi
+https://github.com/larsoner/mayavi/zipball/vtk9
 pysurfer
 sphinx_gallery
 sphinx_bootstrap_theme
