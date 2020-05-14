@@ -77,15 +77,17 @@ jobs:
         - run:
             name: Check installation
             command: |
-               which python
-               QT_DEBUG_PLUGINS=1 mne sys_info
-               python -c "import numpy; numpy.show_config()"
-               LIBGL_DEBUG=verbose python -c "import pyvista; pyvista.BackgroundPlotter(show=True)"
-               python -c "import mne_rsa"
+              which python
+              QT_DEBUG_PLUGINS=1 mne sys_info
+              python -c "import numpy; numpy.show_config()"
+              LIBGL_DEBUG=verbose python -c "import pyvista; pyvista.BackgroundPlotter(show=True)"
+              python -c "import mne_rsa"
 
-        # Download example data
-        python -c "import mne; mne.datasets.sample.data_path(download=True)"
-        python -c "import mne; mne.datasets.kiloword.data_path(download=True)"
+        - run:
+            name: Download example data
+            command: |
+              python -c "import mne; mne.datasets.sample.data_path(download=True)"
+              python -c "import mne; mne.datasets.kiloword.data_path(download=True)"
 
         # Build docs
         - run:
