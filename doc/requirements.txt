@@ -3,7 +3,7 @@ scipy
 mne
 scikit-learn
 vtk
-mayavi
+pyvista
 sphinx_gallery
 sphinx_bootstrap_theme
 numpydoc
