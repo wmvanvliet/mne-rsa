@@ -11,3 +11,4 @@ sphinx_bootstrap_theme
 numpydoc
 matplotlib
 pyqt5
+tqdm
