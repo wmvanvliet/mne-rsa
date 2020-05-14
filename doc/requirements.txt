@@ -4,6 +4,8 @@ mne
 scikit-learn
 vtk
 pyvista
+mayavi
+pysurfer
 sphinx_gallery
 sphinx_bootstrap_theme
 numpydoc
