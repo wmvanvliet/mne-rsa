@@ -8,16 +8,16 @@
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   inkscape:export-ydpi="399.98761"
-   inkscape:export-xdpi="399.98761"
-   inkscape:export-filename="C:\Users\wmvan\projects\reading_models\figures\vgg_network.png"
+   inkscape:export-ydpi="200"
+   inkscape:export-xdpi="200"
+   inkscape:export-filename="C:\Users\wmvan\projects\mne-rsa\doc\rsa.png"
    sodipodi:docname="rsa.svg"
    inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
    version="1.1"
    id="svg4749"
-   viewBox="0 0 590.69519 412.4067"
-   height="116.39034mm"
-   width="166.70731mm">
+   viewBox="0 0 595.21986 420.04438"
+   height="118.54587mm"
+   width="167.98427mm">
   <defs
      id="defs4751">
     <marker
@@ -1725,8 +1725,8 @@
      showgrid="false"
      inkscape:current-layer="g1744"
      inkscape:document-units="px"
-     inkscape:cy="287.83552"
-     inkscape:cx="232.65323"
+     inkscape:cy="289.84472"
+     inkscape:cx="233.65783"
      inkscape:zoom="0.9954305"
      inkscape:pageshadow="2"
      inkscape:pageopacity="0.0"
@@ -1738,12 +1738,12 @@
        inkscape:locked="false"
        id="guide81359"
        orientation="1,0"
-       position="290.83226,225.94363" />
+       position="291.77406,231.69769" />
     <sodipodi:guide
        inkscape:locked="false"
        id="guide12765"
        orientation="0,1"
-       position="243.75267,376.14893" />
+       position="244.69448,381.90299" />
   </sodipodi:namedview>
   <metadata
      id="metadata4754">
@@ -1758,7 +1758,7 @@
     </rdf:RDF>
   </metadata>
   <g
-     transform="translate(-180.04283,-641.51645)"
+     transform="translate(-179.10102,-639.63283)"
      id="layer1"
      inkscape:groupmode="layer"
      inkscape:label="Layer 1">
@@ -1766,9 +1766,21 @@
        transform="matrix(1.2499999,0,0,-1.2499999,488.09983,1326.3162)"
        inkscape:label="pilot2_dsms_vgg_first_imagenet64_then_tiny-words_tiny-imagenet"
        id="g1744">
+      <rect
+         inkscape:export-ydpi="200"
+         inkscape:export-xdpi="200"
+         transform="scale(1,-1)"
+         y="-549.34674"
+         x="-247.19907"
+         height="336.03555"
+         width="476.17593"
+         id="rect2377"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:3, 144;stroke-dashoffset:0" />
       <g
+         inkscape:export-ydpi="200"
+         inkscape:export-xdpi="200"
          id="g5376"
-         transform="translate(-8.6574326,-32.498639)">
+         transform="translate(-7.1574325,-30.998639)">
         <g
            style="stroke-width:1.37377"
            transform="matrix(0.72792821,0,0,0.72792821,-350.24237,-141.60896)"
@@ -1814,8 +1826,10 @@
              sodipodi:role="line">Model DSM</tspan></text>
       </g>
       <g
+         inkscape:export-ydpi="200"
+         inkscape:export-xdpi="200"
          id="g5367"
-         transform="translate(2.2697229,-88.43892)">
+         transform="translate(3.769723,-86.93892)">
         <g
            style="stroke-width:1.37377"
            transform="matrix(0.72792821,0,0,0.72792821,-95.6165,-85.21969)"
@@ -1861,8 +1875,10 @@
              style="stroke-width:0.75">Brain DSM</tspan></text>
       </g>
       <image
-         y="-547.83984"
-         x="34.554443"
+         inkscape:export-ydpi="200"
+         inkscape:export-xdpi="200"
+         y="-549.33984"
+         x="36.054443"
          width="162.20598"
          height="162.20598"
          preserveAspectRatio="none"
@@ -1871,6 +1887,9 @@
          transform="scale(1,-1)"
          style="stroke-width:3.699" />
       <g
+         inkscape:export-ydpi="200"
+         inkscape:export-xdpi="200"
+         transform="translate(1.5000001,1.5000001)"
          id="g1902">
         <g
            id="g5438">
@@ -1904,32 +1923,40 @@
            transform="scale(1,-1)" />
       </g>
       <path
+         inkscape:export-ydpi="200"
+         inkscape:export-xdpi="200"
          sodipodi:nodetypes="cc"
          id="path1788"
-         d="M 138.81095,423.33494 115.63056,368.50858"
+         d="M 140.31095,424.83494 117.13056,370.00858"
          style="fill:none;stroke:#000000;stroke-width:1.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
       <rect
+         inkscape:export-ydpi="200"
+         inkscape:export-xdpi="200"
          style="fill:none;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
          id="rect3695"
          width="191.52885"
          height="134.84175"
-         x="-245.69562"
-         y="-544.44995"
+         x="-244.19562"
+         y="-545.94995"
          transform="scale(1,-1)" />
       <text
+         inkscape:export-ydpi="200"
+         inkscape:export-xdpi="200"
          xml:space="preserve"
          style="font-style:normal;font-weight:normal;font-size:30px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.75"
-         x="-195.03372"
-         y="-517.54535"
+         x="-193.53372"
+         y="-519.04535"
          id="text3699"
          transform="scale(1,-1)"><tspan
            sodipodi:role="line"
            id="tspan3697"
-           x="-195.03372"
-           y="-517.54535"
+           x="-193.53372"
+           y="-519.04535"
            style="stroke-width:0.75">Model</tspan></text>
       <g
-         transform="translate(0,1.7151961)"
+         inkscape:export-ydpi="200"
+         inkscape:export-xdpi="200"
+         transform="translate(1.5000001,3.2151962)"
          id="g2339">
         <text
            xml:space="preserve"
@@ -2608,24 +2635,30 @@
            style="fill:none;stroke:#000000;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none" />
       </g>
       <path
+         inkscape:export-ydpi="200"
+         inkscape:export-xdpi="200"
          sodipodi:nodetypes="cc"
          id="path1792"
-         d="m -178.78969,443.83394 26.0718,-75.54603"
+         d="m -177.28969,445.33394 26.0718,-75.54603"
          style="fill:none;stroke:#000000;stroke-width:1.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
       <path
+         inkscape:export-ydpi="200"
+         inkscape:export-xdpi="200"
          id="path1904"
-         d="M -53.997375,293.25148 H 19.801038"
+         d="M -52.497375,294.75148 H 21.301038"
          style="fill:none;stroke:#000000;stroke-width:3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#marker114880);marker-mid:url(#marker114880);marker-end:url(#marker104729)" />
       <text
+         inkscape:export-ydpi="200"
+         inkscape:export-xdpi="200"
          transform="scale(1,-1)"
          id="text2004"
-         y="-308.7659"
-         x="-48.989914"
+         y="-310.2659"
+         x="-47.489914"
          style="font-style:normal;font-weight:normal;font-size:30px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.75"
          xml:space="preserve"><tspan
            style="stroke-width:0.75"
-           y="-308.7659"
-           x="-48.989914"
+           y="-310.2659"
+           x="-47.489914"
            id="tspan2002"
            sodipodi:role="line">RSA</tspan></text>
     </g>

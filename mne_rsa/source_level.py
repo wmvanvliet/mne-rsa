@@ -26,18 +26,18 @@ from .sensor_level import _tmin_tmax_to_indices, _construct_tmin
 
 
 def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
-                     temporal_radius=0.1, stc_dsm_metric='sqeuclidean',
+                     temporal_radius=0.1, stc_dsm_metric='correlation',
                      stc_dsm_params=dict(), rsa_metric='spearman', y=None,
                      n_folds=None, sel_vertices=None, tmin=None, tmax=None,
                      n_jobs=1, verbose=False):
-    """Perform RSA in a searchlight pattern across the cortex.
+    """Perform RSA in a searchlight pattern across the source space.
 
     The output is a source estimate where the "signal" at each source point is
     the RSA, computed for a patch surrounding the source point.
 
     Parameters
     ----------
-    stcs : list of mne.SourceEstimate
+    stcs : list of mne.SourceEstimate | list of mne.VolSourceEstimate
         For each item, a source estimate for the brain activity.
     dsm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
         The model DSM, see :func:`compute_dsm`. For efficiency, you can give it
@@ -62,7 +62,7 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
         The metric to use to compute the DSM for the source estimates. This can
         be any metric supported by the scipy.distance.pdist function. See also
         the ``stc_dsm_params`` parameter to specify and additional parameter
-        for the distance function. Defaults to 'sqeuclidean'.
+        for the distance function. Defaults to 'correlation'.
     stc_dsm_params : dict
         Extra arguments for the distance metric used to compute the DSMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
@@ -88,8 +88,8 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
         number of folds possible, given the data.
     sel_vertices : list of int | None
         When set, searchlight patches will only be generated for the subset of
-        vertices with the given indices. Defaults to ``None``, in which case
-        patches for all vertices are generated.
+        vertices/voxels with the given indices. Defaults to ``None``, in which
+        case patches for all vertices/voxels are generated.
     tmin : float | None
         When set, searchlight patches will only be generated from subsequent
         time points starting from this time point. This value is given in
@@ -109,7 +109,7 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
 
     Returns
     -------
-    stc : SourceEstimate | list of SourceEstimate
+    stc : SourceEstimate | VolSourceEstimate | list of SourceEstimate | list of VolSourceEstimate
         The correlation values for each searchlight patch. When spatial_radius
         is set to None, there will only be one vertex. When temporal_radius is
         set to None, there will only be one time point. When multiple models
@@ -165,17 +165,29 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
     if spatial_radius is not None:
         vertices = stcs[0].vertices
     else:
-        vertices = [np.array([1]), np.array([])]
+        if src.kind == 'volume':
+            vertices = [np.array([1])]
+        else:
+            vertices = [np.array([1]), np.array([])]
     tmin = _construct_tmin(stcs[0].times, sel_times, temporal_radius)
     tstep = stcs[0].tstep
 
     if one_model:
-        return mne.SourceEstimate(data[:, :, 0], vertices, tmin, tstep,
-                                  subject=stcs[0].subject)
+        if src.kind == 'volume':
+            return mne.VolSourceEstimate(data[:, :, 0], vertices, tmin, tstep,
+                                         subject=stcs[0].subject)
+        else:
+            return mne.SourceEstimate(data[:, :, 0], vertices, tmin, tstep,
+                                      subject=stcs[0].subject)
     else:
-        return [mne.SourceEstimate(data[:, :, i], vertices, tmin, tstep,
-                                   subject=stcs[0].subject)
-                for i in range(data.shape[-1])]
+        if src.kind == 'volume':
+            return [mne.VolSourceEstimate(data[:, :, i], vertices, tmin, tstep,
+                                          subject=stcs[0].subject)
+                    for i in range(data.shape[-1])]
+        else:
+            return [mne.SourceEstimate(data[:, :, i], vertices, tmin, tstep,
+                                       subject=stcs[0].subject)
+                    for i in range(data.shape[-1])]
 
 
 def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
@@ -189,7 +201,7 @@ def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
 
     Parameters
     ----------
-    stcs : list of mne.SourceEstimate
+    stcs : list of mne.SourceEstimate | list of mne.VolSourceEstimate
         For each item, a source estimate for the brain activity.
     src : instance of mne.SourceSpaces
         The source space used by the source estimates specified in the `stcs`
@@ -222,8 +234,8 @@ def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
         number of folds possible, given the data.
     sel_vertices : list of int | None
         When set, searchlight patches will only be generated for the subset of
-        vertices with the given indices. Defaults to ``None``, in which case
-        patches for all vertices are generated.
+        vertices/voxels with the given indices. Defaults to ``None``, in which
+        case patches for all vertices/voxels are generated.
     tmin : float | None
         When set, searchlight patches will only be generated from subsequent
         time points starting from this time point. This value is given in
@@ -268,16 +280,20 @@ def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
 
 def _check_compatible(stcs, src):
     """Check for compatibility of the source estimates and source space."""
-    lh_verts, rh_verts = stcs[0].vertices
+    if src.kind == 'volume' and not isinstance(stcs[0], mne.VolSourceEstimate):
+        raise ValueError(f'Volume source estimates provided, but not a volume '
+                         f'source space (src.kind={src.kind}).')
+
     for stc in stcs:
-        if (np.any(stc.vertices[0] != lh_verts) or
-                np.any(stc.vertices[1] != rh_verts)):
-            raise ValueError('Not all source estimates have the same '
-                             'vertices.')
-    if (np.any(src[0]['vertno'] != lh_verts) or
-            np.any(src[1]['vertno'] != rh_verts)):
-        raise ValueError('The source space is not defined for the same '
-                         'vertices as the source estimates.')
+        if src.kind == 'volume':
+            if np.any(stc.vertices != src[0]['vertno']):
+                raise ValueError('Not all source estimates have the same '
+                                 'vertices.')
+        else:
+            for src_hemi, stc_hemi_vertno in zip(src, stcs[0].vertices):
+                if np.any(stc_hemi_vertno != src_hemi['vertno']):
+                    raise ValueError('Not all source estimates have the same '
+                                     'vertices.')
 
     times = stcs[0].times
     for stc in stcs:
@@ -319,7 +335,7 @@ def _get_distance_matrix(src, dist_lim, n_jobs=1):
         if 'dist' not in hemi or hemi['dist'] is None:
             needs_distance_computation = True
         else:
-            if hemi['dist'].max() < dist_lim:
+            if hemi['dist_limit'][0] < dist_lim:
                 warn(f'Source space has pre-computed distances, but all '
                      f'distances are smaller than the searchlight radius '
                      f'({dist_lim}). You may want to consider recomputing '
@@ -329,12 +345,15 @@ def _get_distance_matrix(src, dist_lim, n_jobs=1):
     if needs_distance_computation:
         if dist_lim is None:
             dist_lim = np.inf
-        src = mne.add_source_space_distances(src, dist_lim, n_jobs=n_jobs)
+        if src.kind == 'volume':
+            src = _add_volume_source_space_distances(src, dist_lim)
+        else:
+            src = mne.add_source_space_distances(src, dist_lim, n_jobs=n_jobs)
 
-    for hemi in [0, 1]:
-        inuse = np.flatnonzero(src[hemi]['inuse'])
+    for hemi in src:
+        inuse = np.flatnonzero(hemi['inuse'])
 
-        dist.append(src[hemi]['dist'][np.ix_(inuse, inuse)].toarray())
+        dist.append(hemi['dist'][np.ix_(inuse, inuse)].toarray())
 
     # Collect the distances in a single matrix
     dist = block_diag(*dist)
@@ -342,3 +361,47 @@ def _get_distance_matrix(src, dist_lim, n_jobs=1):
     dist.flat[::dist.shape[0] + 1] = 0  # Distance to yourself is zero
 
     return dist
+
+
+def _add_volume_source_space_distances(src, dist_limit):
+    """Compute the distance between voxels in a volume source space.
+
+    Operates in-place!
+
+    Parameters
+    ----------
+    src : instance of mne.SourceSpaces
+        The volume source space to compute the voxel-wise distances for.
+    dist_limit : float
+        The maximum distance (in meters) to consider. Voxels that are further
+        apart than this distance will have a distance of infinity. Use this to
+        reduce computation time.
+
+    Returns
+    -------
+    src : instance of mne.SourceSpaces
+        The volume source space, now with the 'dist' and 'dist_limit' fields
+        set.
+    """
+    # Lazy import to not have to load the huge scipy module every time mne_rsa
+    # get's loaded.
+    from scipy.sparse import csr_matrix
+    assert src.kind == 'volume'
+    n_sources = src[0]['np']
+    neighbors = np.array(src[0]['neighbor_vert'])
+    row, col = np.nonzero(neighbors != -1)
+    col = neighbors[(row, col)]
+    con = np.linalg.norm(src[0]['rr'][row, :] - src[0]['rr'][col, :], axis=1)
+    con_matrix = csr_matrix((con, (row, col)), shape=(n_sources, n_sources))
+    dist = mne.source_space._do_src_distances(con_matrix, src[0]['vertno'],
+                                              np.arange(src[0]['nuse']),
+                                              dist_limit)[0]
+    d = dist.ravel()  # already float32
+    idx = d > 0
+    d = d[idx]
+    i, j = np.meshgrid(src[0]['vertno'], src[0]['vertno'])
+    i = i.ravel()[idx]
+    j = j.ravel()[idx]
+    src[0]['dist'] = csr_matrix((d, (i, j)), shape=(n_sources, n_sources))
+    src[0]['dist_limit'] = np.array([dist_limit], np.float32)
+    return src

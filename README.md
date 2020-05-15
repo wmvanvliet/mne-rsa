@@ -27,17 +27,13 @@ This is what the package can do for you:
 
  - Compute DSMs on arbitrary data
  - Compute DSMs in a searchlight across:
-    - vertices and samples (source level)
+    - vertices/voxels and samples (source level)
     - sensors and samples (sensor level)
-    - vertices only (source level)
+    - vertices/voxels only (source level)
     - sensors only (sensor level)
     - samples only (source and sensor level)
  - Use cross-validated distance metrics when computing DSMs
  - And of course: compute RSA between DSMs
-
-This is what it cannot do (yet) for you:
-
- - Compute DSMs in a searchlight across voxels (volume level)
 
 Supported metrics for comparing DSMs:
 

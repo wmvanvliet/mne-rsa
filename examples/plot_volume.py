@@ -2,21 +2,23 @@
 # coding: utf-8
 
 """
-Source-level RSA using a searchlight
-====================================
+Source-level RSA using a searchlight on volumetric data
+=======================================================
 
 This example demonstrates how to perform representational similarity analysis
-(RSA) on source localized MEG data, using a searchlight approach.
+(RSA) on volumetric source localized MEG data, using a searchlight approach.
 
 In the searchlight approach, representational similarity is computed between
-the model and searchlight "patches". A patch is defined by a seed vertex on the
-cortex and all vertices within a given radius. By default, patches are created
-using each vertex as a seed point, so you can think of it as a "searchlight"
-that scans along the cortex.
+the model and searchlight "patches". A patch is defined by a seed voxel in the
+source space and all voxels within a given radius. By default, patches are
+created using each voxel as a seed point, so you can think of it as a
+"searchlight" that scans through the brain.
 
 The radius of a searchlight can be defined in space, in time, or both. In
-this example, our searchlight will have a spatial radius of 2 cm. and a
-temporal radius of 20 ms.
+this example, our searchlight will have a spatial radius of 1 cm. To save
+computation time, we will only perform the RSA on a single time point, but feel
+free to experiment with specifying a temporal radius and performing the RSA in
+time as well.
 
 The dataset will be the MNE-sample dataset: a collection of 288 epochs in which
 the participant was presented with an auditory beep or visual stimulus to
@@ -26,19 +28,15 @@ either the left or right ear or visual field.
 
 # Import required packages
 import os.path as op
-from matplotlib import pyplot as plt
 import mne
 import mne_rsa
 
 mne.set_log_level(False)  # Be less verbose
 
 ###############################################################################
-# We'll be using the data from the MNE-sample set. To speed up computations in
-# this example, we're going to use one of the sparse source spaces from the
-# testing set. 
+# We'll be using the data from the MNE-sample set. 
 sample_path = op.join(mne.datasets.sample.data_path(verbose=True), 'MEG', 'sample')
-testing_path = op.join(mne.datasets.testing.data_path(verbose=True), 'MEG', 'sample')
-subjects_dir = op.join(mne.datasets.sample.data_path(verbose=True), 'subjects')
+mri_dir = op.join(mne.datasets.sample.data_path(verbose=True), 'subjects', 'sample')
 
 ###############################################################################
 # Creating epochs from the continuous (raw) data. We downsample to 100 Hz to
@@ -50,7 +48,6 @@ event_id = {'audio/left': 1,
             'visual/left': 3,
             'visual/right': 4}
 epochs = mne.Epochs(raw, events, event_id, preload=True)
-epochs.resample(100)
 
 ###############################################################################
 # It's important that the model DSM and the epochs are in the same order, so
@@ -93,12 +90,10 @@ mne_rsa.plot_dsms(model_dsm, title='Model DSM')
 
 ###############################################################################
 # This example is going to be on source-level, so let's load the inverse
-# operator and apply it to obtain a cortical surface source estimate for each
-# epoch. To speed up the computation, we going to load an inverse operator from
-# the testing dataset that was created using a sparse source space with not too
-# many vertices.
+# operator and apply it to obtain a volumetric source estimate for each
+# epoch.
 inv = mne.minimum_norm.read_inverse_operator(
-    op.join(testing_path, 'sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif'))
+    op.join(sample_path, 'sample_audvis-meg-vol-7-meg-inv.fif'))
 epochs_stc = mne.minimum_norm.apply_inverse_epochs(epochs, inv, lambda2=0.1111)
 
 ###############################################################################
@@ -110,22 +105,15 @@ rsa_vals = mne_rsa.rsa_source_level(
     src=inv['src'],               # The inverse operator has our source space
     stc_dsm_metric='correlation', # Metric to compute the MEG DSMs
     rsa_metric='kendall-tau-a',   # Metric to compare model and EEG DSMs
-    spatial_radius=0.02,          # Spatial radius of the searchlight patch
-    temporal_radius=0.02,         # Temporal radius of the searchlight path
-    tmin=0, tmax=0.3,             # To save time, only analyze this time interval
+    spatial_radius=0.01,          # Spatial radius of the searchlight patch
+    temporal_radius=None,         # Don't perform search light over time
+    tmin=0.09, tmax=0.11,         # Time interval to analyze
     n_jobs=1,                     # Only use one CPU core. Increase this for more speed.
     verbose=False)                # Set to True to display a progress bar
 
-# Find the searchlight patch with highest RSA score
-peak_vertex, peak_time = rsa_vals.get_peak(vert_as_index=True)
-
-# Plot the result at the timepoint where the maximum RSA value occurs.
-rsa_vals.plot('sample', subjects_dir=subjects_dir, initial_time=peak_time)
-
 ###############################################################################
-# Plot the RSA timecourse at the peak vertex
-plt.figure()
-plt.plot(rsa_vals.times, rsa_vals.data[peak_vertex])
-plt.xlabel('Time (s)')
-plt.ylabel('Kendall-Tau (alpha)')
-plt.title(f'RSA values at vert {peak_vertex}')
+# Here is how to plot the result using nilearn.
+from nilearn.plotting import plot_stat_map
+img = rsa_vals.as_volume(inv['src'], mri_resolution=False)
+t1_fname = op.join(mri_dir, 'mri', 'T1.mgz')
+plot_stat_map(img, t1_fname, threshold=0.1)
