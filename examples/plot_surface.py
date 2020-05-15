@@ -2,8 +2,8 @@
 # coding: utf-8
 
 """
-Source-level RSA using a searchlight
-====================================
+Source-level RSA using a searchlight on surface data
+====================================================
 
 This example demonstrates how to perform representational similarity analysis
 (RSA) on source localized MEG data, using a searchlight approach.
