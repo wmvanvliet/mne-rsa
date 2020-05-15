@@ -17,7 +17,10 @@ systems neuroscience. Frontiers in Systems Neuroscience, 2(4).
 https://doi.org/10.3389/neuro.06.004.2008
 
 .. raw:: html
-    <img src="https://raw.githubusercontent.com/wmvanvliet/mne-rsa/master/doc/rsa.png" width="400" alt="Overview of the RSA technique">
+
+  <p align="center">
+  <img src="https://raw.githubusercontent.com/wmvanvliet/mne-rsa/master/doc/rsa.png" alt="Overview of the RSA technique" width="400"/>
+  </p>
 
 
 Installation

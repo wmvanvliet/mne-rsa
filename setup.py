@@ -15,7 +15,7 @@ if __name__ == "__main__":
         url='https://github.com/wmvanvliet/mne-rsa',
         version='0.4.dev0',
         download_url='https://github.com/wmvanvliet/mne-rsa/archive/master.zip',
-        long_description=open('README.md').read(),
+        long_description=open('README.rst').read(),
         classifiers=['Intended Audience :: Science/Research',
                      'Intended Audience :: Developers',
                      'License :: OSI Approved',
