@@ -4,7 +4,7 @@ Representational Similarity Analysis
 .. image:: https://circleci.com/gh/wmvanvliet/mne-rsa.svg?style=shield
    :target: https://circleci.com/gh/wmvanvliet/mne-rsa
 
-.. image:: rsa.png
+.. image:: https://raw.githubusercontent.com/wmvanvliet/mne-rsa/master/doc/rsa.png
    :width: 400
    :alt: Overview of the RSA technique
 

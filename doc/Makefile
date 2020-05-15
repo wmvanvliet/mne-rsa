@@ -45,8 +45,8 @@ clean:
 	rm -rf generated/*
 	rm -rf modules/*
 
-index: ../README.md
-	pandoc ../README.md -o index.rst
+index: ../README.rst
+	cp ../README.rst index.rst
 
 
 html-noplot: index
