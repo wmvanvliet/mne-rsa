@@ -3,6 +3,7 @@ Representational Similarity Analysis
 
 .. image:: https://circleci.com/gh/wmvanvliet/mne-rsa.svg?style=shield
    :target: https://circleci.com/gh/wmvanvliet/mne-rsa
+.. image:: https://github.com/wmvanvliet/mne-rsa/workflows/unit%20tests/badge.svg
 
 This is a Python package for performing representational similarity
 analysis (RSA) using
