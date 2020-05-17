@@ -9,23 +9,17 @@ on:
 jobs:
     build_docs:
       runs-on: ubuntu-latest
+      env:
+          DISPLAY: ":99"
+          OPENBLAS_NUM_THREADS: 4
+          MNE_3D_BACKEND: mayavi
+          _MNE_BRAIN_TRACES_AUTO: false
+
       steps:
         - uses: actions/checkout@v2
         - name: Set up Python 3.8
-          uses: actions/setup-python@v2
-          with:
-            python-version: 3.8
-
-        - run:
-            name: Set BASH_ENV
-            command: |
-              echo "set -e" >> $BASH_ENV
-              echo "export DISPLAY=:99" >> $BASH_ENV
-              echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
-              echo "export MNE_3D_BACKEND=mayavi" >> $BASH_ENV
-              echo "export _MNE_BRAIN_TRACES_AUTO=false" >> $BASH_ENV
-              echo "BASH_ENV:"
-              cat $BASH_ENV
+            uses: actions/setup-python@v2
+            with: python-version: 3.8
 
         - run:
             name: Merge with upstream
@@ -38,12 +32,6 @@ jobs:
                 git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
                 git fetch upstream master;
               fi
-
-        # Load our data
-        - restore_cache:
-            keys:
-              - data-cache-0
-              - pip-cache
 
         - run:
             name: Install 3D rendering libraries
@@ -62,13 +50,16 @@ jobs:
             command: |
               sudo apt-get install libxkbcommon-x11-0
 
-        - run:
-            name: Install pandoc
-            command: |
-                sudo apt-get install -y pandoc
+        - name: Cache Pip
+          id: cache-pip
+          uses: actions/cache@v1
+          with:
+            path: ~/.cache/pip
+            key: pip-cache
 
         - run:
-            name: Get Python running
+            name: Install Python dependencies
+            if: steps.cache-pip.outputs.cache-hit != 'true'
             command: |
               python -m pip install --user --upgrade --progress-bar off pip numpy setuptools
               python -m pip install --user --upgrade --progress-bar off -f "https://vtk.org/download" "vtk>=9"
@@ -78,11 +69,6 @@ jobs:
               python -m pip install --user --upgrade --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme memory_profiler "https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip"
               python -m pip install --user --upgrade seaborn
               python -m pip install --user -e .
-
-        - save_cache:
-            key: pip-cache
-            paths:
-              - ~/.cache/pip
 
         # Look at what we have and fail early if there is some library conflict
         - run:
@@ -108,18 +94,11 @@ jobs:
               make html;
 
         # Save the outputs
-        - store_artifacts:
-            path: doc/_build/html/
-            destination: dev
+        #- store_artifacts:
+        #    path: doc/_build/html/
+        #    destination: dev
 
-        - persist_to_workspace:
-            root: doc/_build
-            paths:
-              - html
-
-workflows:
-  version: 2
-
-  default:
-    jobs:
-      - build_docs
+        #- persist_to_workspace:
+        #    root: doc/_build
+        #    paths:
+        #      - html
