@@ -67,6 +67,9 @@ jobs:
             python -m pip install --user --upgrade seaborn
             python -m pip install --user -e .
 
+        - name: Set PATH
+          run: echo "::add-path:://home/runner/.local/bin"
+
         # Look at what we have and fail early if there is some library conflict
         - name: Check installation
           run: |
@@ -95,3 +98,8 @@ jobs:
         #    root: doc/_build
         #    paths:
         #      - html
+        - name: Save HTML as artifact
+          uses: actions/upload-artifact@v1
+          with:
+            name: doc/_build
+            path: html
