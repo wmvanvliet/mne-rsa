@@ -101,5 +101,5 @@ jobs:
         - name: Save HTML as artifact
           uses: actions/upload-artifact@v1
           with:
-            name: doc/_build
-            path: html
+            name: docs
+            path: doc/_build/html
