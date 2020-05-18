@@ -56,7 +56,6 @@ jobs:
             key: pip-cache
 
         - name: Install Python dependencies
-          if: steps.cache-pip.outputs.cache-hit != 'true'
           run: |
             python -m pip install --user --upgrade --progress-bar off pip numpy setuptools
             python -m pip install --user --upgrade --progress-bar off -f "https://vtk.org/download" "vtk>=9"
