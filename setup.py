@@ -1,6 +1,17 @@
 #! /usr/bin/env python
 from setuptools import setup
 import os
+import os.path as op
+
+# get the version (don't import mne here, so dependencies are not needed)
+version = None
+with open(op.join('mne', '__init__.py'), 'r') as fid:
+    for line in (line.strip() for line in fid):
+        if line.startswith('__version__'):
+            version = line.split('=')[1].strip().strip('\'')
+            break
+if version is None:
+    raise RuntimeError('Could not determine version')
 
 if __name__ == "__main__":
     if os.path.exists('MANIFEST'):
@@ -13,7 +24,7 @@ if __name__ == "__main__":
         description='Code for performing Representational Similarity Analysis on MNE-Python data structures.',
         license='BSD-3',
         url='https://github.com/wmvanvliet/mne-rsa',
-        version='0.4.dev0',
+        version=version,
         download_url='https://github.com/wmvanvliet/mne-rsa/archive/master.zip',
         long_description=open('README.rst').read(),
         classifiers=['Intended Audience :: Science/Research',
