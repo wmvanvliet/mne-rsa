@@ -155,7 +155,7 @@ def _plot_dsms_topo(dsms, info, layout=None, fig=None, title=None,
         ax.imshow(dsms_i, cmap=cmap)
 
     if show:
-        plt.gcf().show()
+        fig.show()
 
     return fig
 
