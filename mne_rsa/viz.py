@@ -163,7 +163,7 @@ def _plot_dsms_topo(dsms, info, layout=None, fig=None, title=None,
 def plot_dsms_topos(dsms, info, time_windows=None, layout=None, figs=None,
                     axis_facecolor='w', axis_spinecolor='w',
                     fig_facecolor='w', figsize=(6.4, 4.8), cmap='viridis',
-                    show=False):
+                    show=True):
     """ Plot DSMs on 2D MEG topographies for multiple time windows
 
     Parameters
@@ -196,7 +196,7 @@ def plot_dsms_topos(dsms, info, time_windows=None, layout=None, figs=None,
         Colormap used for plotting DSMs. Defaults to 'viridis'.
         Check matplotlib.pyplot.imshow for details.
     show: bool, optional
-        Whether to display the generated figure. Defaults to False.
+        Whether to display the generated figure. Defaults to True.
 
     Returns
     -------
@@ -208,15 +208,15 @@ def plot_dsms_topos(dsms, info, time_windows=None, layout=None, figs=None,
         raise ValueError("dsms have to be 3-dimensional ndarray or "
                          "numpy.memmap, "
                          "[n_sensors, n_epochs, n_dsm_datapoints]")
-    elif time_windows is None:
+    if time_windows is None:
         time_windows = [[0, dsms.shape[1]]]
-    elif not isinstance(time_windows, list):
+    if not isinstance(time_windows, list):
         raise TypeError("time has to be list of [int, int].")
-    elif not all(isinstance(i, list) for i in time_windows):
+    if not all(isinstance(i, list) for i in time_windows):
         raise TypeError("time has to be list of [int, int].")
-    elif figs is None:
+    if figs is None:
         figs = [None]*len(time_windows)
-    elif len(time_windows) != len(figs):
+    if len(time_windows) != len(figs):
         raise ValueError("time_windows and figs needs to have a same length "
                          "or figs needs to be None.")
 
