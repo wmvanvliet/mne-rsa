@@ -130,7 +130,7 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
         dsm_model = [dsm_model]
 
     logger.info(f'Performing RSA between Evokeds and {len(dsm_model)} model '
-                'DSMs')
+                'DSM(s)')
 
     # Check for compatibility of the evokeds and the model features
     for dsm in dsm_model:
@@ -175,11 +175,11 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
     sel_samples = _tmin_tmax_to_indices(evokeds[0].times, tmin, tmax)
 
     if spatial_radius is not None:
-        logger.info(f'    Using spatial radius of {spatial_radius} meters')
+        logger.info(f'    Spatial radius: {spatial_radius} meters')
         logger.info(f'    Using {len(picks)} sensors')
     if temporal_radius is not None:
-        logger.info(f'    Using temporal radius of {temporal_radius} samples')
-        logger.info(f'    Using time inverval: {tmin}-{tmax} seconds')
+        logger.info(f'    Temporal radius: {temporal_radius} samples')
+        logger.info(f'    Time inverval: {tmin}-{tmax} seconds')
 
     # Perform the RSA
     X = np.array([evoked.data for evoked in evokeds])
@@ -314,7 +314,7 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
         dsm_model = [dsm_model]
 
     logger.info(f'Performing RSA between Epochs and {len(dsm_model)} model '
-                'DSMs')
+                'DSM(s)')
 
     if y is None:
         y_source = 'Epoch object'
@@ -353,11 +353,11 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
     sel_samples = _tmin_tmax_to_indices(epochs.times, tmin, tmax)
 
     if spatial_radius is not None:
-        logger.info(f'    Using spatial radius of {spatial_radius} meters')
+        logger.info(f'    Spatial radius: {spatial_radius} meters')
         logger.info(f'    Using {len(picks)} sensors')
     if temporal_radius is not None:
-        logger.info(f'    Using temporal radius of {temporal_radius} samples')
-        logger.info(f'    Using time inverval: {tmin}-{tmax} seconds')
+        logger.info(f'    Temporal radius: {temporal_radius} samples')
+        logger.info(f'    Time inverval: {tmin}-{tmax} seconds')
 
     # Perform the RSA
     X = epochs.get_data()
