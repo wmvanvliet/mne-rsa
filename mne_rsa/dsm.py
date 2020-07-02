@@ -142,7 +142,7 @@ def _n_items_from_dsm(dsm):
         return distance.squareform(dsm).shape[0]
 
 
-class dsms_array:
+class dsm_array:
     """Generate DSMs from an array of data, possibly in a searchlight pattern.
 
     First use :class:`searchlight_patches` to compute the searchlight patches.

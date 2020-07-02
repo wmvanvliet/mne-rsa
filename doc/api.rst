@@ -24,9 +24,14 @@ Constructing DSMs
 
     compute_dsm
     compute_dsm_cv
-    dsm_array
     dsm_epochs
     dsm_source_level
+
+.. autosummary::
+    :toctree: functions
+    :template: class.rst
+
+    dsm_array
 
 Performing RSA
 ~~~~~~~~~~~~~~
@@ -37,6 +42,15 @@ Performing RSA
     rsa
     rsa_array
     rsa_gen
+
+Making searchlight patches
+--------------------------
+.. autosummary::
+    :toctree: functions
+    :template: class.rst
+
+    searchlight
+
 
 Visualization
 ~~~~~~~~~~~~~

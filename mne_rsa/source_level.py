@@ -20,7 +20,7 @@ import numpy as np
 import mne
 from scipy.linalg import block_diag
 
-from .dsm import _n_items_from_dsm, dsms_array
+from .dsm import _n_items_from_dsm, dsm_array
 from .rsa import rsa_array
 from .searchlight import searchlight
 from .sensor_level import _tmin_tmax_to_indices, _construct_tmin
@@ -276,9 +276,9 @@ def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
     patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
                           temporal_radius=temporal_radius,
                           sel_series=sel_vertices, sel_samples=sel_samples)
-    yield from dsms_array(X, patches, dist_metric=dist_metric,
-                          dist_params=dist_params, y=y, n_folds=n_folds,
-                          n_jobs=n_jobs, verbose=verbose)
+    yield from dsm_array(X, patches, dist_metric=dist_metric,
+                         dist_params=dist_params, y=y, n_folds=n_folds,
+                         n_jobs=n_jobs, verbose=verbose)
 
 
 def _check_compatible(stcs, src):

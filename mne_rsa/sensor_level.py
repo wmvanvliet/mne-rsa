@@ -17,7 +17,7 @@ from scipy.spatial import distance
 import mne
 from mne.utils import logger
 
-from .dsm import _n_items_from_dsm, dsms_array
+from .dsm import _n_items_from_dsm, dsm_array
 from .searchlight import searchlight
 from .rsa import rsa_array
 
@@ -487,9 +487,9 @@ def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
     patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
                           temporal_radius=temporal_radius,
                           sel_series=picks, sel_samples=sel_samples)
-    yield from dsms_array(X, patches, dist_metric=dist_metric,
-                          dist_params=dist_params, y=y, n_folds=n_folds,
-                          verbose=verbose)
+    yield from dsm_array(X, patches, dist_metric=dist_metric,
+                         dist_params=dist_params, y=y, n_folds=n_folds,
+                         verbose=verbose)
 
 
 def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
@@ -591,9 +591,9 @@ def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
     patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
                           temporal_radius=temporal_radius,
                           sel_series=picks, sel_samples=sel_samples)
-    yield from dsms_array(X, patches, dist_metric=dist_metric,
-                          dist_params=dist_params, y=y, n_folds=n_folds,
-                          verbose=verbose)
+    yield from dsm_array(X, patches, dist_metric=dist_metric,
+                         dist_params=dist_params, y=y, n_folds=n_folds,
+                         verbose=verbose)
 
 
 def _tmin_tmax_to_indices(times, tmin, tmax):

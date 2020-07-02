@@ -3,14 +3,13 @@
 Methods to compute representational similarity analysis (RSA).
 """
 
-from types import GeneratorType
 import numpy as np
 from scipy import stats
 from scipy.stats.stats import _kendall_dis
 from joblib import Parallel, delayed
 
 from .folds import _create_folds
-from .dsm import (_ensure_condensed, compute_dsm, compute_dsm_cv, dsms_array)
+from .dsm import _ensure_condensed, compute_dsm, compute_dsm_cv
 from .searchlight import searchlight
 
 
@@ -212,9 +211,7 @@ def rsa(dsm_data, dsm_model, metric='spearman', n_data_dsms=None, n_jobs=1,
     rsa_gen
     """
     return_array = False
-    if (type(dsm_data) == list
-            or isinstance(dsm_data, GeneratorType)
-            or isinstance(dsm_data, dsms_array)):
+    if type(dsm_data) == list or hasattr(dsm_data, '__next__'):
         return_array = True
     else:
         dsm_data = [dsm_data]
