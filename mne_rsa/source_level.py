@@ -20,15 +20,16 @@ import numpy as np
 import mne
 from scipy.linalg import block_diag
 
-from .dsm import _n_items_from_dsm, dsm_array
+from .dsm import _n_items_from_dsm, dsms_array
 from .rsa import rsa_array
+from .searchlight import searchlight
 from .sensor_level import _tmin_tmax_to_indices, _construct_tmin
 
 
 def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
                      temporal_radius=0.1, stc_dsm_metric='correlation',
                      stc_dsm_params=dict(), rsa_metric='spearman', y=None,
-                     n_folds=None, sel_vertices=None, tmin=None, tmax=None,
+                     n_folds=1, sel_vertices=None, tmin=None, tmax=None,
                      n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern across the source space.
 
@@ -84,8 +85,9 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
         different item. Defaults to ``None``.
     n_folds : int | None
         Number of folds to use when using cross-validation to compute the
-        evoked DSM metric.  Defaults to ``None``, which means the maximum
-        number of folds possible, given the data.
+        evoked DSM metric. Specify ``None``, to use the maximum number of folds
+        possible, given the data.
+        Defaults to 1 (no cross-validation).
     sel_vertices : list of int | None
         When set, searchlight patches will only be generated for the subset of
         vertices/voxels with the given indices. Defaults to ``None``, in which
@@ -119,7 +121,7 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
     See Also
     --------
     compute_dsm
-    """
+    """  # noqa E501
     # Check for compatibility of the source estimated and the model features
     one_model = type(dsm_model) is np.ndarray
     if one_model:
@@ -150,16 +152,16 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
         if temporal_radius < 1:
             raise ValueError('Temporal radius is less than one sample.')
 
-    sel_times = _tmin_tmax_to_indices(stcs[0].times, tmin, tmax)
+    sel_samples = _tmin_tmax_to_indices(stcs[0].times, tmin, tmax)
 
     # Perform the RSA
     X = np.array([stc.data for stc in stcs])
-    data = rsa_array(X, dsm_model, dist=dist, spatial_radius=spatial_radius,
-                     temporal_radius=temporal_radius,
-                     data_dsm_metric=stc_dsm_metric,
+    patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
+                          temporal_radius=temporal_radius,
+                          sel_series=sel_vertices, sel_samples=sel_samples)
+    data = rsa_array(X, dsm_model, patches, data_dsm_metric=stc_dsm_metric,
                      data_dsm_params=stc_dsm_params, rsa_metric=rsa_metric,
-                     y=y, n_folds=n_folds, sel_series=sel_vertices,
-                     sel_times=sel_times, n_jobs=n_jobs, verbose=verbose)
+                     y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
 
     # Pack the result in a SourceEstimate object
     if spatial_radius is not None:
@@ -169,15 +171,15 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
             vertices = [np.array([1])]
         else:
             vertices = [np.array([1]), np.array([])]
-    tmin = _construct_tmin(stcs[0].times, sel_times, temporal_radius)
+    tmin = _construct_tmin(stcs[0].times, sel_samples, temporal_radius)
     tstep = stcs[0].tstep
 
     if one_model:
         if src.kind == 'volume':
-            return mne.VolSourceEstimate(data[:, :, 0], vertices, tmin, tstep,
+            return mne.VolSourceEstimate(data, vertices, tmin, tstep,
                                          subject=stcs[0].subject)
         else:
-            return mne.SourceEstimate(data[:, :, 0], vertices, tmin, tstep,
+            return mne.SourceEstimate(data, vertices, tmin, tstep,
                                       subject=stcs[0].subject)
     else:
         if src.kind == 'volume':
@@ -268,14 +270,15 @@ def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
         if temporal_radius < 1:
             raise ValueError('Temporal radius is less than one sample.')
 
-    sel_times = _tmin_tmax_to_indices(stcs[0].times, tmin, tmax)
+    sel_samples = _tmin_tmax_to_indices(stcs[0].times, tmin, tmax)
 
     X = np.array([stc.data for stc in stcs])
-    yield from dsm_array(X, dist=dist, spatial_radius=spatial_radius,
-                         temporal_radius=temporal_radius,
-                         dist_metric=dist_metric, dist_params=dist_params, y=y,
-                         n_folds=n_folds, sel_series=sel_vertices,
-                         sel_times=sel_times, n_jobs=n_jobs, verbose=verbose)
+    patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
+                          temporal_radius=temporal_radius,
+                          sel_series=sel_vertices, sel_samples=sel_samples)
+    yield from dsms_array(X, patches, dist_metric=dist_metric,
+                          dist_params=dist_params, y=y, n_folds=n_folds,
+                          n_jobs=n_jobs, verbose=verbose)
 
 
 def _check_compatible(stcs, src):

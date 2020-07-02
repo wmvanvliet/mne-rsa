@@ -10,7 +10,8 @@ from scipy.stats.stats import _kendall_dis
 from joblib import Parallel, delayed
 
 from .folds import _create_folds
-from .dsm import _ensure_condensed, dsm_array, compute_dsm, compute_dsm_cv
+from .dsm import (_ensure_condensed, compute_dsm, compute_dsm_cv, dsms_array)
+from .searchlight import searchlight
 
 
 def _kendall_tau_a(x, y):
@@ -129,37 +130,42 @@ def rsa_gen(dsm_data_gen, dsm_model, metric='spearman'):
 
     for dsm_data in dsm_data_gen:
         dsm_data = _ensure_condensed(dsm_data, 'dsm_data')
-        if metric == 'spearman':
-            rsa_vals = [stats.spearmanr(dsm_data, dsm_model_)[0]
-                        for dsm_model_ in dsm_model]
-        elif metric == 'pearson':
-            rsa_vals = [stats.pearsonr(dsm_data, dsm_model_)[0]
-                        for dsm_model_ in dsm_model]
-        elif metric == 'kendall-tau-a':
-            rsa_vals = [_kendall_tau_a(dsm_data, dsm_model_)
-                        for dsm_model_ in dsm_model]
-        elif metric == 'partial':
-            rsa_vals = _partial_correlation(dsm_data, dsm_model)
-        elif metric == 'partial-spearman':
-            rsa_vals = _partial_correlation(dsm_data, dsm_model,
-                                            type='spearman')
-        elif metric == 'regression':
-            X = np.atleast_2d(np.array(dsm_model)).T
-            X = X - X.mean(axis=0)
-            y = dsm_data - dsm_data.mean()
-            rsa_vals = np.linalg.lstsq(X, y, rcond=None)[0]
-        else:
-            raise ValueError("Invalid RSA metric, must be one of: 'spearman', "
-                             "'pearson', 'partial', 'partial-spearman', "
-                             "'regression' or 'kendall-tau-a'.")
-
+        rsa_vals = _rsa_single_dsm(dsm_data, dsm_model, metric)
         if return_array:
             yield np.asarray(rsa_vals)
         else:
             yield rsa_vals[0]
 
 
-def rsa(dsm_data, dsm_model, metric='spearman', n_jobs=1, n_data_dsms=None,
+def _rsa_single_dsm(dsm_data, dsm_model, metric):
+    """Compute RSA between a single data DSM and one or more model DSMs."""
+    if metric == 'spearman':
+        rsa_vals = [stats.spearmanr(dsm_data, dsm_model_)[0]
+                    for dsm_model_ in dsm_model]
+    elif metric == 'pearson':
+        rsa_vals = [stats.pearsonr(dsm_data, dsm_model_)[0]
+                    for dsm_model_ in dsm_model]
+    elif metric == 'kendall-tau-a':
+        rsa_vals = [_kendall_tau_a(dsm_data, dsm_model_)
+                    for dsm_model_ in dsm_model]
+    elif metric == 'partial':
+        rsa_vals = _partial_correlation(dsm_data, dsm_model)
+    elif metric == 'partial-spearman':
+        rsa_vals = _partial_correlation(dsm_data, dsm_model,
+                                        type='spearman')
+    elif metric == 'regression':
+        X = np.atleast_2d(np.array(dsm_model)).T
+        X = X - X.mean(axis=0)
+        y = dsm_data - dsm_data.mean()
+        rsa_vals = np.linalg.lstsq(X, y, rcond=None)[0]
+    else:
+        raise ValueError("Invalid RSA metric, must be one of: 'spearman', "
+                         "'pearson', 'partial', 'partial-spearman', "
+                         "'regression' or 'kendall-tau-a'.")
+    return rsa_vals
+
+
+def rsa(dsm_data, dsm_model, metric='spearman', n_data_dsms=None, n_jobs=1,
         verbose=False):
     """Perform RSA between data and model DSMs.
 
@@ -181,15 +187,15 @@ def rsa(dsm_data, dsm_model, metric='spearman', n_jobs=1, n_data_dsms=None,
 
         Defaults to 'spearman'.
 
-    n_jobs : int
-        The number of processes (=number of CPU cores) to use. Specify -1 to
-        use all available cores. Defaults to 1.
     n_data_dsms : int | None
         The number of data DSMs. This is useful when displaying a progress bar,
         so an estimate can be made of the computation time remaining. This
         information is available if ``dsm_data`` is an array or a list, but if
         it is a generator, this information is not available and you may want
         to set it explicitly.
+    n_jobs : int
+        The number of processes (=number of CPU cores) to use. Specify -1 to
+        use all available cores. Defaults to 1.
     verbose : bool
         Whether to display a progress bar. In order for this to work, you need
         the tqdm python module installed. Defaults to False.
@@ -206,30 +212,22 @@ def rsa(dsm_data, dsm_model, metric='spearman', n_jobs=1, n_data_dsms=None,
     rsa_gen
     """
     return_array = False
-    if type(dsm_data) == list or isinstance(dsm_data, GeneratorType):
+    if (type(dsm_data) == list
+            or isinstance(dsm_data, GeneratorType)
+            or isinstance(dsm_data, dsms_array)):
         return_array = True
     else:
         dsm_data = [dsm_data]
 
-    def wrap_in_progress_bar(dsm_data):
-        """Read a list/generator using a progress bar"""
-        if verbose:
-            from tqdm.auto import tqdm
-            if n_data_dsms is not None:
-                total = n_data_dsms
-            elif hasattr(dsm_data, '__len__'):
-                total = len(dsm_data)
-            else:
-                total = None
-            pbar = tqdm(total=total)
-        for dsm in dsm_data:
-            if verbose:
-                pbar.update(1)
-            yield dsm
-        if verbose:
-            pbar.close()
-
-    dsm_data = wrap_in_progress_bar(dsm_data)
+    if verbose:
+        from tqdm import tqdm
+        if n_data_dsms is not None:
+            total = n_data_dsms
+        elif hasattr(dsm_data, '__len__'):
+            total = len(dsm_data)
+        else:
+            total = None
+        dsm_data = tqdm(dsm_data, total=total, unit='DSM')
 
     if n_jobs == 1:
         rsa_vals = list(rsa_gen(dsm_data, dsm_model, metric))
@@ -244,7 +242,7 @@ def rsa(dsm_data, dsm_model, metric='spearman', n_jobs=1, n_data_dsms=None,
         return rsa_vals[0]
 
 
-def rsa_array(X, dsm_model, patches, data_dsm_metric='correlation',
+def rsa_array(X, dsm_model, patches=None, data_dsm_metric='correlation',
               data_dsm_params=dict(), rsa_metric='spearman', y=None, n_folds=1,
               n_jobs=1, verbose=False):
     """Perform RSA on an array of data, possibly in a searchlight pattern.
@@ -260,9 +258,9 @@ def rsa_array(X, dsm_model, patches, data_dsm_metric='correlation',
         against multiple models at the same time, supply a list of model DSMs.
 
         Use :func:`compute_dsm` to compute DSMs.
-    patches : generator of tuples
-        Searchlight patches as generated by the :func:`searchlight_patches`
-        function.
+    patches : generator of tuples | None
+        Searchlight patches as generated by :class:`searchlight`. If ``None``,
+        no searchlight is used. Defaults to ``None``.
     data_dsm_metric : str
         The metric to use to compute the data DSMs. This can be any metric
         supported by the scipy.distance.pdist function. Defaults to
@@ -300,94 +298,56 @@ def rsa_array(X, dsm_model, patches, data_dsm_metric='correlation',
 
     Returns
     -------
-    rsa_vals : ndarray, shape (n_series, n_times[, n_model_dsms])
+    rsa_vals : ndarray, shape ([n_series,] [n_times,] [n_model_dsms])
         The RSA value for each searchlight patch. When ``spatial_radius`` is
-        set to ``None``, there will only be one series. When
-        ``temporal_radius`` is set to ``None``, there will only be one time
-        point. When multiple models have been supplied, the last dimension will
-        contain RSA results for each model.
+        set to ``None``, there will only be no ``n_series`` dimension. When
+        ``temporal_radius`` is set to ``None``, there will be no time
+        dimension. When multiple models have been supplied, the last dimension
+        will contain RSA results for each model.
 
     See Also
     --------
-    searchlight_patches
+    searchlight
     compute_dsm
     dsm_array
     """
+    if patches is None:
+        patches = searchlight(X.shape)  # One big searchlight patch
+
     # Create folds for cross-validated DSM metrics
     X = _create_folds(X, y, n_folds)
     # The data is now folds x items x n_series x n_times
 
+    if type(dsm_model) == list:
+        dsm_model = [_ensure_condensed(dsm, 'dsm_model') for dsm in dsm_model]
+    else:
+        dsm_model = [_ensure_condensed(dsm_model, 'dsm_model')]
+
+    if verbose:
+        from tqdm import tqdm
+        shape = patches.shape
+        patches = tqdm(patches, unit='patch')
+        patches.shape = shape
+
     def rsa_single_patch(patch):
-        """Compute RSA for each searchlight patch."""
-        for patch in patches:
-            if n_folds == 1:
-                dsm = compute_dsm(X[patch][0],
-                                  data_dsm_metric, **data_dsm_params)
-            else:
-                dsm = compute_dsm_cv(X[patch],
-                                     data_dsm_metric, **data_dsm_params)
-            return rsa(dsm
-
-    # Joblib does not support passing a generator as a function argument.
-    # To work around this, we wrap the call to rsa() inside a temporary
-    # function.
-    #
-    def call_rsa(sel_series, sel_samples, position):
-        return rsa(
-            dsm_data=dsm_array(
-                X, dist=dist, spatial_radius=spatial_radius,
-                temporal_radius=temporal_radius, dist_metric=data_dsm_metric,
-                dist_params=data_dsm_params, y=y, n_folds=n_folds,
-                sel_series=sel_series, sel_samples=sel_samples),
-            dsm_model=dsm_model,
-            metric=rsa_metric)
-
-    # Deal with subselection of data
-    if sel_series is None:
-        sel_series = np.arange(X.shape[1])
-    if sel_samples is None:
-        sel_samples = np.arange(X.shape[-1])
-    n_series = len(sel_series)
-
-    # Call RSA multiple times in parallel. Each thread computes the RSA on part
-    # of the data.
-    if spatial_radius is not None and n_series >= n_jobs:
-        # Split the data along series
-        series_chunks = _split(sel_series, n_jobs)
-        data = Parallel(n_jobs)(delayed(call_rsa)(chunk, sel_samples, i)
-                                for i, chunk in enumerate(series_chunks, 1))
-    elif temporal_radius is not None:
-        # Split the data along time points
-        times_chunks = _split(sel_samples, n_jobs)
-        data = Parallel(n_jobs)(delayed(call_rsa)(None, chunk, i)
-                                for i, chunk in enumerate(times_chunks, 1))
-    else:
-        # No parallel processing.
-        data = call_rsa(sel_series, sel_samples, 1)
-
-    # Collect the RSA values that were computed in the different threads into
-    # one array.
-    if spatial_radius is not None and temporal_radius is not None:
-        data = np.vstack(data)
-        if isinstance(dsm_model, list):
-            data = data.reshape((n_series, -1) + data.shape[1:])
+        """Compute RSA for a single searchlight patch."""
+        if len(X) == 1:  # Check number of folds
+            # No cross-validation
+            dsm_data = compute_dsm(X[0][patch],
+                                   data_dsm_metric, **data_dsm_params)
         else:
-            data = data.reshape(n_series, -1)
-    elif spatial_radius is not None:
-        data = np.vstack([d[:, np.newaxis, ...] for d in data])
-    elif temporal_radius is not None:
-        data = np.vstack(data)
-        if isinstance(dsm_model, list):
-            data = data[np.newaxis, :, :]
-        else:
-            data = data.reshape(1, -1)
-    else:
-        data = data[np.newaxis, np.newaxis, ...]
+            # Use cross-validation
+            dsm_data = compute_dsm_cv(X[(slice(None),) + patch],
+                                      data_dsm_metric, **data_dsm_params)
+        return _rsa_single_dsm(dsm_data, dsm_model, metric=rsa_metric)
 
-    return data
+    # Call RSA multiple times in parallel for each searchlight patch
+    data = Parallel(n_jobs)(delayed(rsa_single_patch)(patch)
+                            for patch in patches)
 
+    # Figure out the desired dimensions of the resulting array
+    dims = patches.shape
+    if len(dsm_model) > 1:
+        dims = dims + (len(dsm_model),)
 
-def _split(x, n):
-    """Split x into n chunks. The last chunk may contain less items."""
-    chunk_size = int(np.ceil(len(x) / n))
-    return [x[i * chunk_size:(i + 1) * chunk_size] for i in range(n)]
+    return np.array(data).reshape(dims)
