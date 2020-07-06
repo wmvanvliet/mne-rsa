@@ -27,3 +27,8 @@ dist
 html
 doc/functions
 .vscode
+.coverage
+.noseids
+junit-results.xml
+TAGS
+tags
