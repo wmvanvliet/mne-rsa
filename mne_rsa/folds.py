@@ -10,6 +10,11 @@ def _create_folds(X, y, n_folds=None, n_jobs=1):
         # No folding
         return X[np.newaxis, ...]
 
+    y = np.asarray(y)
+    if len(y) != len(X):
+        raise ValueError(f'The length of y ({len(y)}) does not match the '
+                         f'number of items ({len(X)}).')
+
     y_one_hot = _convert_to_one_hot(y)
     n_items = y_one_hot.shape[1]
 

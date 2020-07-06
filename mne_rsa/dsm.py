@@ -120,6 +120,10 @@ def _ensure_condensed(dsm, var_name):
     if type(dsm) is list:
         return [_ensure_condensed(d, var_name) for d in dsm]
 
+    if not isinstance(dsm, np.ndarray):
+        raise TypeError('A single DSM should be a NumPy array. '
+                        'Multiple DSMs should be a list of NumPy arrays.')
+
     if dsm.ndim == 2:
         if dsm.shape[0] != dsm.shape[1]:
             raise ValueError(f'Invalid dimensions for "{var_name}" '
@@ -178,8 +182,8 @@ class dsm_array:
 
     Yields
     ------
-    dsm : ndarray, shape (n_items, n_items)
-        A DSM for each searchlight patch.
+    dsm : ndarray, shape (n_patches, n_items * (n_items - 1))
+        A DSM (in condensed form) for each searchlight patch.
 
     Attributes
     ----------
