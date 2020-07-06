@@ -27,8 +27,9 @@ dist
 html
 doc/functions
 .vscode
-.coverage
+.coverage*
 .noseids
 junit-results.xml
 TAGS
 tags
+tests/.coverage*
