@@ -77,6 +77,12 @@ class TestRSAGen:
         with pytest.raises(ValueError, match='Invalid RSA metric'):
             next(rsa_gen(dsm_gen([dsm()]), dsm(), metric='foo'))
 
+        # These metrics only work with multiple model DSMs
+        with pytest.raises(ValueError, match='Need more than one model DSM'):
+            next(rsa_gen(dsm_gen([dsm()]), dsm(), metric='partial'))
+        with pytest.raises(ValueError, match='Need more than one model DSM'):
+            next(rsa_gen(dsm_gen([dsm()]), dsm(), metric='partial-spearman'))
+
 
 class TestRSA:
     """Test the main RSA function"""
@@ -86,6 +92,16 @@ class TestRSA:
         assert isinstance(rsa([dsm()], dsm()), np.ndarray)
         assert rsa(dsm(), dsm()).shape == tuple()
         assert rsa(dsm(), [dsm()]).shape == (1,)
+
+    def test_progress_bar(self):
+        """Test showing a progress bar for rsa"""
+        assert rsa([dsm()], dsm(), verbose=True) == [1.]
+        assert rsa([dsm()], dsm(), verbose=True, n_data_dsms=1) == [1.]
+        assert rsa(dsm_gen([dsm()]), dsm(), verbose=True) == [1.]
+
+    def test_parallel_processing(self):
+        """Test running rsa with multiple cores."""
+        assert_equal(rsa([dsm(), dsm()], dsm(), n_jobs=2), [1., 1.])
 
 
 class TestRSASearchlight:

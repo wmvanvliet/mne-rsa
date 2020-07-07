@@ -1,0 +1,104 @@
+name: build-docs
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+    build_docs:
+      runs-on: ubuntu-latest
+      env:
+          DISPLAY: ":99"
+          OPENBLAS_NUM_THREADS: 4
+          MNE_3D_BACKEND: mayavi
+          _MNE_BRAIN_TRACES_AUTO: false
+
+      steps:
+        - uses: actions/checkout@v2
+          
+        - name: Set up Python 3.8
+          uses: actions/setup-python@v2
+          with:
+            python-version: 3.8
+
+        - name: Merge with upstream
+          run: |
+              echo $(git log -1 --pretty=%B) | tee gitlog.txt
+              echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
+              if [[ $(cat merge.txt) != "" ]]; then
+                echo "Merging $(cat merge.txt)";
+                git remote add upstream git://github.com/wmvanvliet/mne-rsa.git;
+                git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
+                git fetch upstream master;
+              fi
+
+        - name: Install 3D rendering libraries
+          run: |
+            sudo apt-get install libosmesa6 libglx-mesa0 libopengl0 libglx0 libdbus-1-3
+
+        - name: Spin up Xvfb
+          run: |
+            /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+
+        # https://github.com/ContinuumIO/anaconda-issues/issues/9190#issuecomment-386508136
+        # https://github.com/golemfactory/golem/issues/1019
+        - name: Install PyQt5 dependencies
+          run: |
+            sudo apt-get install libxkbcommon-x11-0 qt5-default
+
+        - name: Cache Pip
+          id: cache-pip
+          uses: actions/cache@v1
+          with:
+            path: ~/.cache/pip
+            key: pip-cache
+
+        - name: Install Python dependencies
+          run: |
+            python -m pip install --user --upgrade --progress-bar off pip numpy setuptools
+            python -m pip install --user --upgrade --progress-bar off -f "https://vtk.org/download" "vtk>=9"
+            python -m pip install --user --upgrade --progress-bar off https://github.com/enthought/mayavi/zipball/master
+            python -m pip install --user --upgrade --progress-bar off -r doc/requirements.txt
+            python -m pip install --user --upgrade --progress-bar off --pre sphinx
+            python -m pip install --user --upgrade --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme memory_profiler "https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip"
+            python -m pip install --user --upgrade seaborn
+            python -m pip install --user -e .
+
+        - name: Set PATH
+          run: echo "::add-path:://home/runner/.local/bin"
+
+        # Look at what we have and fail early if there is some library conflict
+        - name: Check installation
+          run: |
+            which python
+            python -c "import mne; mne.sys_info()"
+            python -c "import numpy; numpy.show_config()"
+            python -c "import mne_rsa"
+
+        - name: Download example data
+          run: |
+            python -c "import mne; mne.datasets.sample.data_path(download=True)"
+            python -c "import mne; mne.datasets.kiloword.data_path(download=True)"
+
+        # Build docs
+        - name: make html
+          run: |
+            cd doc;
+            make html;
+
+        # Save the outputs
+        #- store_artifacts:
+        #    path: doc/_build/html/
+        #    destination: dev
+
+        #- persist_to_workspace:
+        #    root: doc/_build
+        #    paths:
+        #      - html
+        - name: Save HTML as artifact
+          uses: actions/upload-artifact@v1
+          with:
+            name: docs
+            path: doc/_build/html

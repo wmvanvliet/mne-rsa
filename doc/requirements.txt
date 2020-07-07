@@ -3,7 +3,7 @@ scipy
 mne
 scikit-learn
 vtk>=9
-pyvista
+mayavi
 pysurfer
 sphinx_gallery
 sphinx_bootstrap_theme
