@@ -208,7 +208,7 @@ class dsm_array:
     See also
     --------
     dsm
-    rsa_searchlight
+    rsa
     searchlight
     """
     def __init__(self, X, patches=None, dist_metric='correlation',

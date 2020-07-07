@@ -5,15 +5,15 @@ from mne.utils import logger
 class searchlight:
     """Generate indices for searchlight patches.
 
-    Generates a sequence of tuples that can be used to index a data array of
-    shape ``(n_series, n_samples)``. Depending on the spatial and temporal
-    radius, each tuple extracts a searchlight patch along time, space or both.
+    Generates a sequence of tuples that can be used to index a data array.
+    Depending on the spatial and temporal radius, each tuple extracts a
+    searchlight patch along time, space or both.
 
     This function is flexible in regards to shape of the data array. The
     intepretation of the dimensions is as follows::
 
-    4 dimensions
-        ``(n_folds, n_items, n_series, n_samples)``
+    4 or more dimensions
+        ``(n_folds, n_items, n_series, n_samples, ...)``
 
     3 dimensions
         ``(n_items, n_series, n_samples)``
@@ -24,6 +24,8 @@ class searchlight:
 
     1 dimension
         ``(n_items,)``
+
+    The returned tuples will match the dimensions of the data array.
 
     Parameters
     ----------
