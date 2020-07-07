@@ -4,7 +4,7 @@ mne
 scikit-learn
 vtk>=9
 pyvista
-https://github.com/larsoner/mayavi/zipball/vtk9
+mayavi
 pysurfer
 sphinx_gallery
 sphinx_bootstrap_theme
