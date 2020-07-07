@@ -12,3 +12,4 @@ matplotlib
 pyqt5
 tqdm
 nilearn
+pillow
