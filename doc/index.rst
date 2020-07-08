@@ -1,9 +1,13 @@
 Representational Similarity Analysis
 ------------------------------------
 
-.. image:: https://circleci.com/gh/wmvanvliet/mne-rsa.svg?style=shield
-   :target: https://circleci.com/gh/wmvanvliet/mne-rsa
-.. image:: https://github.com/wmvanvliet/mne-rsa/workflows/unit%20tests/badge.svg
+|unit_tests|_ |build_docs|_
+
+.. |unit_tests| image:: https://github.com/wmvanvliet/mne-rsa/workflows/unit%20tests/badge.svg
+.. _unit_tests: https://github.com/wmvanvliet/kirpputori/actions
+
+.. |build_docs| image:: https://github.com/wmvanvliet/mne-rsa/workflows/build-docs/badge.svg
+.. _build_docs: https://github.com/wmvanvliet/kirpputori/actions
 
 This is a Python package for performing representational similarity
 analysis (RSA) using
@@ -65,7 +69,7 @@ Juicy bits of the API
 
    def rsa_source_level(stcs, model_dsm, src, y=None,
                         spatial_radius=0.04, temporal_radius=0.1,
-                stc_dsm_metric='correlation', stc_dsm_params=None,
+                        stc_dsm_metric='correlation', stc_dsm_params=None,
                         rsa_metric='spearman',
                         n_jobs=1, verbose=False)
 
