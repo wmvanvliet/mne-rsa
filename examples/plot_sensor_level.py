@@ -39,7 +39,7 @@ import mne_rsa
 # it here to read it as 960 epochs. Each epoch represents the brain response to
 # a single word, averaged across all the participants. For this example, we
 # speed up the computation, at a cost of temporal precision, by downsampling
-# the data from the original 250 Hz. to 100 Hz. 
+# the data from the original 250 Hz. to 100 Hz.
 
 data_path = mne.datasets.kiloword.data_path(verbose=True)
 epochs = mne.read_epochs(data_path + '/kword_metadata-epo.fif')
@@ -58,7 +58,7 @@ epochs.metadata.sample(10)
 
 dsm_vis = mne_rsa.compute_dsm(epochs.metadata[['NumberOfLetters']],
                               metric='euclidean')
-mne_rsa.plot_dsms(dsm_vis);
+mne_rsa.plot_dsms(dsm_vis)
 
 ###############################################################################
 # The above DSM will serve as our "model" DSM. In this example RSA analysis, we
@@ -76,6 +76,7 @@ rsa_result = mne_rsa.rsa_epochs(
     temporal_radius=0.05,             # Temporal radius of the searchlight path
     tmin=0.15, tmax=0.25,             # To save time, only analyze this time interval
     n_jobs=1,                         # Only use one CPU core. Increase this for more speed.
+    n_folds=None,
     verbose=False)                    # Set to True to display a progress bar
 
 ###############################################################################

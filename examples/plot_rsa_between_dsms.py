@@ -73,9 +73,12 @@ print(pd.DataFrame(rsa_results, index=columns[:2], columns=columns[2:]))
 #
 # Let's create a generator that creates DSMs for each time-point in the EEG
 # data and compute the RSA between those DSMs and all the "model" DSMs we
-# computed above.
+# computed above. This is a basic example of using a "searchlight" and in other
+# examples, you can learn how to use the :class:`searchlight` generator to
+# build more advanced searchlights. However, since this is such a simple case,
+# it is educational to construct the generator manually.
 #
-# This computation will take some time. Therefore, we pass a few extra
+# The RSA computation will take some time. Therefore, we pass a few extra
 # parameters to :func:`mne_rsa.rsa` to enable some improvements. First, the
 # ``verbose=True`` enables a progress bar. However, since we are using a
 # generator, the progress bar cannot automatically infer how many DSMs there
@@ -90,6 +93,7 @@ n_trials, n_sensors, n_times = eeg_data.shape
 
 
 def generate_eeg_dsms():
+    """Generate DSMs for each time sample."""
     for i in range(n_times):
         yield mne_rsa.compute_dsm(eeg_data[:, :, i], metric='correlation')
 

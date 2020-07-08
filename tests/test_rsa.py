@@ -2,7 +2,7 @@ import pytest
 from types import GeneratorType
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal
-from mne_rsa import rsa, rsa_gen, rsa_array
+from mne_rsa import searchlight, rsa, rsa_gen, rsa_array
 
 
 def dsm():
@@ -104,21 +104,21 @@ class TestRSA:
         assert_equal(rsa([dsm(), dsm()], dsm(), n_jobs=2), [1., 1.])
 
 
-class TestRSAArray:
-    """Test computing RSA on a NumPy array"""
-    def invalid_input(self):
+class TestRSASearchlight:
+    """Test computing RSA using searchlight patches."""
+    def test_invalid_input(self):
         """Test invalid inputs."""
         data = np.array([[1], [2], [3], [4]])
         model_dsm = dsm()
         with pytest.raises(ValueError, match='There is only a single feature'):
             rsa_array(data, model_dsm)
 
-    def test_rsa_no_searchlight(self):
-        """Test RSA without searchlight patches."""
+    def test_rsa_single_searchlight_patch(self):
+        """Test RSA with a single searchlight patch."""
         data = np.array([[1], [2], [3], [4]])
         model_dsm = np.array([1, 2, 3, 1, 2, 1])
         rsa_result = rsa_array(data, model_dsm, data_dsm_metric='euclidean')
-        assert rsa_result.shape == (1, 1, 1)
+        assert rsa_result.shape == tuple()  # Single scalar value
         assert rsa_result == 1
 
     def test_rsa_temp(self):
@@ -126,32 +126,32 @@ class TestRSAArray:
         data = np.array([[1, 2, 3, 4], [2, 3, 4, 5], [3, 4, 5, 6]])
         model_dsm = np.array([1, 2, 1])
 
-        # One model DSM, no paralellization
-        rsa_result = rsa_array(data, model_dsm,
-                               temporal_radius=1, spatial_radius=None,
+        # One model DSM, no parallelization
+        patches = searchlight(data.shape, temporal_radius=1)
+        rsa_result = rsa_array(data, model_dsm, patches,
                                data_dsm_metric='euclidean')
-        assert rsa_result.shape == (1, 2)
+        assert rsa_result.shape == (2,)
         assert_equal(rsa_result, 1)
 
-        # Multiple model DSMs, no paralellization
-        rsa_result = rsa_array(data, [model_dsm, model_dsm],
-                               temporal_radius=1, spatial_radius=None,
+        # Multiple model DSMs, no parallelization
+        patches = searchlight(data.shape, temporal_radius=1)
+        rsa_result = rsa_array(data, [model_dsm, model_dsm], patches,
                                data_dsm_metric='euclidean')
-        assert rsa_result.shape == (1, 2, 2)
+        assert rsa_result.shape == (2, 2)
         assert_equal(rsa_result, 1)
 
-        # One model DSM, paralellization across 2 CPUs
-        rsa_result = rsa_array(data, model_dsm,
-                               temporal_radius=1, spatial_radius=None,
+        # One model DSM, parallelization across 2 CPUs
+        patches = searchlight(data.shape, temporal_radius=1)
+        rsa_result = rsa_array(data, model_dsm, patches,
                                data_dsm_metric='euclidean', n_jobs=2)
-        assert rsa_result.shape == (1, 2)
+        assert rsa_result.shape == (2,)
         assert_equal(rsa_result, 1)
 
-        # Multiple model DSMs, paralellization across 2 CPUs
-        rsa_result = rsa_array(data, [model_dsm, model_dsm],
-                               temporal_radius=1, spatial_radius=None,
+        # Multiple model DSMs, parallelization across 2 CPUs
+        patches = searchlight(data.shape, temporal_radius=1)
+        rsa_result = rsa_array(data, [model_dsm, model_dsm], patches,
                                data_dsm_metric='euclidean', n_jobs=2)
-        assert rsa_result.shape == (1, 2, 2)
+        assert rsa_result.shape == (2, 2)
         assert_equal(rsa_result, 1)
 
     def test_rsa_spat(self):
@@ -163,31 +163,31 @@ class TestRSAArray:
                          [2, 1, 0]])
 
         # One model DSM, no paralellization
-        rsa_result = rsa_array(data, model_dsm, dist,
-                               temporal_radius=None, spatial_radius=1,
+        patches = searchlight(data.shape, dist, spatial_radius=1)
+        rsa_result = rsa_array(data, model_dsm, patches,
                                data_dsm_metric='euclidean')
-        assert rsa_result.shape == (3, 1)
+        assert rsa_result.shape == (3,)
         assert_equal(rsa_result, 1)
 
         # Multiple model DSMs, no paralellization
-        rsa_result = rsa_array(data, [model_dsm, model_dsm], dist,
-                               temporal_radius=None, spatial_radius=1,
+        patches = searchlight(data.shape, dist, spatial_radius=1)
+        rsa_result = rsa_array(data, [model_dsm, model_dsm], patches,
                                data_dsm_metric='euclidean')
-        assert rsa_result.shape == (3, 1, 2)
+        assert rsa_result.shape == (3, 2)
         assert_equal(rsa_result, 1)
 
         # One model DSM, paralellization across 2 CPUs
-        rsa_result = rsa_array(data, model_dsm, dist,
-                               temporal_radius=None, spatial_radius=1,
+        patches = searchlight(data.shape, dist, spatial_radius=1)
+        rsa_result = rsa_array(data, model_dsm, patches,
                                data_dsm_metric='euclidean', n_jobs=2)
-        assert rsa_result.shape == (3, 1)
+        assert rsa_result.shape == (3,)
         assert_equal(rsa_result, 1)
 
         # Multiple model DSMs, paralellization across 2 CPUs
-        rsa_result = rsa_array(data, [model_dsm, model_dsm], dist,
-                               temporal_radius=None, spatial_radius=1,
+        patches = searchlight(data.shape, dist, spatial_radius=1)
+        rsa_result = rsa_array(data, [model_dsm, model_dsm], patches,
                                data_dsm_metric='euclidean', n_jobs=2)
-        assert rsa_result.shape == (3, 1, 2)
+        assert rsa_result.shape == (3, 2)
         assert_equal(rsa_result, 1)
 
     def test_rsa_spat_temp(self):
@@ -201,29 +201,33 @@ class TestRSAArray:
                          [2, 1, 0]])
 
         # One model DSM, no paralellization
-        rsa_result = rsa_array(data, model_dsm, dist,
-                               temporal_radius=1, spatial_radius=1,
+        patches = searchlight(data.shape, dist, spatial_radius=1,
+                              temporal_radius=1)
+        rsa_result = rsa_array(data, model_dsm, patches,
                                data_dsm_metric='euclidean')
         assert rsa_result.shape == (2, 1)
         assert_equal(rsa_result, 1)
 
         # Multiple model DSMs, no paralellization
-        rsa_result = rsa_array(data, [model_dsm, model_dsm], dist,
-                               temporal_radius=1, spatial_radius=1,
+        patches = searchlight(data.shape, dist, spatial_radius=1,
+                              temporal_radius=1)
+        rsa_result = rsa_array(data, [model_dsm, model_dsm], patches,
                                data_dsm_metric='euclidean')
         assert rsa_result.shape == (2, 1, 2)
         assert_equal(rsa_result, 1)
 
         # One model DSM, paralellization across 2 CPUs
-        rsa_result = rsa_array(data, model_dsm, dist,
-                               temporal_radius=1, spatial_radius=1,
+        patches = searchlight(data.shape, dist, spatial_radius=1,
+                              temporal_radius=1)
+        rsa_result = rsa_array(data, model_dsm, patches,
                                data_dsm_metric='euclidean', n_jobs=2)
         assert rsa_result.shape == (2, 1)
         assert_equal(rsa_result, 1)
 
         # Multiple model DSMs, paralellization across 2 CPUs
-        rsa_result = rsa_array(data, [model_dsm, model_dsm], dist,
-                               temporal_radius=1, spatial_radius=1,
+        patches = searchlight(data.shape, dist, spatial_radius=1,
+                              temporal_radius=1)
+        rsa_result = rsa_array(data, [model_dsm, model_dsm], patches,
                                data_dsm_metric='euclidean', n_jobs=2)
         assert rsa_result.shape == (2, 1, 2)
         assert_equal(rsa_result, 1)

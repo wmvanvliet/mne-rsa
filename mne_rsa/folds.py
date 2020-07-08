@@ -1,3 +1,4 @@
+from mne.utils import logger
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import OneHotEncoder
@@ -9,12 +10,19 @@ def _create_folds(X, y, n_folds=None, n_jobs=1):
         # No folding
         return X[np.newaxis, ...]
 
+    y = np.asarray(y)
+    if len(y) != len(X):
+        raise ValueError(f'The length of y ({len(y)}) does not match the '
+                         f'number of items ({len(X)}).')
+
     y_one_hot = _convert_to_one_hot(y)
     n_items = y_one_hot.shape[1]
 
     if n_folds is None:
         # Set n_folds to maximum value
         n_folds = len(X) // n_items
+        logger.info(f'Automatic dermination of folds: {n_folds}'
+                    + ' (no cross-validation)' if n_folds == 1 else '')
 
     if n_folds == 1:
         # Making one fold is easy
