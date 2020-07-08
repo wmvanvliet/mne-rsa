@@ -1,4 +1,4 @@
-# encoding: utf-8
+
 """
 Module implementing representational similarity analysis (RSA) at the sensor
 level.
@@ -15,15 +15,17 @@ Marijn van Vliet <w.m.vanvliet@gmail.com>
 import numpy as np
 from scipy.spatial import distance
 import mne
+from mne.utils import logger
 
 from .dsm import _n_items_from_dsm, dsm_array
+from .searchlight import searchlight
 from .rsa import rsa_array
 
 
 def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
                 temporal_radius=0.1, evoked_dsm_metric='correlation',
                 evoked_dsm_params=dict(), rsa_metric='spearman', y=None,
-                n_folds=None, picks=None, tmin=None, tmax=None, n_jobs=1,
+                n_folds=1, picks=None, tmin=None, tmax=None, n_jobs=1,
                 verbose=False):
     """Perform RSA in a searchlight pattern on evokeds.
 
@@ -82,8 +84,8 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
         Defaults to ``None``.
     n_folds : int | None
         Number of cross-validation folds to use when computing the distance
-        metric. Folds are created based on the ``y`` parameter. Specify -1 to
-        use the maximum number of folds possible, given the data.
+        metric. Folds are created based on the ``y`` parameter. Specify
+        ``None`` to use the maximum number of folds possible, given the data.
         Defaults to 1 (no cross-validation).
     picks : str | list | slice | None
         Channels to include. Slices and lists of integers will be interpreted
@@ -127,6 +129,9 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
     if one_model:
         dsm_model = [dsm_model]
 
+    logger.info(f'Performing RSA between Evokeds and {len(dsm_model)} model '
+                'DSM(s)')
+
     # Check for compatibility of the evokeds and the model features
     for dsm in dsm_model:
         n_items = _n_items_from_dsm(dsm)
@@ -155,6 +160,7 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
 
     # Normalize with the noise cov
     if noise_cov is not None:
+        logger.info('    Whitening data using noise covariance')
         diag = spatial_radius is not None
         evokeds = [mne.whiten_evoked(evoked, noise_cov, diag=diag)
                    for evoked in evokeds]
@@ -166,23 +172,30 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
     picks = mne.io.pick._picks_to_idx(evokeds[0].info, picks, none='data')
     if len(picks) != len(set(picks)):
         raise ValueError("`picks` are not unique. Please remove duplicates.")
-    sel_times = _tmin_tmax_to_indices(evokeds[0].times, tmin, tmax)
+    sel_samples = _tmin_tmax_to_indices(evokeds[0].times, tmin, tmax)
+
+    if spatial_radius is not None:
+        logger.info(f'    Spatial radius: {spatial_radius} meters')
+        logger.info(f'    Using {len(picks)} sensors')
+    if temporal_radius is not None:
+        logger.info(f'    Temporal radius: {temporal_radius} samples')
+        logger.info(f'    Time inverval: {tmin}-{tmax} seconds')
 
     # Perform the RSA
     X = np.array([evoked.data for evoked in evokeds])
-    data = rsa_array(X, dsm_model, dist=dist, spatial_radius=spatial_radius,
-                     temporal_radius=temporal_radius,
-                     data_dsm_metric=evoked_dsm_metric,
+    patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
+                          temporal_radius=temporal_radius,
+                          sel_series=picks, sel_samples=sel_samples)
+    data = rsa_array(X, dsm_model, patches, data_dsm_metric=evoked_dsm_metric,
                      data_dsm_params=evoked_dsm_params, rsa_metric=rsa_metric,
-                     y=y, n_folds=n_folds, sel_series=picks,
-                     sel_times=sel_times, n_jobs=n_jobs, verbose=verbose)
+                     y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
 
     # Pack the result in an Evoked object
     if spatial_radius is not None:
         info = mne.pick_info(evokeds[0].info, picks)
     else:
         info = mne.create_info(['rsa'], evokeds[0].info['sfreq'])
-    tmin = _construct_tmin(evokeds[0].times, sel_times, temporal_radius)
+    tmin = _construct_tmin(evokeds[0].times, sel_samples, temporal_radius)
 
     if one_model:
         return mne.EvokedArray(data[:, :, 0], info, tmin, comment='RSA',
@@ -196,7 +209,7 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
 def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
                temporal_radius=0.1, epochs_dsm_metric='correlation',
                epochs_dsm_params=dict(), rsa_metric='spearman', y=None,
-               n_folds=None, picks=None, tmin=None, tmax=None, n_jobs=1,
+               n_folds=1, picks=None, tmin=None, tmax=None, n_jobs=1,
                verbose=False):
     """Perform RSA in a searchlight pattern on epochs.
 
@@ -255,8 +268,8 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
     n_folds : int | None
         Number of cross-validation folds to use when computing the distance
         metric. Folds are created based on the ``y`` parameter, or the event
-        codes if ``y`` is not specified. Specify -1 to use the maximum number
-        of folds possible, given the data.
+        codes if ``y`` is not specified. Specify ``None`` to use the maximum
+        number of folds possible, given the data.
         Defaults to 1 (no cross-validation).
     picks : str | list | slice | None
         Channels to include. Slices and lists of integers will be interpreted
@@ -300,6 +313,9 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
     if one_model:
         dsm_model = [dsm_model]
 
+    logger.info(f'Performing RSA between Epochs and {len(dsm_model)} model '
+                'DSM(s)')
+
     if y is None:
         y_source = 'Epoch object'
         y = epochs.events[:, 2]
@@ -334,16 +350,23 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
     picks = mne.io.pick._picks_to_idx(epochs.info, picks, none='data')
     if len(picks) != len(set(picks)):
         raise ValueError("`picks` are not unique. Please remove duplicates.")
-    sel_times = _tmin_tmax_to_indices(epochs.times, tmin, tmax)
+    sel_samples = _tmin_tmax_to_indices(epochs.times, tmin, tmax)
+
+    if spatial_radius is not None:
+        logger.info(f'    Spatial radius: {spatial_radius} meters')
+        logger.info(f'    Using {len(picks)} sensors')
+    if temporal_radius is not None:
+        logger.info(f'    Temporal radius: {temporal_radius} samples')
+        logger.info(f'    Time inverval: {tmin}-{tmax} seconds')
 
     # Perform the RSA
     X = epochs.get_data()
-    data = rsa_array(X, dsm_model, dist=dist, spatial_radius=spatial_radius,
-                     temporal_radius=temporal_radius,
-                     data_dsm_metric=epochs_dsm_metric,
+    patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
+                          temporal_radius=temporal_radius,
+                          sel_series=picks, sel_samples=sel_samples)
+    data = rsa_array(X, dsm_model, patches, data_dsm_metric=epochs_dsm_metric,
                      data_dsm_params=epochs_dsm_params, rsa_metric=rsa_metric,
-                     y=y, n_folds=n_folds, sel_series=picks,
-                     sel_times=sel_times, n_jobs=n_jobs, verbose=verbose)
+                     y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
 
     # Pack the result in an Evoked object
     if spatial_radius is not None:
@@ -351,10 +374,10 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
         info = mne.pick_info(info, picks)
     else:
         info = mne.create_info(['rsa'], epochs.info['sfreq'])
-    tmin = _construct_tmin(epochs.times, sel_times, temporal_radius)
+    tmin = _construct_tmin(epochs.times, sel_samples, temporal_radius)
 
     if one_model:
-        return mne.EvokedArray(data[:, :, 0], info, tmin, comment='RSA',
+        return mne.EvokedArray(data, info, tmin, comment='RSA',
                                nave=len(np.unique(y)))
     else:
         return [mne.EvokedArray(data[:, :, i], info, tmin, comment='RSA',
@@ -457,15 +480,16 @@ def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
     picks = mne.io.pick._picks_to_idx(evokeds[0].info, picks, none='data')
     if len(picks) != len(set(picks)):
         raise ValueError("`picks` are not unique. Please remove duplicates.")
-    sel_times = _tmin_tmax_to_indices(times, tmin, tmax)
+    sel_samples = _tmin_tmax_to_indices(times, tmin, tmax)
 
     # Compute the DSMs
     X = np.array([evoked.data for evoked in evokeds])
-    yield from dsm_array(X, dist=dist, spatial_radius=spatial_radius,
-                         temporal_radius=temporal_radius,
-                         dist_metric=dist_metric, dist_params=dist_params, y=y,
-                         n_folds=n_folds, sel_series=picks,
-                         sel_times=sel_times, verbose=verbose)
+    patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
+                          temporal_radius=temporal_radius,
+                          sel_series=picks, sel_samples=sel_samples)
+    yield from dsm_array(X, patches, dist_metric=dist_metric,
+                         dist_params=dist_params, y=y, n_folds=n_folds,
+                         verbose=verbose)
 
 
 def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
@@ -560,15 +584,16 @@ def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
     picks = mne.io.pick._picks_to_idx(epochs.info, picks, none='data')
     if len(picks) != len(set(picks)):
         raise ValueError("`picks` are not unique. Please remove duplicates.")
-    sel_times = _tmin_tmax_to_indices(epochs.times, tmin, tmax)
+    sel_samples = _tmin_tmax_to_indices(epochs.times, tmin, tmax)
 
     # Compute the DSMs
     X = epochs.get_data()
-    yield from dsm_array(X, dist=dist, spatial_radius=spatial_radius,
-                         temporal_radius=temporal_radius,
-                         dist_metric=dist_metric, dist_params=dist_params, y=y,
-                         n_folds=n_folds, sel_series=picks,
-                         sel_times=sel_times, verbose=verbose)
+    patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
+                          temporal_radius=temporal_radius,
+                          sel_series=picks, sel_samples=sel_samples)
+    yield from dsm_array(X, patches, dist_metric=dist_metric,
+                         dist_params=dist_params, y=y, n_folds=n_folds,
+                         verbose=verbose)
 
 
 def _tmin_tmax_to_indices(times, tmin, tmax):

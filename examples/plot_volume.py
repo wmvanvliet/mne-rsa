@@ -97,8 +97,8 @@ inv = mne.minimum_norm.read_inverse_operator(
 epochs_stc = mne.minimum_norm.apply_inverse_epochs(epochs, inv, lambda2=0.1111)
 
 ###############################################################################
-# Performing the RSA. This will take some time. Consider increasing n_jobs to
-# parallelize the computation across multiple CPUs.
+# Performing the RSA. This will take some time. Consider increasing ``n_jobs``
+# to parallelize the computation across multiple CPUs.
 rsa_vals = mne_rsa.rsa_source_level(
     epochs_stc,                   # The source localized epochs
     model_dsm,                    # The model DSM we constructed above
