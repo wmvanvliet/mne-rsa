@@ -166,7 +166,7 @@ def plot_dsms_topo(dsms, info, time_windows=None, layout=None, figs=None,
 
     Parameters
     ----------
-    dsms: ndarray | numpy.memmap, shape (n_sensors, n_epochs, n_dsm_datapoints)
+    dsms: ndarray | numpy.memmap, shape (n_sensors, n_timepoints, n_dsm_datapoints)
         DSMs of MEG recordings; one DSM for each sensor and time point.
     info: mne.io.meas_info.Info
         Info object that contains meta data of MEG recordings.
@@ -204,7 +204,7 @@ def plot_dsms_topo(dsms, info, time_windows=None, layout=None, figs=None,
     if len(dsms.shape) != 3:
         raise ValueError("dsms have to be 3-dimensional ndarray or "
                          "numpy.memmap, "
-                         "[n_sensors, n_epochs, n_dsm_datapoints]")
+                         "[n_sensors, n_timepointss, n_dsm_datapoints]")
     if time_windows is None:
         time_windows = [[0, dsms.shape[1]]]
     if not isinstance(time_windows, list):
@@ -224,10 +224,12 @@ def plot_dsms_topo(dsms, info, time_windows=None, layout=None, figs=None,
         # set title to time window
         title = f"From {time_window[0]} to {time_window[1]}"
 
-        figs[i] = _plot_dsms_topo(dsms_avg, info, fig=figs[i], layout=layout,
-                                  title=title, axis_facecolor=axis_facecolor,
-                                  axis_spinecolor=axis_spinecolor,
-                                  fig_facecolor=fig_facecolor,
-                                  figsize=figsize, cmap=cmap, show=show)
+        figs[i] = _plot_dsms_topo_timepoint(dsms_avg, info, fig=figs[i], 
+                                            layout=layout, title=title, 
+                                            axis_facecolor=axis_facecolor,
+                                            axis_spinecolor=axis_spinecolor,
+                                            fig_facecolor=fig_facecolor,
+                                            figsize=figsize, 
+                                            cmap=cmap, show=show)
 
     return figs
