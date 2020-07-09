@@ -91,40 +91,40 @@ def _click_func(ax, ch_idx, dsms, cmap):
     ax.imshow(dsm, cmap=cmap)
 
 
-def _plot_dsms_topo(dsms, info, layout=None, fig=None, title=None,
+def _plot_dsms_topo_timepoint(dsms, info, layout=None, fig=None, title=None,
                     axis_facecolor='w', axis_spinecolor='w',
                     fig_facecolor='w', figsize=(6.4, 4.8), cmap='viridis',
                     show=False):
-    """ Plot DSMs on 2D MEG topography.
+    """Plot DSMs on 2D MEG topography.
 
     Parameters
     ----------
-    dsms: ndarray, shape (n_sensors, n_dsm_datapoint)
+    dsms: ndarray, shape (n_sensors, n_dsm_datapoints)
         DSMs of MEG recordings; there's one DSM for each sensor.
     info: mne.io.meas_info.Info
         Info object that contains meta data of MEG recordings.
-    layout: mne.channels.layout.Layout, optional
+    layout: mne.channels.layout.Layout | None
         Layout objects containing sensor layout info.
-        The default, layout=None, will figure out layout based on info.
-    fig: matplotlib.pyplot.Figure | None, optional
+        The default (``None``) will figure out layout based on info.
+    fig: matplotlib.pyplot.Figure | None
         Figure object on which DSMs on 2D MEG topography are plotted.
-        The default, fig=None, creates a new Figure object.
-    title: str, optional
-        Title of the plot; used only when fig=None.
-        The default, title=None, put no title in the figure.
-    axis_facecolor: str, optional
+        The default (``None``) creates a new Figure object.
+    title: str | None
+        Title of the plot, used only when ``fig=None``.
+        The default (``None``) puts no title in the figure.
+    axis_facecolor: str
         Face color of the each DSM. Defaults to 'w', white.
-    axis_spinecolor: str, optional
+    axis_spinecolor: str
         Spine color of each DSM. Defaults to 'w', white.
-    fig_facecolor: str, optional
+    fig_facecolor: str
         Face color of the entire topography. Defaults to 'w', white.
-    figsize: tuple of float, optional
+    figsize: tuple of float
         Figure size. The first element specify width and the second height.
         Defaults to (6.4, 4.8).
-    cmap: str, optional
+    cmap: str
         Colormap used for plotting DSMs. Defaults to 'viridis'.
-        Check matplotlib.pyplot.imshow for details.
-    show: bool, optional
+        Check :func:`matplotlib.pyplot.imshow` for details.
+    show: bool
         Whether to display the generated figure. Defaults to False.
 
     Returns
@@ -136,10 +136,8 @@ def _plot_dsms_topo(dsms, info, layout=None, fig=None, title=None,
 
     if fig is None:
         fig = plt.figure(figsize=figsize)
-
         if title is not None:
             fig.suptitle(title, x=0.98, horizontalalignment='right')
-
     else:
         fig = plt.figure(fig.number)
 
@@ -160,7 +158,7 @@ def _plot_dsms_topo(dsms, info, layout=None, fig=None, title=None,
     return fig
 
 
-def plot_dsms_topos(dsms, info, time_windows=None, layout=None, figs=None,
+def plot_dsms_topo(dsms, info, time_windows=None, layout=None, figs=None,
                     axis_facecolor='w', axis_spinecolor='w',
                     fig_facecolor='w', figsize=(6.4, 4.8), cmap='viridis',
                     show=True):
@@ -168,16 +166,15 @@ def plot_dsms_topos(dsms, info, time_windows=None, layout=None, figs=None,
 
     Parameters
     ----------
-    dsms: ndarray | numpy.memmap, shape (n_sensors, n_epochs, n_dsm_datapoint)
+    dsms: ndarray | numpy.memmap, shape (n_sensors, n_epochs, n_dsm_datapoints)
         DSMs of MEG recordings; one DSM for each sensor and time point.
     info: mne.io.meas_info.Info
         Info object that contains meta data of MEG recordings.
-    time_windows: list of [int, int] | None, optional
+    time_windows: list of [int, int] | None
         List of time windows for each of which
-            the average DSM is calculated and plotted.
-        If the default, time_windoww=None, the average of DSMs of
-            all the time points is plotted.
-        Start of time window is inclusive while end exclusive.
+            the average DSM is calculated and plotted. By default, the average of DSMs of
+            all the time points is plotted. Start of time window is inclusive, while end is
+            exclusive.
     layout: mne.channels.layout.Layout, optional
         Layout objects containing sensor layout info.
         The default, layout=None, will figure out layout based on info.
