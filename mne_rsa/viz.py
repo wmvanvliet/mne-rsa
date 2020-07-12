@@ -92,9 +92,9 @@ def _click_func(ax, ch_idx, dsms, cmap):
 
 
 def _plot_dsms_topo_timepoint(dsms, info, layout=None, fig=None, title=None,
-                    axis_facecolor='w', axis_spinecolor='w',
-                    fig_facecolor='w', figsize=(6.4, 4.8), cmap='viridis',
-                    show=False):
+                              axis_facecolor='w', axis_spinecolor='w', 
+                              fig_facecolor='w', figsize=(6.4, 4.8),
+                              cmap='viridis', show=False):
     """Plot DSMs on 2D MEG topography.
 
     Parameters
@@ -159,9 +159,9 @@ def _plot_dsms_topo_timepoint(dsms, info, layout=None, fig=None, title=None,
 
 
 def plot_dsms_topo(dsms, info, time_windows=None, layout=None, figs=None,
-                    axis_facecolor='w', axis_spinecolor='w',
-                    fig_facecolor='w', figsize=(6.4, 4.8), cmap='viridis',
-                    show=True):
+                   axis_facecolor='w', axis_spinecolor='w',
+                   fig_facecolor='w', figsize=(6.4, 4.8), cmap='viridis',
+                   show=True):
     """ Plot DSMs on 2D MEG topographies for multiple time windows
 
     Parameters
@@ -171,10 +171,9 @@ def plot_dsms_topo(dsms, info, time_windows=None, layout=None, figs=None,
     info: mne.io.meas_info.Info
         Info object that contains meta data of MEG recordings.
     time_windows: list of [int, int] | None
-        List of time windows for each of which
-            the average DSM is calculated and plotted. By default, the average of DSMs of
-            all the time points is plotted. Start of time window is inclusive, while end is
-            exclusive.
+        List of time windows for each of which the average DSM is plotted.
+        By default, the average of DSMs of all the time points is plotted.
+        Start of time window is inclusive, while end is exclusive.
     layout: mne.channels.layout.Layout, optional
         Layout objects containing sensor layout info.
         The default, layout=None, will figure out layout based on info.
