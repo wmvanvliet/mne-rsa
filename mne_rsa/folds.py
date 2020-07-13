@@ -4,7 +4,7 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import OneHotEncoder
 
 
-def _create_folds(X, y, n_folds=None, n_jobs=1):
+def _create_folds(X, y, n_folds=None):
     """Split the observations in X into stratified folds."""
     if y is None:
         # No folding
@@ -36,6 +36,7 @@ def _create_folds(X, y, n_folds=None, n_jobs=1):
 
 def _convert_to_one_hot(y):
     """Convert the labels in y to one-hot encoding."""
+    y = np.asarray(y)
     if y.ndim == 1:
         y = y[:, np.newaxis]
 
@@ -51,7 +52,7 @@ def _convert_to_one_hot(y):
         return y
 
 
-def _compute_item_means(X, y_one_hot, fold=slice(None, None)):
+def _compute_item_means(X, y_one_hot, fold=slice(None)):
     """Compute the mean data for each item inside a fold."""
     X = X[fold]
     y_one_hot = y_one_hot[fold]
