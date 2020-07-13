@@ -92,7 +92,7 @@ def _click_func(ax, ch_idx, dsms, cmap):
 
 
 def _plot_dsms_topo_timepoint(dsms, info, layout=None, fig=None, title=None,
-                              axis_facecolor='w', axis_spinecolor='w', 
+                              axis_facecolor='w', axis_spinecolor='w',
                               fig_facecolor='w', figsize=(6.4, 4.8),
                               cmap='viridis', show=False):
     """Plot DSMs on 2D MEG topography.
@@ -100,7 +100,7 @@ def _plot_dsms_topo_timepoint(dsms, info, layout=None, fig=None, title=None,
     Parameters
     ----------
     dsms: ndarray, shape (n_sensors, n_dsm_datapoints)
-        DSMs of MEG recordings; there's one DSM for each sensor.
+        DSMs of MEG recordings; one DSM for each sensor.
     info: mne.io.meas_info.Info
         Info object that contains meta data of MEG recordings.
     layout: mne.channels.layout.Layout | None
@@ -158,11 +158,10 @@ def _plot_dsms_topo_timepoint(dsms, info, layout=None, fig=None, title=None,
     return fig
 
 
-def plot_dsms_topo(dsms, info, time_windows=None, layout=None, figs=None,
-                   axis_facecolor='w', axis_spinecolor='w',
-                   fig_facecolor='w', figsize=(6.4, 4.8), cmap='viridis',
-                   show=True):
-    """ Plot DSMs on 2D MEG topographies for multiple time windows
+def plot_dsms_topo(dsms, info, time=None, layout=None, fig=None,
+                   axis_facecolor='w', axis_spinecolor='w', fig_facecolor='w',
+                   figsize=(6.4, 4.8), cmap='viridis', show=True):
+    """ Plot DSMs on 2D MEG topography
 
     Parameters
     ----------
@@ -170,15 +169,18 @@ def plot_dsms_topo(dsms, info, time_windows=None, layout=None, figs=None,
         DSMs of MEG recordings; one DSM for each sensor and time point.
     info: mne.io.meas_info.Info
         Info object that contains meta data of MEG recordings.
-    time_windows: list of [int, int] | None
-        List of time windows for each of which the average DSM is plotted.
-        By default, the average of DSMs of all the time points is plotted.
-        Start of time window is inclusive, while end is exclusive.
+    time: int | list of int, shape (2, ) | None
+        A time point (int) or time window (list) for which DSMs are plotted.
+        When a time window is given, averge DSMs for the window are plotted.
+        The default (``None``) plots the average DSMs of all the time points.
+        Start of the time window is inclusive, while the end is exclusive.
     layout: mne.channels.layout.Layout, optional
         Layout objects containing sensor layout info.
         The default, layout=None, will figure out layout based on info.
-    figs: list of matplotlib.pyplot.Figure | None, optional
-        Figure objects on which DSMs on 2D MEG topography are plotted.
+    fig: matplotlib.pyplot.Figure | None, optional
+        Figure object on which DSMs on 2D MEG topography are plotted.
+        The default (``None``) creates a new Figure object
+        with a title based on time parameter.
     axis_facecolor: str, optional
         Face color of the each DSM. Defaults to 'w', white.
     axis_spinecolor: str, optional
@@ -196,39 +198,43 @@ def plot_dsms_topo(dsms, info, time_windows=None, layout=None, figs=None,
 
     Returns
     -------
-    figs: list of matplotlib.pyplot.Figure
-        Figure objects in each of which DSMs is plotted on 2D MEG topography
-            for each time window.
+    fig: matplotlib.pyplot.Figure
+        Figure object in which DSMs are plotted on 2D MEG topography.
     """
     if len(dsms.shape) != 3:
         raise ValueError("dsms have to be 3-dimensional ndarray or "
                          "numpy.memmap, "
                          "[n_sensors, n_timepointss, n_dsm_datapoints]")
-    if time_windows is None:
-        time_windows = [[0, dsms.shape[1]]]
-    if not isinstance(time_windows, list):
-        raise TypeError("time has to be list of [int, int].")
-    if not all(isinstance(i, list) for i in time_windows):
-        raise TypeError("time has to be list of [int, int].")
-    if figs is None:
-        figs = [None]*len(time_windows)
-    if len(time_windows) != len(figs):
-        raise ValueError("time_windows and figs needs to have a same length "
-                         "or figs needs to be None.")
+    if time is None:
+        time = [0, dsms.shape[1]]
+    if isinstance(time, int):
+        time = [time, time+1]
+    if not isinstance(time, list):
+        raise TypeError("time has to be int, list of [int, int] or None.")
+    if (not all(isinstance(i, int) for i in time)) or (len(time) != 2):
+        raise TypeError("time has to be int, list of [int, int] or None.")
+    if time[0] >= time[1]:
+        raise ValueError("The start of the time window has to be smaller "
+                         "than the end of the time window.")
+    if time[0] < 0 or time[1] > dsms.shape[1]:
+        raise ValueError("The time window is out of range. The minimum is 0 "
+                         f"and the maximum is {dsms.shape[1]}")
+    if (fig is not None) and (not isinstance(fig, plt.Figure)):
+        raise TypeError("fig has to be matplotlib.pyplot.Figure or None.")
 
-    # create plot for each time window in time_windows
-    for i, time_window in enumerate(time_windows):
-        dsms_cropped = dsms[:, time_window[0]:time_window[1], :]
-        dsms_avg = dsms_cropped.mean(axis=1)
-        # set title to time window
-        title = f"From {time_window[0]} to {time_window[1]}"
+    dsms_cropped = dsms[:, time[0]:time[1], :]
+    dsms_avg = dsms_cropped.mean(axis=1)
+    # set title to time window
+    if time[0] + 1 != time[1]:
+        title = f"From {time[0]} (inclusive) to {time[1]} (exclusive)"
+    else:
+        title = f"Time point: {time[0]}"
 
-        figs[i] = _plot_dsms_topo_timepoint(dsms_avg, info, fig=figs[i], 
-                                            layout=layout, title=title, 
-                                            axis_facecolor=axis_facecolor,
-                                            axis_spinecolor=axis_spinecolor,
-                                            fig_facecolor=fig_facecolor,
-                                            figsize=figsize, 
-                                            cmap=cmap, show=show)
+    fig = _plot_dsms_topo_timepoint(dsms_avg, info, fig=fig, layout=layout,
+                                    title=title,
+                                    axis_facecolor=axis_facecolor,
+                                    axis_spinecolor=axis_spinecolor,
+                                    fig_facecolor=fig_facecolor,
+                                    figsize=figsize, cmap=cmap, show=show)
 
-    return figs
+    return fig
