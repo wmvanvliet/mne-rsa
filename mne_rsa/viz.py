@@ -165,18 +165,19 @@ def plot_dsms_topo(dsms, info, time=None, layout=None, fig=None,
 
     Parameters
     ----------
-    dsms: ndarray | numpy.memmap, shape (n_sensors, n_timepoints, n_dsm_datapoints)
+    dsms: ndarray | numpy.memmap, shape (n_sensors, n_times, n_dsm_datapoints)
         DSMs of MEG recordings; one DSM for each sensor and time point.
     info: mne.io.meas_info.Info
         Info object that contains meta data of MEG recordings.
-    time: int | list of int, shape (2, ) | None
-        A time point (int) or time window (list) for which DSMs are plotted.
-        When a time window is given, averge DSMs for the window are plotted.
-        The default (``None``) plots the average DSMs of all the time points.
-        Start of the time window is inclusive, while the end is exclusive.
+    time: int | [int, int] | None
+        A time point (int) or time window ([int, int]) for which DSMs are
+        plotted. When a time window is given, averge DSMs for the window are
+        plotted. The default (``None``) plots the average DSMs of all the time
+        points. Start of the time window is inclusive, while the end is
+        exclusive.
     layout: mne.channels.layout.Layout, optional
         Layout objects containing sensor layout info.
-        The default, layout=None, will figure out layout based on info.
+        The default, ``layout=None``, will figure out layout based on info.
     fig: matplotlib.pyplot.Figure | None, optional
         Figure object on which DSMs on 2D MEG topography are plotted.
         The default (``None``) creates a new Figure object
@@ -194,7 +195,7 @@ def plot_dsms_topo(dsms, info, time=None, layout=None, fig=None,
         Colormap used for plotting DSMs. Defaults to 'viridis'.
         Check matplotlib.pyplot.imshow for details.
     show: bool, optional
-        Whether to display the generated figure. Defaults to True.
+        Whether to display the generated figure. Defaults to ``True``.
 
     Returns
     -------
@@ -208,7 +209,7 @@ def plot_dsms_topo(dsms, info, time=None, layout=None, fig=None,
     if time is None:
         time = [0, dsms.shape[1]]
     if isinstance(time, int):
-        time = [time, time+1]
+        time = [time, time + 1]
     if not isinstance(time, list):
         raise TypeError("time has to be int, list of [int, int] or None.")
     if (not all(isinstance(i, int) for i in time)) or (len(time) != 2):
@@ -236,5 +237,4 @@ def plot_dsms_topo(dsms, info, time=None, layout=None, fig=None,
                                     axis_spinecolor=axis_spinecolor,
                                     fig_facecolor=fig_facecolor,
                                     figsize=figsize, cmap=cmap, show=show)
-
     return fig
