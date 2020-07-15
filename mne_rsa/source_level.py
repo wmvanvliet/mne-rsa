@@ -195,7 +195,7 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
 def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
                      dist_metric='sqeuclidean', dist_params=dict(), y=None,
                      n_folds=None, sel_vertices=None, tmin=None, tmax=None,
-                     n_jobs=1, verbose=False):
+                     n_jobs=1):
     """Generate DSMs in a searchlight pattern across the cortex.
 
     The output is a source estimate where the "signal" at each source point is
@@ -249,11 +249,9 @@ def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
         ``None``, in which case patches are generated up to and including the
         last time point.
     n_jobs : int
-        The number of processes (=number of CPU cores) to use. Specify -1 to
-        use all available cores. Defaults to 1.
-    verbose : bool
-        Whether to display a progress bar. In order for this to work, you need
-        the tqdm python module installed. Defaults to False.
+        The number of processes (=number of CPU cores) to use for the
+        source-to-source distance computation. Specify -1 to use all available
+        cores. Defaults to 1.
 
     Yields
     ------
@@ -277,8 +275,7 @@ def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
                           temporal_radius=temporal_radius,
                           sel_series=sel_vertices, sel_samples=sel_samples)
     yield from dsm_array(X, patches, dist_metric=dist_metric,
-                         dist_params=dist_params, y=y, n_folds=n_folds,
-                         n_jobs=n_jobs, verbose=verbose)
+                         dist_params=dist_params, y=y, n_folds=n_folds)
 
 
 def _check_compatible(stcs, src):
