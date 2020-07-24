@@ -32,9 +32,15 @@ class searchlight:
     shape : tuple of int
         The shape of the data array to compute the searchlight patches for, as
         obtained with the ``.shape`` attribute.
-    dist : ndarray, shape (n_series, n_series) | None
+    dist : ndarray or sparse matrix, shape (n_series, n_series) | None
         The distances between all source points or sensors in meters.
         This parameter needs to be specified if a ``spatial_radius`` is set.
+
+        Since the distance matrix can be huge, sparse matrices are also
+        supported. When the distance matrix is sparse, all zero distances are
+        treated as infinity. This allows you to skip far away points during
+        your distance computations.
+
         Defaults to ``None``.
     spatial_radius : floats | None
         The spatial radius of the searchlight patch in meters. All source
@@ -105,6 +111,11 @@ class searchlight:
                                  'spatial dimension.')
             if self.sel_series is None:
                 self.sel_series = np.arange(shape[self.series_dim])
+
+            # Compressed Sparse Row format is optimal for our computations
+            from scipy.sparse import issparse
+            if issparse(self.dist):
+                self.dist = self.dist.tocsr()
         else:
             self.sel_series = None
 
@@ -154,29 +165,31 @@ class searchlight:
     def _iter_spatio_temporal(self):
         """Generate spatio-temporal searchlight patches."""
         logger.info('Creating spatio-temporal searchlight patches')
+        patch = list(self.patch_template)  # Copy the template
         for series in self.sel_series:
+            # Compute all spatial locations in the searchligh path.
+            spat_ind = _get_in_radius(self.dist, series, self.spatial_radius)
+            patch[self.series_dim] = spat_ind
             for sample in self.time_centers:
-                patch = list(self.patch_template)  # Copy the template
-                patch[self.series_dim], patch[self.samples_dim] = (
-                    np.flatnonzero(self.dist[series] < self.spatial_radius),
-                    slice(sample - self.temporal_radius,
-                          sample + self.temporal_radius + 1))
+                temp_ind = slice(sample - self.temporal_radius,
+                                 sample + self.temporal_radius + 1)
+                patch[self.samples_dim] = temp_ind
                 yield tuple(patch)
 
     def _iter_spatial(self):
         """Generate spatial searchlight patches only."""
         logger.info('Creating spatial searchlight patches')
+        patch = list(self.patch_template)  # Copy the template
         for series in self.sel_series:
-            patch = list(self.patch_template)  # Copy the template
-            series_i = np.flatnonzero(self.dist[series] < self.spatial_radius)
-            patch[self.series_dim] = series_i
+            spat_ind = _get_in_radius(self.dist, series, self.spatial_radius)
+            patch[self.series_dim] = spat_ind
             yield tuple(patch)
 
     def _iter_temporal(self):
         """Generate temporal searchlight patches only."""
         logger.info('Creating temporal searchlight patches')
+        patch = list(self.patch_template)  # Copy the template
         for sample in self.time_centers:
-            patch = list(self.patch_template)  # Copy the template
             patch[self.samples_dim] = slice(sample - self.temporal_radius,
                                             sample + self.temporal_radius + 1)
             yield tuple(patch)
@@ -219,3 +232,36 @@ class searchlight:
         for n in self.shape:  # Number of patches generated in each dimension
             total *= n
         return total
+
+
+def _get_in_radius(dist, seed, radius):
+    """Obtain indices for all points within the given radius from a seed point.
+
+    Takes care to work with sparse matrices too.
+
+    Parameters
+    ----------
+    dist : ndarray or sparse matrix, shape (n_points, n_points)
+        The distances between all points.
+    seed : int
+        The index of the point used as a seed.
+    radius : float
+        The maximum distance that points can be to be included.
+
+    Returns
+    -------
+    ind : ndarray, shape (n_points_in_radius,)
+        Indices of all points in the given radius from the seed point.
+    """
+    from scipy.sparse import issparse
+    if issparse(dist):
+        # Treat all zero distances as missing data
+        ind = dist[seed].nonzero()[1]
+        # Find indices for points within the radius
+        ind = ind[dist[seed].data < radius]
+        ind.sort()
+        # Be sure to add the seed point, which has distance of 0 to itself
+        ind = np.hstack((ind, [seed]))  # Di
+    else:
+        ind = np.flatnonzero(dist[seed] < radius)
+    return sorted(ind)
