@@ -80,8 +80,8 @@ rsa_vals = mne_rsa.rsa_nifti(
     rsa_metric='kendall-tau-a',      # Metric to compare model and EEG DSMs
     spatial_radius=0.01,             # Spatial radius of the searchlight patch
     roi_mask=mask,                   # Restrict analysis to the VT ROI
-    n_jobs=4,                        # Only use one CPU core.
-    verbose=True)                    # Set to True to display a progress bar
+    n_jobs=1,                        # Only use one CPU core.
+    verbose=False)                   # Set to True to display a progress bar
 
 ###############################################################################
 # Plot the result using nilearn.
