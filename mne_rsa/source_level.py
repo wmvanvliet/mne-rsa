@@ -19,6 +19,7 @@ from warnings import warn
 import numpy as np
 import mne
 from scipy.linalg import block_diag
+import nibabel as nib
 
 from .dsm import _n_items_from_dsm, dsm_array
 from .rsa import rsa_array
@@ -26,15 +27,15 @@ from .searchlight import searchlight
 from .sensor_level import _tmin_tmax_to_indices, _construct_tmin
 
 
-def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
-                     temporal_radius=0.1, stc_dsm_metric='correlation',
-                     stc_dsm_params=dict(), rsa_metric='spearman', y=None,
-                     n_folds=1, sel_vertices=None, tmin=None, tmax=None,
-                     n_jobs=1, verbose=False):
-    """Perform RSA in a searchlight pattern across the source space.
+def rsa_stcs(stcs, dsm_model, src, spatial_radius=0.04, temporal_radius=0.1,
+             stc_dsm_metric='correlation', stc_dsm_params=dict(),
+             rsa_metric='spearman', y=None, n_folds=1, sel_vertices=None,
+             tmin=None, tmax=None, n_jobs=1, verbose=False):
+    """Perform RSA in a searchlight pattern on MNE-Python source estimates.
 
     The output is a source estimate where the "signal" at each source point is
-    the RSA, computed for a patch surrounding the source point.
+    the RSA, computed for a patch surrounding the source point. Source estimate
+    objects can be either defined along a cortical surface or volumetric.
 
     Parameters
     ----------
@@ -122,19 +123,19 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
     --------
     compute_dsm
     """  # noqa E501
-    # Check for compatibility of the source estimated and the model features
+    # Check for compatibility of the source estimates and the model features
     one_model = type(dsm_model) is np.ndarray
     if one_model:
         dsm_model = [dsm_model]
 
-    # Check for compatibility of the evokeds and the model features
+    # Check for compatibility of the stcs and the model features
     for dsm in dsm_model:
         n_items = _n_items_from_dsm(dsm)
         if len(stcs) != n_items and y is None:
             raise ValueError(
                 'The number of source estimates (%d) should be equal to the '
                 'number of items in `dsm_model` (%d). Alternatively, use '
-                'the `y` parameter to assign evokeds to items.'
+                'the `y` parameter to assign source estimates to items.'
                 % (len(stcs), n_items))
         if y is not None and len(np.unique(y)) != n_items:
             raise ValueError(
@@ -142,7 +143,7 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
                 'the number of items encoded in the `y` matrix (%d).'
                 % (n_items, len(np.unique(y))))
 
-    _check_compatible(stcs, src)
+    _check_stcs_compatibility(stcs, src)
     dist = _get_distance_matrix(src, dist_lim=spatial_radius, n_jobs=n_jobs)
 
     if temporal_radius is not None:
@@ -192,14 +193,15 @@ def rsa_source_level(stcs, dsm_model, src, spatial_radius=0.04,
                     for i in range(data.shape[-1])]
 
 
-def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
-                     dist_metric='sqeuclidean', dist_params=dict(), y=None,
-                     n_folds=None, sel_vertices=None, tmin=None, tmax=None,
-                     n_jobs=1, verbose=False):
-    """Generate DSMs in a searchlight pattern across the cortex.
+def dsm_stcs(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
+             dist_metric='sqeuclidean', dist_params=dict(), y=None,
+             n_folds=None, sel_vertices=None, tmin=None, tmax=None, n_jobs=1,
+             verbose=False):
+    """Generate DSMs in a searchlight pattern on MNE-Python source estimates.
 
-    The output is a source estimate where the "signal" at each source point is
-    the RSA, computed for a patch surrounding the source point.
+    DSMs are computed using a patch surrounding each source point. Source
+    estimate objects can be either defined along a cortical surface or
+    volumetric.
 
     Parameters
     ----------
@@ -260,7 +262,7 @@ def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
     dsm : ndarray, shape (n_items, n_items)
         A DSM for each searchlight patch.
     """
-    _check_compatible(stcs, src)
+    _check_stcs_compatibility(stcs, src)
     dist = _get_distance_matrix(src, dist_lim=spatial_radius, n_jobs=n_jobs)
 
     # Convert the temporal radius to samples
@@ -281,7 +283,165 @@ def dsm_source_level(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
                          n_jobs=n_jobs, verbose=verbose)
 
 
-def _check_compatible(stcs, src):
+def rsa_nifti(bold, dsm_model, spatial_radius=0.01,
+              bold_dsm_metric='correlation', bold_dsm_params=dict(),
+              rsa_metric='spearman', y=None, n_folds=1, roi_mask=None,
+              brain_mask=None, n_jobs=1, verbose=False):
+    """Perform RSA in a searchlight pattern on Nibabel Nifti-like images.
+
+    The output is a source estimate where the "signal" at each source point is
+    the RSA, computed for a patch surrounding the source point. Source estimate
+    objects can be either defined along a cortical surface or volumetric.
+
+    Parameters
+    ----------
+    bold : 4D Nifti-like image
+        The EPI (T2*) BOLD signal. The 4th dimension must contain the images
+        for each item.
+    dsm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
+        The model DSM, see :func:`compute_dsm`. For efficiency, you can give it
+        in condensed form, meaning only the upper triangle of the matrix as a
+        vector. See :func:`scipy.spatial.distance.squareform`. To perform RSA
+        against multiple models at the same time, supply a list of model DSMs.
+
+        Use :func:`compute_dsm` to compute DSMs.
+    spatial_radius : float
+        The spatial radius of the searchlight patch in meters. All source
+        points within this radius will belong to the searchlight patch.
+        Defaults to 0.01.
+    bold_dsm_metric : str
+        The metric to use to compute the DSM for the BOLD signal. This can be
+        any metric supported by the scipy.distance.pdist function. See also the
+        ``stc_dsm_params`` parameter to specify and additional parameter for
+        the distance function. Defaults to 'correlation'.
+    bold_dsm_params : dict
+        Extra arguments for the distance metric used to compute the DSMs.
+        Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
+        and their arguments. Defaults to an empty dictionary.
+    rsa_metric : str
+        The RSA metric to use to compare the DSMs. Valid options are:
+
+        * 'spearman' for Spearman's correlation (the default)
+        * 'pearson' for Pearson's correlation
+        * 'kendall-tau-a' for Kendall's Tau (alpha variant)
+        * 'partial' for partial Pearson correlations
+        * 'partial-spearman' for partial Spearman correlations
+        * 'regression' for linear regression weights
+
+        Defaults to 'spearman'.
+    y : ndarray of int, shape (n_items,) | None
+        For each source estimate, a number indicating the item to which it
+        belongs. When ``None``, each source estimate is assumed to belong to a
+        different item. Defaults to ``None``.
+    n_folds : int | None
+        Number of folds to use when using cross-validation to compute the
+        evoked DSM metric. Specify ``None``, to use the maximum number of folds
+        possible, given the data.
+        Defaults to 1 (no cross-validation).
+    roi_mask : 3D Nifti-like image | None
+        When set, searchlight patches will only be generated for the subset of
+        voxels with non-zero values in the given mask. This is useful for
+        restricting the analysis to a region of interest (ROI). Note that while
+        the center of the patches are all within the ROI, the patch itself may
+        extend beyond the ROI boundaries.
+        Defaults to ``None``, in which case patches for all voxels are
+        generated.
+    brain_mask : 3D Nifti-like image | None
+        When set, searchlight patches are restricted to only contain voxels
+        with non-zero values in the given mask. This is useful for make sure
+        only information from inside the brain is used. In contrast to the
+        `roi_mask`, searchlight patches will not use data outside of this mask.
+        Defaults to ``None``, in which case all voxels are included in the
+        analysis.
+    n_jobs : int
+        The number of processes (=number of CPU cores) to use. Specify -1 to
+        use all available cores. Defaults to 1.
+    verbose : bool
+        Whether to display a progress bar. In order for this to work, you need
+        the tqdm python module installed. Defaults to False.
+
+    Returns
+    -------
+    rsa_results : 3D Nifti1Image | list of 3D Nifti1Image
+        The correlation values for each searchlight patch. When multiple models
+        have been supplied, a list will be returned containing the RSA results
+        for each model.
+
+    See Also
+    --------
+    compute_dsm
+    """  # noqa E501
+    # Check for compatibility of the source estimates and the model features
+    one_model = type(dsm_model) is np.ndarray
+    if one_model:
+        dsm_model = [dsm_model]
+
+    if (not isinstance(bold, tuple(nib.imageclasses.all_image_classes))
+            or bold.ndim != 4):
+        raise ValueError('The BOLD images must be 4-dimensional Nifti-like '
+                         'images')
+
+    # Check for compatibility of the BOLD images and the model features
+    for dsm in dsm_model:
+        n_items = _n_items_from_dsm(dsm)
+        if bold.shape[3] != n_items and y is None:
+            raise ValueError(
+                'The number of source estimates (%d) should be equal to the '
+                'number of items in `dsm_model` (%d). Alternatively, use '
+                'the `y` parameter to assign evokeds to items.'
+                % (bold.shape[3], n_items))
+        if y is not None and len(np.unique(y)) != n_items:
+            raise ValueError(
+                'The number of items in `dsm_model` (%d) does not match '
+                'the number of items encoded in the `y` matrix (%d).'
+                % (n_items, len(np.unique(y))))
+
+    X = bold.get_fdata().reshape(-1, bold.shape[3])
+    voxel_loc = np.ndindex(bold.shape[:3]) @ bold.affine[:3, :3]
+
+    # Apply masks
+    if brain_mask is not None:
+        if brain_mask.ndim != 3 or brain_mask.shape != bold.shape[:3]:
+            raise ValueError('Brain mask must be a 3-dimensional Nifi-like '
+                             'image with the same dimensions as the BOLD '
+                             'images')
+        brain_mask = brain_mask.get_fdata().ravel() != 0
+        X = X[brain_mask]
+        voxel_loc = voxel_loc[brain_mask]
+    if roi_mask is not None:
+        if roi_mask.ndim != 3 or roi_mask.shape != bold.shape[:3]:
+            raise ValueError('ROI mask must be a 3-dimensional Nifi-like '
+                             'image with the same dimensions as the BOLD '
+                             'images')
+        roi_mask = roi_mask.get_fdata().ravel() != 0
+        if brain_mask is not None:
+            roi_mask = roi_mask[brain_mask]
+        roi_mask = np.flatnonzero(roi_mask)
+
+    # Compute distances between voxels
+    from sklearn.neighbors import NearestNeighbors
+    nn = NearestNeighbors(radius=spatial_radius).fit(voxel_loc)
+    dist = nn.radius_neighbors_graph(mode='distance')
+
+    # Perform the RSA
+    patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
+                          sel_series=roi_mask)
+    data = rsa_array(X, dsm_model, patches, data_dsm_metric=bold_dsm_metric,
+                     data_dsm_params=bold_dsm_params, rsa_metric=rsa_metric,
+                     y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
+
+    # TODO: Pack the result in a Nifti image
+    # if one_model:
+    #     return mne.SourceEstimate(data, vertices, tmin, tstep,
+    #                               subject=stcs[0].subject)
+    # else:
+    #     return [mne.SourceEstimate(data[:, :, i], vertices, tmin, tstep,
+    #                                subject=stcs[0].subject)
+    #             for i in range(data.shape[-1])]
+    return data
+
+
+def _check_stcs_compatibility(stcs, src):
     """Check for compatibility of the source estimates and source space."""
     if src.kind == 'volume' and not isinstance(stcs[0], mne.VolSourceEstimate):
         raise ValueError(f'Volume source estimates provided, but not a volume '
@@ -355,7 +515,6 @@ def _get_distance_matrix(src, dist_lim, n_jobs=1):
 
     for hemi in src:
         inuse = np.flatnonzero(hemi['inuse'])
-
         dist.append(hemi['dist'][np.ix_(inuse, inuse)].toarray())
 
     # Collect the distances in a single matrix
@@ -370,6 +529,8 @@ def _add_volume_source_space_distances(src, dist_limit):
     """Compute the distance between voxels in a volume source space.
 
     Operates in-place!
+
+    Code is mostly taken from `mne.add_source_space_distances`.
 
     Parameters
     ----------
@@ -392,10 +553,11 @@ def _add_volume_source_space_distances(src, dist_limit):
     assert src.kind == 'volume'
     n_sources = src[0]['np']
     neighbors = np.array(src[0]['neighbor_vert'])
-    row, col = np.nonzero(neighbors != -1)
-    col = neighbors[(row, col)]
-    con = np.linalg.norm(src[0]['rr'][row, :] - src[0]['rr'][col, :], axis=1)
-    con_matrix = csr_matrix((con, (row, col)), shape=(n_sources, n_sources))
+    rows, cols = np.nonzero(neighbors != -1)
+    cols = neighbors[(rows, cols)]
+    dist = np.linalg.norm(src[0]['rr'][rows, :] - src[0]['rr'][cols, :],
+                          axis=1)
+    con_matrix = csr_matrix((dist, (rows, cols)), shape=(n_sources, n_sources))
     dist = mne.source_space._do_src_distances(con_matrix, src[0]['vertno'],
                                               np.arange(src[0]['nuse']),
                                               dist_limit)[0]
@@ -408,3 +570,29 @@ def _add_volume_source_space_distances(src, dist_limit):
     src[0]['dist'] = csr_matrix((d, (i, j)), shape=(n_sources, n_sources))
     src[0]['dist_limit'] = np.array([dist_limit], np.float32)
     return src
+
+
+def make_mri_con_matrix(img):
+    from scipy.sparse import csr_matrix
+    # Create 3 x 3 x 3 cube of (ijk) indices, centered around (0, 0, 0)
+    cube = np.array(list(np.ndindex(3, 3, 3))) - [1, 1, 1]
+    # Remove center of the cube
+    cube = np.delete(cube, len(cube) // 2, axis=0)
+    # Compute distance from all points in the cube to the center
+    dist = np.linalg.norm(cube @ img.affine[:3, :3], axis=1)
+    # Copy the cube, centering it around each voxel
+    voxels = np.array(list(np.ndindex(*img.shape[:3])))
+    neighbours = voxels[:, :, np.newaxis] + cube.T[np.newaxis, :, :]
+    assert neighbours.shape == (len(voxels), 3, len(cube))
+    # Convert ijk coordinates to voxel numbers
+    neighbours = np.ravel_multi_index(
+        (neighbours[:, 0, :], neighbours[:, 1, :], neighbours[:, 2, :]),
+        img.shape[:3],
+        mode='clip',
+    )
+    rows = np.repeat(np.arange(neighbours.shape[0]), neighbours.shape[1])
+    cols = neighbours.ravel()
+    dist = np.tile(dist, neighbours.shape[0])
+    con_matrix = csr_matrix((dist, (rows, cols)),
+                            shape=(len(voxels), len(voxels)))
+    return con_matrix

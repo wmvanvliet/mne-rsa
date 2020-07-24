@@ -1,6 +1,8 @@
 import pytest
 import numpy as np
 from numpy.testing import assert_equal
+from scipy import sparse
+
 from mne_rsa import searchlight
 
 
@@ -13,6 +15,21 @@ class TestSearchLight:
                          [1, 0, 1],
                          [2, 1, 0]])
         s = searchlight((10, 3, 4), dist, spatial_radius=2, temporal_radius=1)
+        assert len(s) == 6
+        assert s.shape == (3, 2)
+        assert_equal(list(s), [
+            (slice(None), np.array([0, 1]), slice(0, 3)),
+            (slice(None), np.array([0, 1]), slice(1, 4)),
+            (slice(None), np.array([0, 1, 2]), slice(0, 3)),
+            (slice(None), np.array([0, 1, 2]), slice(1, 4)),
+            (slice(None), np.array([1, 2]), slice(0, 3)),
+            (slice(None), np.array([1, 2]), slice(1, 4)),
+        ])
+
+        # Test using a sparse matrix
+        dist_sparse = sparse.csr_matrix(dist)
+        s = searchlight((10, 3, 4), dist_sparse,
+                        spatial_radius=2, temporal_radius=1)
         assert len(s) == 6
         assert s.shape == (3, 2)
         assert_equal(list(s), [
@@ -49,6 +66,17 @@ class TestSearchLight:
         ])
 
         s = searchlight((10, 3), dist, spatial_radius=2)
+        assert len(s) == 3
+        assert s.shape == (3,)
+        assert_equal(list(s), [
+            (slice(None), np.array([0, 1])),
+            (slice(None), np.array([0, 1, 2])),
+            (slice(None), np.array([1, 2])),
+        ])
+
+        # Test using a sparse matrix
+        dist_sparse = sparse.csr_matrix(dist)
+        s = searchlight((10, 3), dist_sparse, spatial_radius=2)
         assert len(s) == 3
         assert s.shape == (3,)
         assert_equal(list(s), [
