@@ -13,3 +13,4 @@ pyqt5
 tqdm
 nilearn
 pillow
+nibabel

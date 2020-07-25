@@ -388,7 +388,7 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
 def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
                 temporal_radius=0.1, dist_metric='correlation',
                 dist_params=dict(), y=None, n_folds=None, picks=None,
-                tmin=None, tmax=None, verbose=False):
+                tmin=None, tmax=None):
     """Generate DSMs in a searchlight pattern on evokeds.
 
     Parameters
@@ -447,9 +447,6 @@ def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
         including this time point. This value is given in seconds. Defaults to
         ``None``, in which case patches are generated up to and including the
         last time point.
-    verbose : bool
-        Whether to display a progress bar. In order for this to work, you need
-        the tqdm python module installed. Defaults to False.
 
     Yields
     ------
@@ -488,14 +485,13 @@ def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
                           temporal_radius=temporal_radius,
                           sel_series=picks, sel_samples=sel_samples)
     yield from dsm_array(X, patches, dist_metric=dist_metric,
-                         dist_params=dist_params, y=y, n_folds=n_folds,
-                         verbose=verbose)
+                         dist_params=dist_params, y=y, n_folds=n_folds)
 
 
 def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
                temporal_radius=0.1, dist_metric='correlation',
                dist_params=dict(), y=None, n_folds=None, picks=None,
-               tmin=None, tmax=None, verbose=False):
+               tmin=None, tmax=None):
     """Generate DSMs in a searchlight pattern on epochs.
 
     Parameters
@@ -553,9 +549,6 @@ def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
         including this time point. This value is given in seconds. Defaults to
         ``None``, in which case patches are generated up to and including the
         last time point.
-    verbose : bool
-        Whether to display a progress bar. In order for this to work, you need
-        the tqdm python module installed. Defaults to False.
 
     Yields
     ------
@@ -592,8 +585,7 @@ def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
                           temporal_radius=temporal_radius,
                           sel_series=picks, sel_samples=sel_samples)
     yield from dsm_array(X, patches, dist_metric=dist_metric,
-                         dist_params=dist_params, y=y, n_folds=n_folds,
-                         verbose=verbose)
+                         dist_params=dist_params, y=y, n_folds=n_folds)
 
 
 def _tmin_tmax_to_indices(times, tmin, tmax):

@@ -18,6 +18,7 @@ Ossi Lehtonen <ossi.lehtonen@aalto.fi>
 from warnings import warn
 import numpy as np
 import mne
+from mne.utils import logger
 from scipy.linalg import block_diag
 import nibabel as nib
 
@@ -167,6 +168,8 @@ def rsa_stcs(stcs, dsm_model, src, spatial_radius=0.04, temporal_radius=0.1,
     # Pack the result in a SourceEstimate object
     if spatial_radius is not None:
         vertices = stcs[0].vertices
+        if sel_vertices is not None:
+            vertices = vertices[sel_vertices]
     else:
         if src.kind == 'volume':
             vertices = [np.array([1])]
@@ -251,11 +254,9 @@ def dsm_stcs(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
         ``None``, in which case patches are generated up to and including the
         last time point.
     n_jobs : int
-        The number of processes (=number of CPU cores) to use. Specify -1 to
-        use all available cores. Defaults to 1.
-    verbose : bool
-        Whether to display a progress bar. In order for this to work, you need
-        the tqdm python module installed. Defaults to False.
+        The number of processes (=number of CPU cores) to use for the
+        source-to-source distance computation. Specify -1 to use all available
+        cores. Defaults to 1.
 
     Yields
     ------
@@ -279,24 +280,22 @@ def dsm_stcs(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
                           temporal_radius=temporal_radius,
                           sel_series=sel_vertices, sel_samples=sel_samples)
     yield from dsm_array(X, patches, dist_metric=dist_metric,
-                         dist_params=dist_params, y=y, n_folds=n_folds,
-                         n_jobs=n_jobs, verbose=verbose)
+                         dist_params=dist_params, y=y, n_folds=n_folds)
 
 
-def rsa_nifti(bold, dsm_model, spatial_radius=0.01,
-              bold_dsm_metric='correlation', bold_dsm_params=dict(),
+def rsa_nifti(image, dsm_model, spatial_radius=0.01,
+              image_dsm_metric='correlation', image_dsm_params=dict(),
               rsa_metric='spearman', y=None, n_folds=1, roi_mask=None,
               brain_mask=None, n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern on Nibabel Nifti-like images.
 
-    The output is a source estimate where the "signal" at each source point is
-    the RSA, computed for a patch surrounding the source point. Source estimate
-    objects can be either defined along a cortical surface or volumetric.
+    The output is a 3D Nifti image where the data at each voxel is is
+    the RSA, computed for a patch surrounding the voxel. 
 
     Parameters
     ----------
-    bold : 4D Nifti-like image
-        The EPI (T2*) BOLD signal. The 4th dimension must contain the images
+    image : 4D Nifti-like image
+        The Nitfi image data. The 4th dimension must contain the images
         for each item.
     dsm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
         The model DSM, see :func:`compute_dsm`. For efficiency, you can give it
@@ -309,12 +308,12 @@ def rsa_nifti(bold, dsm_model, spatial_radius=0.01,
         The spatial radius of the searchlight patch in meters. All source
         points within this radius will belong to the searchlight patch.
         Defaults to 0.01.
-    bold_dsm_metric : str
-        The metric to use to compute the DSM for the BOLD signal. This can be
+    image_dsm_metric : str
+        The metric to use to compute the DSM for the data. This can be
         any metric supported by the scipy.distance.pdist function. See also the
-        ``stc_dsm_params`` parameter to specify and additional parameter for
+        ``image_dsm_params`` parameter to specify and additional parameter for
         the distance function. Defaults to 'correlation'.
-    bold_dsm_params : dict
+    image_dsm_params : dict
         Extra arguments for the distance metric used to compute the DSMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
         and their arguments. Defaults to an empty dictionary.
@@ -370,75 +369,202 @@ def rsa_nifti(bold, dsm_model, spatial_radius=0.01,
     See Also
     --------
     compute_dsm
-    """  # noqa E501
+    """
     # Check for compatibility of the source estimates and the model features
     one_model = type(dsm_model) is np.ndarray
     if one_model:
         dsm_model = [dsm_model]
 
-    if (not isinstance(bold, tuple(nib.imageclasses.all_image_classes))
-            or bold.ndim != 4):
-        raise ValueError('The BOLD images must be 4-dimensional Nifti-like '
+    if (not isinstance(image, tuple(nib.imageclasses.all_image_classes))
+            or image.ndim != 4):
+        raise ValueError('The image data must be 4-dimensional Nifti-like '
                          'images')
 
     # Check for compatibility of the BOLD images and the model features
     for dsm in dsm_model:
         n_items = _n_items_from_dsm(dsm)
-        if bold.shape[3] != n_items and y is None:
+        if image.shape[3] != n_items and y is None:
             raise ValueError(
-                'The number of source estimates (%d) should be equal to the '
+                'The number of images (%d) should be equal to the '
                 'number of items in `dsm_model` (%d). Alternatively, use '
                 'the `y` parameter to assign evokeds to items.'
-                % (bold.shape[3], n_items))
+                % (image.shape[3], n_items))
         if y is not None and len(np.unique(y)) != n_items:
             raise ValueError(
                 'The number of items in `dsm_model` (%d) does not match '
                 'the number of items encoded in the `y` matrix (%d).'
                 % (n_items, len(np.unique(y))))
 
-    X = bold.get_fdata().reshape(-1, bold.shape[3])
-    voxel_loc = np.ndindex(bold.shape[:3]) @ bold.affine[:3, :3]
+    # Get data as (n_items x n_voxels)
+    X = image.get_fdata().reshape(-1, image.shape[3]).T
+
+    # Find voxel positions
+    voxels = np.array(list(np.ndindex(image.shape[:-1])))
+    voxel_loc = voxels @ image.affine[:3, :3]
+    voxel_loc /= 1000  # convert position from mm to meters
 
     # Apply masks
+    result_mask = np.ones(image.shape[:3], dtype=np.bool)
     if brain_mask is not None:
-        if brain_mask.ndim != 3 or brain_mask.shape != bold.shape[:3]:
+        if brain_mask.ndim != 3 or brain_mask.shape != image.shape[:3]:
             raise ValueError('Brain mask must be a 3-dimensional Nifi-like '
-                             'image with the same dimensions as the BOLD '
-                             'images')
-        brain_mask = brain_mask.get_fdata().ravel() != 0
-        X = X[brain_mask]
+                             'image with the same dimensions as the data '
+                             'image')
+        brain_mask = brain_mask.get_fdata() != 0
+        result_mask &= brain_mask
+        brain_mask = brain_mask.ravel()
+        X = X[:, brain_mask]
         voxel_loc = voxel_loc[brain_mask]
     if roi_mask is not None:
-        if roi_mask.ndim != 3 or roi_mask.shape != bold.shape[:3]:
+        if roi_mask.ndim != 3 or roi_mask.shape != image.shape[:3]:
             raise ValueError('ROI mask must be a 3-dimensional Nifi-like '
-                             'image with the same dimensions as the BOLD '
-                             'images')
-        roi_mask = roi_mask.get_fdata().ravel() != 0
+                             'image with the same dimensions as the data '
+                             'image')
+        roi_mask = roi_mask.get_fdata() != 0
+        result_mask &= roi_mask
+        roi_mask = roi_mask.ravel()
         if brain_mask is not None:
             roi_mask = roi_mask[brain_mask]
         roi_mask = np.flatnonzero(roi_mask)
 
     # Compute distances between voxels
+    logger.info('Computing distances...')
     from sklearn.neighbors import NearestNeighbors
-    nn = NearestNeighbors(radius=spatial_radius).fit(voxel_loc)
+    nn = NearestNeighbors(radius=spatial_radius, n_jobs=n_jobs).fit(voxel_loc)
     dist = nn.radius_neighbors_graph(mode='distance')
 
     # Perform the RSA
     patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
-                          sel_series=roi_mask)
-    data = rsa_array(X, dsm_model, patches, data_dsm_metric=bold_dsm_metric,
-                     data_dsm_params=bold_dsm_params, rsa_metric=rsa_metric,
-                     y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
+                          temporal_radius=None, sel_series=roi_mask)
+    rsa_result = rsa_array(X, dsm_model, patches,
+                           data_dsm_metric=image_dsm_metric,
+                           data_dsm_params=image_dsm_params,
+                           rsa_metric=rsa_metric, y=y, n_folds=n_folds,
+                           n_jobs=n_jobs, verbose=verbose)
 
-    # TODO: Pack the result in a Nifti image
-    # if one_model:
-    #     return mne.SourceEstimate(data, vertices, tmin, tstep,
-    #                               subject=stcs[0].subject)
-    # else:
-    #     return [mne.SourceEstimate(data[:, :, i], vertices, tmin, tstep,
-    #                                subject=stcs[0].subject)
-    #             for i in range(data.shape[-1])]
-    return data
+    if one_model:
+        data = np.zeros(image.shape[:3])
+        data[result_mask] = rsa_result
+        return nib.Nifti1Image(data, image.affine, image.header)
+    else:
+        results = []
+        for i in range(rsa_result.shape[-1]):
+            data = np.zeros(image.shape[:3])
+            data[result_mask] = rsa_result[:, i]
+            results.append(nib.Nifti1Image(data, image.affine, image.header))
+        return results
+
+
+def dsm_nifti(image, spatial_radius=0.01, dist_metric='correlation',
+              dist_params=dict(), y=None, n_folds=1, roi_mask=None,
+              brain_mask=None, n_jobs=1, verbose=False):
+    """Generate DSMs in a searchlight pattern on Nibabel Nifty-like images.
+
+    DSMs are computed using a patch surrounding each voxel.
+
+    Parameters
+    ----------
+    image : 4D Nifti-like image
+        The Nitfi image data. The 4th dimension must contain the images
+        for each item.
+    spatial_radius : float
+        The spatial radius of the searchlight patch in meters. All source
+        points within this radius will belong to the searchlight patch.
+        Defaults to 0.01.
+    dist_metric : str
+        The metric to use to compute the DSM for the data. This can be
+        any metric supported by the scipy.distance.pdist function. See also the
+        ``dist_params`` parameter to specify and additional parameter for
+        the distance function. Defaults to 'correlation'.
+    dist_params : dict
+        Extra arguments for the distance metric used to compute the DSMs.
+        Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
+        and their arguments. Defaults to an empty dictionary.
+    y : ndarray of int, shape (n_items,) | None
+        For each source estimate, a number indicating the item to which it
+        belongs. When ``None``, each source estimate is assumed to belong to a
+        different item. Defaults to ``None``.
+    n_folds : int | None
+        Number of folds to use when using cross-validation to compute the
+        evoked DSM metric. Specify ``None``, to use the maximum number of folds
+        possible, given the data.
+        Defaults to 1 (no cross-validation).
+    roi_mask : 3D Nifti-like image | None
+        When set, searchlight patches will only be generated for the subset of
+        voxels with non-zero values in the given mask. This is useful for
+        restricting the analysis to a region of interest (ROI). Note that while
+        the center of the patches are all within the ROI, the patch itself may
+        extend beyond the ROI boundaries.
+        Defaults to ``None``, in which case patches for all voxels are
+        generated.
+    brain_mask : 3D Nifti-like image | None
+        When set, searchlight patches are restricted to only contain voxels
+        with non-zero values in the given mask. This is useful for make sure
+        only information from inside the brain is used. In contrast to the
+        `roi_mask`, searchlight patches will not use data outside of this mask.
+        Defaults to ``None``, in which case all voxels are included in the
+        analysis.
+    n_jobs : int
+        The number of processes (=number of CPU cores) to use. Specify -1 to
+        use all available cores. Defaults to 1.
+    verbose : bool
+        Whether to display a progress bar. In order for this to work, you need
+        the tqdm python module installed. Defaults to False.
+
+    Yields
+    ------
+    dsm : ndarray, shape (n_items, n_items)
+        A DSM for each searchlight patch.
+    """
+    if (not isinstance(image, tuple(nib.imageclasses.all_image_classes))
+            or image.ndim != 4):
+        raise ValueError('The image data must be 4-dimensional Nifti-like '
+                         'images')
+
+    # Get data as (n_items x n_voxels)
+    X = image.get_fdata().reshape(-1, image.shape[3]).T
+
+    # Find voxel positions
+    voxels = np.array(list(np.ndindex(image.shape[:-1])))
+    voxel_loc = voxels @ image.affine[:3, :3]
+    voxel_loc /= 1000  # convert position from mm to meters
+
+    # Apply masks
+    result_mask = np.ones(image.shape[:3], dtype=np.bool)
+    if brain_mask is not None:
+        if brain_mask.ndim != 3 or brain_mask.shape != image.shape[:3]:
+            raise ValueError('Brain mask must be a 3-dimensional Nifi-like '
+                             'image with the same dimensions as the data '
+                             'image')
+        brain_mask = brain_mask.get_fdata() != 0
+        result_mask &= brain_mask
+        brain_mask = brain_mask.ravel()
+        X = X[:, brain_mask]
+        voxel_loc = voxel_loc[brain_mask]
+    if roi_mask is not None:
+        if roi_mask.ndim != 3 or roi_mask.shape != image.shape[:3]:
+            raise ValueError('ROI mask must be a 3-dimensional Nifi-like '
+                             'image with the same dimensions as the data '
+                             'image')
+        roi_mask = roi_mask.get_fdata() != 0
+        result_mask &= roi_mask
+        roi_mask = roi_mask.ravel()
+        if brain_mask is not None:
+            roi_mask = roi_mask[brain_mask]
+        roi_mask = np.flatnonzero(roi_mask)
+
+    # Compute distances between voxels
+    logger.info('Computing distances...')
+    from sklearn.neighbors import NearestNeighbors
+    nn = NearestNeighbors(radius=spatial_radius, n_jobs=n_jobs).fit(voxel_loc)
+    dist = nn.radius_neighbors_graph(mode='distance')
+
+    # Compute DSMs
+    patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
+                          temporal_radius=None, sel_series=roi_mask)
+    yield from dsm_array(X, patches, dist_metric=dist_metric,
+                         dist_params=dist_params, y=y, n_folds=n_folds,
+                         n_jobs=n_jobs, verbose=verbose)
 
 
 def _check_stcs_compatibility(stcs, src):
