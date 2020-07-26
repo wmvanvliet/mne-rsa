@@ -14,7 +14,8 @@ Main MNE-RSA functions
 
     rsa_epochs
     rsa_evokeds
-    rsa_source_level
+    rsa_stcs
+    rsa_nifti
 
 Constructing DSMs
 ~~~~~~~~~~~~~~~~~
@@ -25,7 +26,8 @@ Constructing DSMs
     compute_dsm
     compute_dsm_cv
     dsm_epochs
-    dsm_source_level
+    dsm_stcs
+    dsm_nifti
 
 .. autosummary::
     :toctree: functions
