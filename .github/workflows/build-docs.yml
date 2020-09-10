@@ -46,7 +46,7 @@ jobs:
         # https://github.com/golemfactory/golem/issues/1019
         - name: Install PyQt5 dependencies
           run: |
-            sudo apt-get install libxkbcommon-x11-0 qt5-default
+            sudo apt-get install libxkbcommon-x11 qt5-default
 
         - name: Cache Pip
           id: cache-pip
