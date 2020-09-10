@@ -292,6 +292,8 @@ def rsa_nifti(image, dsm_model, spatial_radius=0.01,
     The output is a 3D Nifti image where the data at each voxel is is
     the RSA, computed for a patch surrounding the voxel. 
 
+    .. versionadded:: 0.4
+
     Parameters
     ----------
     image : 4D Nifti-like image
@@ -461,6 +463,8 @@ def dsm_nifti(image, spatial_radius=0.01, dist_metric='correlation',
     """Generate DSMs in a searchlight pattern on Nibabel Nifty-like images.
 
     DSMs are computed using a patch surrounding each voxel.
+
+    .. versionadded:: 0.4
 
     Parameters
     ----------
