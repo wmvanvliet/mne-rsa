@@ -13,7 +13,7 @@ def plot_dsms(dsms, names=None, items=None, n_rows=1, cmap='viridis',
     ----------
     dsms : ndarray | list of ndarray
         The DSM or list of DSMs to plot. The DSMs can either be two-dimensional
-        (n_items x n_iterms) matrices or be in condensed form.
+        (n_items x n_items) matrices or be in condensed form.
     names : str | list of str | None
         For each given DSM, a name to show above it. Defaults to no names.
     items : list of str | None
@@ -161,14 +161,14 @@ def _plot_dsms_topo_timepoint(dsms, info, layout=None, fig=None, title=None,
 def plot_dsms_topo(dsms, info, time=None, layout=None, fig=None,
                    axis_facecolor='w', axis_spinecolor='w', fig_facecolor='w',
                    figsize=(6.4, 4.8), cmap='viridis', show=True):
-    """ Plot DSMs on 2D MEG topography
+    """ Plot DSMs on 2D sensor topography
 
     Parameters
     ----------
-    dsms: ndarray | numpy.memmap, shape (n_sensors, n_times, n_dsm_datapoints)
-        DSMs of MEG recordings; one DSM for each sensor and time point.
+    dsms: ndarray | numpy.memmap, shape (n_sensors,[ n_times,] n_dsm_datapts)
+        DSMs of MEG/EEG recordings; one DSM for each sensor and time point.
     info: mne.io.meas_info.Info
-        Info object that contains meta data of MEG recordings.
+        Info object that contains meta data of MEG/EEG recordings.
     time: int | [int, int] | None
         A time point (int) or time window ([int, int]) for which DSMs are
         plotted. When a time window is given, averge DSMs for the window are
@@ -179,7 +179,7 @@ def plot_dsms_topo(dsms, info, time=None, layout=None, fig=None,
         Layout objects containing sensor layout info.
         The default, ``layout=None``, will figure out layout based on info.
     fig: matplotlib.pyplot.Figure | None, optional
-        Figure object on which DSMs on 2D MEG topography are plotted.
+        Figure object on which DSMs on 2D sensor topography are plotted.
         The default (``None``) creates a new Figure object
         with a title based on time parameter.
     axis_facecolor: str, optional
@@ -193,43 +193,44 @@ def plot_dsms_topo(dsms, info, time=None, layout=None, fig=None,
         Defaults to (6.4, 4.8).
     cmap: str, optional
         Colormap used for plotting DSMs. Defaults to 'viridis'.
-        Check matplotlib.pyplot.imshow for details.
+        Check :func:`matplotlib.pyplot.imshow` for details.
     show: bool, optional
         Whether to display the generated figure. Defaults to ``True``.
 
     Returns
     -------
     fig: matplotlib.pyplot.Figure
-        Figure object in which DSMs are plotted on 2D MEG topography.
+        Figure object in which DSMs are plotted on 2D sensor topography.
     """
-    if len(dsms.shape) != 3:
-        raise ValueError("dsms have to be 3-dimensional ndarray or "
-                         "numpy.memmap, "
-                         "[n_sensors, n_timepointss, n_dsm_datapoints]")
+    if dsms.ndim != 2 and dsms.ndim != 3:
+        raise ValueError('dsms have to be a 2D or 3D ndarray or numpy.memmap, '
+                         '[n_sensors,[ n_times,] n_dsm_datapoints]')
+    if len(dsms.shape) == 2:
+        dsms = dsms[:, np.newaxis, :]
     if time is None:
         time = [0, dsms.shape[1]]
     if isinstance(time, int):
         time = [time, time + 1]
     if not isinstance(time, list):
-        raise TypeError("time has to be int, list of [int, int] or None.")
+        raise TypeError('time has to be int, list of [int, int] or None.')
     if (not all(isinstance(i, int) for i in time)) or (len(time) != 2):
-        raise TypeError("time has to be int, list of [int, int] or None.")
+        raise TypeError('time has to be int, list of [int, int] or None.')
     if time[0] >= time[1]:
-        raise ValueError("The start of the time window has to be smaller "
-                         "than the end of the time window.")
+        raise ValueError('The start of the time window has to be smaller '
+                         'than the end of the time window.')
     if time[0] < 0 or time[1] > dsms.shape[1]:
-        raise ValueError("The time window is out of range. The minimum is 0 "
-                         f"and the maximum is {dsms.shape[1]}")
+        raise ValueError('The time window is out of range. The minimum is 0 '
+                         f'and the maximum is {dsms.shape[1]}')
     if (fig is not None) and (not isinstance(fig, plt.Figure)):
-        raise TypeError("fig has to be matplotlib.pyplot.Figure or None.")
+        raise TypeError('fig has to be matplotlib.pyplot.Figure or None.')
 
     dsms_cropped = dsms[:, time[0]:time[1], :]
     dsms_avg = dsms_cropped.mean(axis=1)
     # set title to time window
     if time[0] + 1 != time[1]:
-        title = f"From {time[0]} (inclusive) to {time[1]} (exclusive)"
+        title = f'From {time[0]} (inclusive) to {time[1]} (exclusive)'
     else:
-        title = f"Time point: {time[0]}"
+        title = f'Time point: {time[0]}'
 
     fig = _plot_dsms_topo_timepoint(dsms_avg, info, fig=fig, layout=layout,
                                     title=title,
