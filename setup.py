@@ -17,6 +17,9 @@ if __name__ == "__main__":
     if os.path.exists('MANIFEST'):
         os.remove('MANIFEST')
 
+    with open('README.rst', 'r') as fid:
+        long_description = fid.read()
+
     setup(
         name='mne-rsa',
         maintainer='Marijn van Vliet',
@@ -26,7 +29,7 @@ if __name__ == "__main__":
         url='https://github.com/wmvanvliet/mne-rsa',
         version=version,
         download_url='https://github.com/wmvanvliet/mne-rsa/archive/master.zip',
-        long_description=open('README.rst').read(),
+        long_description=long_description,
         classifiers=['Intended Audience :: Science/Research',
                      'Intended Audience :: Developers',
                      'License :: OSI Approved',
