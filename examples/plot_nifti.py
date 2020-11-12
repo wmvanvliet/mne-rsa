@@ -77,7 +77,7 @@ rsa_vals = mne_rsa.rsa_nifti(
     bold,                            # The BOLD data
     model_dsm,                       # The model DSM we constructed above
     image_dsm_metric='correlation',  # Metric to compute the BOLD DSMs
-    rsa_metric='kendall-tau-a',      # Metric to compare model and EEG DSMs
+    rsa_metric='kendall-tau-a',      # Metric to compare model and BOLD DSMs
     spatial_radius=0.01,             # Spatial radius of the searchlight patch
     roi_mask=mask,                   # Restrict analysis to the VT ROI
     n_jobs=1,                        # Only use one CPU core.

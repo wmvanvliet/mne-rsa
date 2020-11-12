@@ -123,8 +123,8 @@ Integration with other packages
 
 I mainly wrote this package to perform RSA analysis on MEG data. Hence,
 integration functions with `MNE-Python <https://mne.tools>`__ are
-provided. No integration with `nipy <https://nipy.org>`__ yet for fMRI,
-feel free to submit a PR!
+provided. There is also some integration with `nipy <https://nipy.org>`__ for
+fMRI.
 
 Performance
 -----------
