@@ -1,4 +1,4 @@
-__version__ = '0.4'
+__version__ = '0.5dev'
 from .source_level import rsa_stcs, dsm_stcs, rsa_nifti, dsm_nifti
 from .sensor_level import rsa_evokeds, rsa_epochs, dsm_evokeds, dsm_epochs
 from .searchlight import searchlight
