@@ -21,11 +21,8 @@ Representational similarity analysis - connecting the branches of
 systems neuroscience. Frontiers in Systems Neuroscience, 2(4).
 https://doi.org/10.3389/neuro.06.004.2008
 
-.. raw:: html
-
-  <p align="center">
-  <img src="https://raw.githubusercontent.com/wmvanvliet/mne-rsa/master/doc/rsa.png" alt="Overview of the RSA technique" width="400"/>
-  </p>
+.. image:: https://raw.githubusercontent.com/wmvanvliet/mne-rsa/master/doc/rsa.png
+   :width: 400
 
 
 Installation
@@ -33,7 +30,7 @@ Installation
 
 Here is how to install the package as a user:
 
-``pip install git+https://github.com/wmvanvliet/mne-rsa.git``
+``pip install mne-rsa``
 
 Use cases
 ---------
@@ -123,8 +120,8 @@ Integration with other packages
 
 I mainly wrote this package to perform RSA analysis on MEG data. Hence,
 integration functions with `MNE-Python <https://mne.tools>`__ are
-provided. No integration with `nipy <https://nipy.org>`__ yet for fMRI,
-feel free to submit a PR!
+provided. There is also some integration with `nipy <https://nipy.org>`__ for
+fMRI.
 
 Performance
 -----------
