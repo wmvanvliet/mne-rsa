@@ -74,7 +74,7 @@ def _partial_correlation(dsm_data, dsm_model, type='pearson'):
         raise ValueError('Need more than one model DSM to use partial '
                          'correlation as metric.')
     if type not in ['pearson', 'spearman']:
-        raise ValueError("Correlation type must by either 'pearson' or "
+        raise ValueError("Correlation type must be either 'pearson' or "
                          "'spearman'")
     X = np.vstack([dsm_data] + dsm_model).T
     if type == 'spearman':

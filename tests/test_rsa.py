@@ -3,6 +3,7 @@ from types import GeneratorType
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal
 from mne_rsa import searchlight, rsa, rsa_gen, rsa_array
+from mne_rsa.rsa import _kendall_tau_a, _partial_correlation
 
 
 def dsm():
@@ -231,3 +232,47 @@ class TestRSASearchlight:
                                data_dsm_metric='euclidean', n_jobs=2)
         assert rsa_result.shape == (2, 1, 2)
         assert_equal(rsa_result, 1)
+
+
+class TestKendallTau:
+    def test_basic(self):
+        """Test computing Kendall's Tau Alpha"""
+        # This metric deals well with ties
+        assert _kendall_tau_a([1, 2, 3], [1, 3, 3]) == 2 / 3
+
+        # Test taken from scipy
+        assert _kendall_tau_a([9, 2, 5, 6], [4, 7, 9, 11]) == 0
+
+    def test_sizes(self):
+        """Test feeding arrays to Kendall's Tau Alpha of unequal size."""
+        with pytest.raises(ValueError, match='must be of the same size'):
+            _kendall_tau_a([1, 2, 3], [1, 2, 3, 4, 5])
+
+    def test_empty(self):
+        """Test feeding empty arrays to Kendall's Tau Alpha."""
+        assert np.isnan(_kendall_tau_a([], []))
+
+    def test_only_ties(self):
+        """Test Kendall's Tau Alpha where every value is a tie."""
+        assert np.isnan(_kendall_tau_a([1, 1, 1], [2, 2, 2]))
+
+
+class TestPartialCorrelation:
+    def test_basic(self):
+        """Test computing partial correlations."""
+        data_dsm = [2, 4, 15, 20]
+        model_dsms = [[1, 2, 3, 4], [0, 0, 1, 1]]
+        assert_allclose(
+            _partial_correlation(data_dsm, model_dsms, type='pearson'),
+            [0.919145, 0.912871])
+        print(_partial_correlation(data_dsm, model_dsms, type='spearman'))
+        assert_allclose(
+            _partial_correlation(data_dsm, model_dsms, type='spearman'),
+            [-1, 0.89442719])
+
+    def test_sizes(self):
+        """Test feeding arrays of invalid size to _partial_correlation."""
+        with pytest.raises(ValueError, match='Need more than one model DSM'):
+            _partial_correlation([1, 2], [[1, 2]])
+        with pytest.raises(ValueError, match='Correlation type must be'):
+            _partial_correlation([1, 2], [[1, 2], [1, 2]], type='banana')

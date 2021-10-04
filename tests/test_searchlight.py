@@ -41,6 +41,16 @@ class TestSearchLight:
             (slice(None), np.array([1, 2]), slice(1, 4)),
         ])
 
+        # Test using subsets of series and samples
+        s = searchlight((10, 3, 4), dist, spatial_radius=2, temporal_radius=1,
+                        sel_series=[1, 2], sel_samples=[2, 3])
+        assert len(s) == 2
+        assert s.shape == (2, 1)
+        assert_equal(list(s), [
+            (slice(None), np.array([0, 1, 2]), slice(1, 4)),
+            (slice(None), np.array([1, 2]), slice(1, 4)),
+        ])
+
     def test_iter_spatial(self):
         """Test generating spatial searchlight patches."""
         dist = np.array([[0, 1, 2],
@@ -125,6 +135,12 @@ class TestSearchLight:
         assert s.shape == tuple()
         assert_equal(next(s), (slice(None),))
 
+        # Test using subsets of series and samples
+        s = searchlight((10, 3, 4), sel_series=[1, 2], sel_samples=[2, 3])
+        assert len(s) == 1
+        assert s.shape == tuple()
+        assert_equal(next(s), (slice(None), [1, 2], [2, 3]))
+
     def test_invalid_input(self):
         """Test giving invalid input to searchlight generator."""
         dist = np.array([[0, 1, 2],
@@ -145,7 +161,11 @@ class TestSearchLight:
             searchlight((10,), dist=dist, spatial_radius=1)
         with pytest.raises(ValueError, match='no distance information'):
             searchlight((10, 5), spatial_radius=1)
+        with pytest.raises(ValueError, match='no spatial dimension'):
+            searchlight((10,), sel_series=[1, 2])
 
         # Temporal case
         with pytest.raises(ValueError, match='no temporal dimension'):
             searchlight((10,), dist=dist, temporal_radius=1)
+        with pytest.raises(ValueError, match='no temporal dimension'):
+            searchlight((10,), dist=dist, sel_samples=[1, 2])

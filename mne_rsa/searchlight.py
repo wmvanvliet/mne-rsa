@@ -116,8 +116,6 @@ class searchlight:
             from scipy.sparse import issparse
             if issparse(self.dist):
                 self.dist = self.dist.tocsr()
-        else:
-            self.sel_series = None
 
         # Will we be creating temporal searchlight patches?
         if temporal_radius is not None:
@@ -133,14 +131,24 @@ class searchlight:
                 t for t in self.sel_samples
                 if t - temporal_radius >= 0 and t + temporal_radius < n_samples
             ]
-        else:
-            self.sel_samples = None
 
         # Create a template for the patches that will be generated that is
         # compatible with the data array dimensions. By default, we select
         # everything along every dimension. This template will be filled-in
         # inside the __iter__ function.
         self.patch_template = [slice(None)] * n_dims
+        if self.sel_series is not None:
+            if self.series_dim is None:
+                raise ValueError('Cannot select series:'
+                                 f'the provided data matrix {shape} has no '
+                                 'spatial dimension.')
+            self.patch_template[self.series_dim] = self.sel_series
+        if self.sel_samples is not None:
+            if self.samples_dim is None:
+                raise ValueError('Cannot select samples:'
+                                 f'the provided data matrix {shape} has no '
+                                 'temporal dimension.')
+            self.patch_template[self.samples_dim] = self.sel_samples
 
         # Setup the main generator function that will be providing the
         # searchlight patches.
