@@ -698,7 +698,7 @@ def _add_volume_source_space_distances(src, dist_limit):
     i = i.ravel()[idx]
     j = j.ravel()[idx]
     src[0]['dist'] = csr_matrix((d, (i, j)), shape=(n_sources, n_sources))
-    src[0]['dist_limit'] = np.array([dist_limit], np.float32)
+    src[0]['dist_limit'] = np.array([dist_limit], 'float32')
     return src
 
 

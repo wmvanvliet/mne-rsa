@@ -37,12 +37,12 @@ def _kendall_tau_a(x, y):
     size = x.size
     perm = np.argsort(y)  # sort on y and convert y to dense ranks
     x, y = x[perm], y[perm]
-    y = np.r_[True, y[1:] != y[:-1]].cumsum(dtype=np.intp)
+    y = np.r_[True, y[1:] != y[:-1]].cumsum(dtype='intp')
 
     # stable sort on x and convert x to dense ranks
     perm = np.argsort(x, kind='mergesort')
     x, y = x[perm], y[perm]
-    x = np.r_[True, x[1:] != x[:-1]].cumsum(dtype=np.intp)
+    x = np.r_[True, x[1:] != x[:-1]].cumsum(dtype='intp')
 
     dis = _kendall_dis(x, y)  # discordant pairs
 
