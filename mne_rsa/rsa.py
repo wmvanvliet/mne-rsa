@@ -5,12 +5,17 @@ Methods to compute representational similarity analysis (RSA).
 
 import numpy as np
 from scipy import stats
-from scipy.stats.stats import _kendall_dis
 from joblib import Parallel, delayed
 
 from .folds import _create_folds
 from .dsm import _ensure_condensed, compute_dsm, compute_dsm_cv
 from .searchlight import searchlight
+
+try:
+    # Version 1.8.0 and up
+    from scipy.stats._stats_py import _kendall_dis
+except ImportError:
+    from scipy.stats.stats import _kendall_dis
 
 
 def _kendall_tau_a(x, y):
