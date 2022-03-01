@@ -154,13 +154,14 @@ def rsa_stcs(stcs, dsm_model, src, spatial_radius=0.04, temporal_radius=0.1,
         if temporal_radius < 1:
             raise ValueError('Temporal radius is less than one sample.')
 
-    sel_samples = _tmin_tmax_to_indices(stcs[0].times, tmin, tmax)
+    samples_from, samples_to = _tmin_tmax_to_indices(stcs[0].times, tmin, tmax)
 
     # Perform the RSA
     X = np.array([stc.data for stc in stcs])
     patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
                           temporal_radius=temporal_radius,
-                          sel_series=sel_vertices, sel_samples=sel_samples)
+                          sel_series=sel_vertices, samples_from=samples_from,
+                          samples_to=samples_to)
     data = rsa_array(X, dsm_model, patches, data_dsm_metric=stc_dsm_metric,
                      data_dsm_params=stc_dsm_params, rsa_metric=rsa_metric,
                      y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
@@ -175,7 +176,8 @@ def rsa_stcs(stcs, dsm_model, src, spatial_radius=0.04, temporal_radius=0.1,
             vertices = [np.array([1])]
         else:
             vertices = [np.array([1]), np.array([])]
-    tmin = _construct_tmin(stcs[0].times, sel_samples, temporal_radius)
+    tmin = _construct_tmin(stcs[0].times, samples_from, samples_to,
+                           temporal_radius)
     tstep = stcs[0].tstep
 
     if one_model:
@@ -273,12 +275,13 @@ def dsm_stcs(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
         if temporal_radius < 1:
             raise ValueError('Temporal radius is less than one sample.')
 
-    sel_samples = _tmin_tmax_to_indices(stcs[0].times, tmin, tmax)
+    samples_from, samples_to = _tmin_tmax_to_indices(stcs[0].times, tmin, tmax)
 
     X = np.array([stc.data for stc in stcs])
     patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
                           temporal_radius=temporal_radius,
-                          sel_series=sel_vertices, sel_samples=sel_samples)
+                          sel_series=sel_vertices, samples_from=samples_from,
+                          samples_to=samples_to)
     yield from dsm_array(X, patches, dist_metric=dist_metric,
                          dist_params=dist_params, y=y, n_folds=n_folds)
 
@@ -406,7 +409,7 @@ def rsa_nifti(image, dsm_model, spatial_radius=0.01,
     voxel_loc /= 1000  # convert position from mm to meters
 
     # Apply masks
-    result_mask = np.ones(image.shape[:3], dtype=np.bool)
+    result_mask = np.ones(image.shape[:3], dtype=bool)
     if brain_mask is not None:
         if brain_mask.ndim != 3 or brain_mask.shape != image.shape[:3]:
             raise ValueError('Brain mask must be a 3-dimensional Nifi-like '
@@ -534,7 +537,7 @@ def dsm_nifti(image, spatial_radius=0.01, dist_metric='correlation',
     voxel_loc /= 1000  # convert position from mm to meters
 
     # Apply masks
-    result_mask = np.ones(image.shape[:3], dtype=np.bool)
+    result_mask = np.ones(image.shape[:3], dtype=bool)
     if brain_mask is not None:
         if brain_mask.ndim != 3 or brain_mask.shape != image.shape[:3]:
             raise ValueError('Brain mask must be a 3-dimensional Nifi-like '

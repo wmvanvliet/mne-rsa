@@ -172,7 +172,8 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
     picks = mne.io.pick._picks_to_idx(evokeds[0].info, picks, none='data')
     if len(picks) != len(set(picks)):
         raise ValueError("`picks` are not unique. Please remove duplicates.")
-    sel_samples = _tmin_tmax_to_indices(evokeds[0].times, tmin, tmax)
+    samples_from, samples_to = _tmin_tmax_to_indices(evokeds[0].times,
+                                                     tmin, tmax)
 
     if spatial_radius is not None:
         logger.info(f'    Spatial radius: {spatial_radius} meters')
@@ -185,7 +186,8 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
     X = np.array([evoked.data for evoked in evokeds])
     patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
                           temporal_radius=temporal_radius,
-                          sel_series=picks, sel_samples=sel_samples)
+                          sel_series=picks, samples_from=samples_from,
+                          samples_to=samples_to)
     data = rsa_array(X, dsm_model, patches, data_dsm_metric=evoked_dsm_metric,
                      data_dsm_params=evoked_dsm_params, rsa_metric=rsa_metric,
                      y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
@@ -195,7 +197,8 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
         info = mne.pick_info(evokeds[0].info, picks)
     else:
         info = mne.create_info(['rsa'], evokeds[0].info['sfreq'])
-    tmin = _construct_tmin(evokeds[0].times, sel_samples, temporal_radius)
+    tmin = _construct_tmin(evokeds[0].times, samples_from, samples_to,
+                           temporal_radius)
 
     if one_model:
         return mne.EvokedArray(data[:, :, 0], info, tmin, comment='RSA',
@@ -350,7 +353,7 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
     picks = mne.io.pick._picks_to_idx(epochs.info, picks, none='data')
     if len(picks) != len(set(picks)):
         raise ValueError("`picks` are not unique. Please remove duplicates.")
-    sel_samples = _tmin_tmax_to_indices(epochs.times, tmin, tmax)
+    samples_from, samples_to = _tmin_tmax_to_indices(epochs.times, tmin, tmax)
 
     if spatial_radius is not None:
         logger.info(f'    Spatial radius: {spatial_radius} meters')
@@ -363,7 +366,8 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
     X = epochs.get_data()
     patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
                           temporal_radius=temporal_radius,
-                          sel_series=picks, sel_samples=sel_samples)
+                          sel_series=picks, samples_from=samples_from,
+                          samples_to=samples_to)
     data = rsa_array(X, dsm_model, patches, data_dsm_metric=epochs_dsm_metric,
                      data_dsm_params=epochs_dsm_params, rsa_metric=rsa_metric,
                      y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
@@ -374,7 +378,8 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
         info = mne.pick_info(info, picks)
     else:
         info = mne.create_info(['rsa'], epochs.info['sfreq'])
-    tmin = _construct_tmin(epochs.times, sel_samples, temporal_radius)
+    tmin = _construct_tmin(epochs.times, samples_from, samples_to,
+                           temporal_radius)
 
     if one_model:
         return mne.EvokedArray(data, info, tmin, comment='RSA',
@@ -577,39 +582,35 @@ def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
     picks = mne.io.pick._picks_to_idx(epochs.info, picks, none='data')
     if len(picks) != len(set(picks)):
         raise ValueError("`picks` are not unique. Please remove duplicates.")
-    sel_samples = _tmin_tmax_to_indices(epochs.times, tmin, tmax)
+    samples_from, samples_to = _tmin_tmax_to_indices(epochs.times, tmin, tmax)
 
     # Compute the DSMs
     X = epochs.get_data()
     patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
                           temporal_radius=temporal_radius,
-                          sel_series=picks, sel_samples=sel_samples)
+                          sel_series=picks, samples_from=samples_from,
+                          samples_to=samples_to)
     yield from dsm_array(X, patches, dist_metric=dist_metric,
                          dist_params=dist_params, y=y, n_folds=n_folds)
 
 
 def _tmin_tmax_to_indices(times, tmin, tmax):
     """Convert tmin tmax parameters to an array of sample indices."""
-    if tmin is None and tmax is None:
-        sel_times = None
+    if tmin is None:
+        samples_from = 0
     else:
-        if tmin is None:
-            tmin = times[0]
-        if tmax is None:
-            tmin = times[-1]
-        assert times[0] <= tmin < tmax <= times[-1], 'Invalid time range'
-        sel_times = np.arange(np.searchsorted(times, tmin),
-                              np.searchsorted(times, tmax) + 1)
-    return sel_times
+        samples_from = np.searchsorted(times, tmin)
+    if tmax is None:
+        samples_to = len(times)
+    else:
+        samples_to = np.searchsorted(times, tmax)
+    if samples_from > samples_to:
+        raise ValueError(f'Invalid time range: {tmin} to {tmax}')
+    return samples_from, samples_to
 
 
-def _construct_tmin(times, sel_times, temporal_radius):
-    if sel_times is None and temporal_radius is None:
-        return times[int(round(len(times) / 2))]
-    elif sel_times is not None and temporal_radius is None:
-        return times[int(round(np.mean(sel_times)))]
-    elif sel_times is None and temporal_radius is not None:
-        return times[temporal_radius]
-    elif sel_times is not None and temporal_radius is not None:
-        return times[max(temporal_radius, sel_times[0])]
-    # above cases are exhaustive
+def _construct_tmin(times, samples_from, samples_to, temporal_radius):
+    if temporal_radius is None:
+        return times[(samples_from + samples_to) // 2]
+    else:
+        return times[max(temporal_radius, samples_from)]

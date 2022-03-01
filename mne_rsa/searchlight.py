@@ -56,10 +56,16 @@ class searchlight:
         When set, searchlight patches will only be generated for the subset of
         time series with the given indices. Defaults to ``None``, in which case
         patches for all series are generated.
-    sel_samples : ndarray, shape (n_selected_series,) | None
+    samples_from : int
         When set, searchlight patches will only be generated for the subset of
-        time samples with the given indices. Defaults to ``None``, in which
-        case patches for all samples are generated.
+        time samples with indices equal or greater than the given value. Only
+        used when the given data shape includes a temporal dimension.
+        Defaults to 0.
+    samples_to : int
+        When set, searchlight patches will only be generated for the subset of
+        time samples with indices up to, but not including, the given value.
+        Only used when the given data shape includes a temporal dimension.
+        Defaults to -1, which means there is no upper bound.
 
     Yields
     ------
@@ -74,7 +80,7 @@ class searchlight:
     """
     def __init__(self, shape, dist=None, spatial_radius=None,
                  temporal_radius=None, sel_series=None,
-                 sel_samples=None):
+                 samples_from=0, samples_to=-1):
         # Interpret the dimensions of the data array (see docstring)
         n_dims = len(shape)
         if n_dims >= 4:
@@ -97,7 +103,26 @@ class searchlight:
         self.spatial_radius = spatial_radius
         self.temporal_radius = temporal_radius
         self.sel_series = sel_series
-        self.sel_samples = sel_samples
+
+        # Boundry checking for samples_from and samples_to. Only relevant if
+        # there is a temporal dimension to the data.
+        if samples_from != 0 or samples_to != -1:
+            if self.samples_dim is None:
+                raise ValueError('Cannot select samples:'
+                                 f'the provided data shape {shape} has no '
+                                 'temporal dimension.')
+            n_samples = shape[self.samples_dim]
+            if samples_from < 0 or samples_from > n_samples:
+                raise ValueError(f'`samples_from={samples_from}` is out '
+                                 f'of bounds given data shape ({shape}).')
+            if samples_to > n_samples:
+                raise ValueError(f'`samples_to={samples_to}` is out '
+                                 f'of bounds given data shape ({shape}).')
+            if samples_to != -1 and samples_to < samples_from:
+                raise ValueError(f'`samples_to={samples_to} is smaller '
+                                 f'than `samples_from={samples_from}.')
+        self.samples_from = samples_from
+        self.samples_to = samples_to
 
         # Will we be creating spatial searchlight patches?
         if self.spatial_radius is not None:
@@ -107,7 +132,7 @@ class searchlight:
                                  '(=dist parameter).')
             if self.series_dim is None:
                 raise ValueError('Cannot create spatial searchlight patches: '
-                                 f'the provided data matrix {shape} has no '
+                                 f'the provided data shape ({shape}) has no '
                                  'spatial dimension.')
             if self.sel_series is None:
                 self.sel_series = np.arange(shape[self.series_dim])
@@ -121,34 +146,44 @@ class searchlight:
         if temporal_radius is not None:
             if self.samples_dim is None:
                 raise ValueError('Cannot create temporal searchlight patches: '
-                                 f'the provided data matrix {shape} has no '
+                                 f'the provided data shape ({shape}) has no '
                                  'temporal dimension.')
             n_samples = shape[self.samples_dim]
-            if self.sel_samples is None:
-                self.sel_samples = np.arange(n_samples)
-            # Get a valid time range given the size of the sliding windows
-            self.time_centers = [
-                t for t in self.sel_samples
-                if t - temporal_radius >= 0 and t + temporal_radius < n_samples
-            ]
+
+            # Compute the centers of the searchlight patches in time. Make sure
+            # that adding/subtracting the temporal_radius does not produce
+            # array out of bounds errors.
+            samples_min = temporal_radius
+            samples_max = n_samples - temporal_radius
+            if samples_min > samples_max:
+                raise ValueError(
+                    f'Temporal radius ({temporal_radius}) too large for the '
+                    f'given data shape ({shape}).')
+            self.time_centers = list(range(
+                np.clip(samples_from, samples_min, samples_max),
+                np.clip(n_samples if samples_to == -1 else samples_to,
+                        samples_min, samples_max)
+            ))
 
         # Create a template for the patches that will be generated that is
         # compatible with the data array dimensions. By default, we select
-        # everything along every dimension. This template will be filled-in
-        # inside the __iter__ function.
+        # everything along every dimension, taking `sel_series`, `samples_from`
+        # and `samples_to` into account. This template will be filled-in inside
+        # the __iter__ function.
         self.patch_template = [slice(None)] * n_dims
         if self.sel_series is not None:
             if self.series_dim is None:
                 raise ValueError('Cannot select series:'
-                                 f'the provided data matrix {shape} has no '
+                                 f'the provided data shape {shape} has no '
                                  'spatial dimension.')
             self.patch_template[self.series_dim] = self.sel_series
-        if self.sel_samples is not None:
+        if self.samples_from != 0 or self.samples_to != -1:
             if self.samples_dim is None:
                 raise ValueError('Cannot select samples:'
-                                 f'the provided data matrix {shape} has no '
+                                 f'the provided data shape {shape} has no '
                                  'temporal dimension.')
-            self.patch_template[self.samples_dim] = self.sel_samples
+            self.patch_template[self.samples_dim] = slice(self.samples_from,
+                                                          self.samples_to)
 
         # Setup the main generator function that will be providing the
         # searchlight patches.
