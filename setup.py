@@ -43,5 +43,6 @@ if __name__ == "__main__":
                      'Operating System :: MacOS'],
         platforms='any',
         packages=['mne_rsa'],
-        install_requires=['numpy', 'scipy', 'matplotlib', 'mne'],
+        install_requires=['numpy', 'scipy', 'scikit-learn', 'nibabel',
+                          'matplotlib', 'mne'],
     )
