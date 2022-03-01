@@ -12,16 +12,16 @@ jobs:
       env:
           DISPLAY: ":99"
           OPENBLAS_NUM_THREADS: 4
-          MNE_3D_BACKEND: mayavi
+          MNE_3D_BACKEND: pyvista
           _MNE_BRAIN_TRACES_AUTO: false
 
       steps:
         - uses: actions/checkout@v2
           
-        - name: Set up Python 3.8
+        - name: Set up Python 3.9
           uses: actions/setup-python@v2
           with:
-            python-version: 3.8
+            python-version: 3.9
 
         - name: Merge with upstream
           run: |
@@ -58,17 +58,9 @@ jobs:
 
         - name: Install Python dependencies
           run: |
-            python -m pip install --user --upgrade --progress-bar off pip numpy setuptools
-            python -m pip install --user --upgrade --progress-bar off -f "https://vtk.org/download" "vtk>=9"
-            python -m pip install --user --upgrade --progress-bar off https://github.com/enthought/mayavi/zipball/master
+            python -m pip install --user --upgrade --progress-bar off pip wheel
             python -m pip install --user --upgrade --progress-bar off -r doc/requirements.txt
-            python -m pip install --user --upgrade --progress-bar off --pre sphinx
-            python -m pip install --user --upgrade --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme memory_profiler "https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip"
-            python -m pip install --user --upgrade seaborn
             python -m pip install --user -e .
-
-        - name: Set PATH
-          run: echo "::add-path:://home/runner/.local/bin"
 
         # Look at what we have and fail early if there is some library conflict
         - name: Check installation
