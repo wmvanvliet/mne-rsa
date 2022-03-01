@@ -31,7 +31,7 @@ import mne
 import mne_rsa
 
 mne.set_log_level(False)  # Be less verbose
-mne.viz.set_3d_backend('mayavi')
+mne.viz.set_3d_backend('pyvista')
 
 ###############################################################################
 # We'll be using the data from the MNE-sample set. To speed up computations in

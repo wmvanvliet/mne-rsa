@@ -107,7 +107,6 @@ Basic example on the EEG “kiloword” data:
 
 Documentation
 -------------
-See the `overview <https://users.aalto.fi/~vanvlm1/mne-rsa/auto_examples/overview.html>`__ to learn about the RSE technique by going through an example dataset.
 
 For quick guides on how to do specific things, see the
 `examples <https://users.aalto.fi/~vanvlm1/mne-rsa/auto_examples/index.html>`__.

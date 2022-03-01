@@ -3,8 +3,6 @@ scipy
 mne
 scikit-learn
 vtk>=9
-mayavi
-pysurfer
 sphinx_gallery
 sphinx_bootstrap_theme
 numpydoc
@@ -14,3 +12,6 @@ tqdm
 nilearn
 pillow
 nibabel
+pyvista
+pyvistaqt
+pooch

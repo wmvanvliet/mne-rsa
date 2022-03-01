@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# encoding: utf8
 #
 # mne-rsa documentation build configuration file, created by
 # sphinx-quickstart on Fri Nov 24 14:06:52 2016.
@@ -14,6 +14,7 @@
 
 import sphinx_bootstrap_theme
 from numpydoc import numpydoc, docscrape  # noqa
+import mne
 import mne_rsa
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -316,7 +317,7 @@ sphinx_gallery_conf = {
     'examples_dirs': '../examples',
     'gallery_dirs': 'auto_examples',
     'backreferences_dir': 'generated',
-    'image_scrapers': ['matplotlib', 'mayavi'],
+    'image_scrapers': ['matplotlib', 'pyvista', mne.viz._brain._BrainScraper()],
     'reference_url': {
         'mne': 'http://mne-tools.github.io/stable/',
         'numpy': 'https://numpy.org/devdocs/',
