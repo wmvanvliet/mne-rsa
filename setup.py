@@ -2,6 +2,8 @@
 from setuptools import setup
 import os
 import os.path as op
+from pathlib import Path
+
 
 # get the version (don't import mne here, so dependencies are not needed)
 version = None
@@ -17,8 +19,7 @@ if __name__ == "__main__":
     if os.path.exists('MANIFEST'):
         os.remove('MANIFEST')
 
-    with open('README.rst', 'r') as fid:
-        long_description = fid.read()
+    long_description = Path('README.rst').read_text(encoding='utf-8')
 
     setup(
         name='mne-rsa',
