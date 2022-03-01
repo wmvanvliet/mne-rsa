@@ -2,6 +2,7 @@
 from setuptools import setup
 import os
 import os.path as op
+import codecs
 
 # get the version (don't import mne here, so dependencies are not needed)
 version = None
@@ -17,7 +18,7 @@ if __name__ == "__main__":
     if os.path.exists('MANIFEST'):
         os.remove('MANIFEST')
 
-    with open('README.rst', 'r') as fid:
+    with codecs.open('README.rst', 'r', encoding='utf8') as fid:
         long_description = fid.read()
 
     setup(
