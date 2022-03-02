@@ -22,7 +22,6 @@ systems neuroscience. Frontiers in Systems Neuroscience, 2(4).
 https://doi.org/10.3389/neuro.06.004.2008
 
 .. image:: https://raw.githubusercontent.com/wmvanvliet/mne-rsa/master/doc/rsa.png
-   :width: 400
 
 
 Installation
@@ -109,8 +108,8 @@ Documentation
 For quick guides on how to do specific things, see the
 `examples <https://users.aalto.fi/~vanvlm1/mne-rsa/auto_examples/index.html>`__.
 
-Finally, there is the `API
-reference <https://users.aalto.fi/~vanvlm1/mne-rsa/api.html>`__
+Finally, there is the
+`API reference <https://users.aalto.fi/~vanvlm1/mne-rsa/api.html>`__
 documentation.
 
 Integration with other packages
@@ -135,12 +134,9 @@ Development
 
 Here is how to set up the package as a developer:
 
-::
+.. code:: bash
 
    git clone git@github.com:wmvanvliet/mne-rsa.git
    cd mne-rsa
    python setup.py develop --user
-
-.. |CircleCI| image:: https://circleci.com/gh/wmvanvliet/mne-rsa.svg?style=shield
-   :target: https://circleci.com/gh/wmvanvliet/mne-rsa
 

@@ -26,6 +26,7 @@ if __name__ == "__main__":
         maintainer='Marijn van Vliet',
         maintainer_email='w.m.vanvliet@gmail.com',
         description='Code for performing Representational Similarity Analysis on MNE-Python data structures.',
+        long_description_content_type='text/x-rst',
         license='BSD-3',
         url='https://github.com/wmvanvliet/mne-rsa',
         version=version,
