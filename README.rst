@@ -62,31 +62,29 @@ Juicy bits of the API
 
 .. code:: python
 
-   def compute_dsm(model, pca=False, metric='correlation', **kwargs)
+   def compute_dsm(data, metric='correlation', **kwargs)
 
-   def rsa_stcs(stcs, model_dsm, src, y=None,
-                spatial_radius=0.04, temporal_radius=0.1,
-                stc_dsm_metric='correlation', stc_dsm_params=None,
-                rsa_metric='spearman',
-                n_jobs=1, verbose=False)
+   def rsa_stcs(stcs, dsm_model, src, spatial_radius=0.04, temporal_radius=0.1,
+                stc_dsm_metric='correlation', stc_dsm_params=dict(),
+                rsa_metric='spearman', y=None, n_folds=1, sel_vertices=None,
+                tmin=None, tmax=None, n_jobs=1, verbose=False):
 
-   def rsa_evokeds(evokeds, model_dsm, y=None, noise_cov=None,
-                   spatial_radius=0.04, temporal_radius=0.1,
-                   evoked_dsm_metric='correlation', evoked_dsm_params=None,
-                   rsa_metric='spearman',
-                   n_jobs=1, verbose=False)
+   def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
+                   temporal_radius=0.1, evoked_dsm_metric='correlation',
+                   evoked_dsm_params=dict(), rsa_metric='spearman', y=None,
+                   n_folds=1, picks=None, tmin=None, tmax=None, n_jobs=1,
+                   verbose=False):
 
-   def rsa_epochs(epochs, model_dsm, y=None, noise_cov=None,
-                  spatial_radius=0.04, temporal_radius=0.1,
-                  epochs_dsm_metric='correlation', epochs_dsm_params=None,
-                  rsa_metric='spearman',
-                  n_jobs=1, verbose=False)
+   def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
+                  temporal_radius=0.1, epochs_dsm_metric='correlation',
+                  epochs_dsm_params=dict(), rsa_metric='spearman', y=None,
+                  n_folds=1, picks=None, tmin=None, tmax=None, n_jobs=1,
+                  verbose=False):
 
-   def rsa_nifti(image, model_dsm, src, y=None,
-                 spatial_radius=0.01, 
-                 image_dsm_metric='correlation', image_dsm_params=None,
-                 rsa_metric='spearman',
-                 n_jobs=1, verbose=False)
+   def rsa_nifti(image, dsm_model, spatial_radius=0.01,
+                 image_dsm_metric='correlation', image_dsm_params=dict(),
+                 rsa_metric='spearman', y=None, n_folds=1, roi_mask=None,
+                 brain_mask=None, n_jobs=1, verbose=False):
 
 Example usage
 -------------
