@@ -17,23 +17,23 @@ Main MNE-RSA functions
     rsa_stcs
     rsa_nifti
 
-Constructing DSMs
+Constructing rdms
 -----------------
 .. autosummary::
     :toctree: functions
     :template: function.rst
 
-    compute_dsm
-    compute_dsm_cv
-    dsm_epochs
-    dsm_stcs
-    dsm_nifti
+    compute_rdm
+    compute_rdm_cv
+    rdm_epochs
+    rdm_stcs
+    rdm_nifti
 
 .. autosummary::
     :toctree: functions
     :template: class.rst
 
-    dsm_array
+    rdm_array
 
 Performing RSA
 --------------
@@ -59,4 +59,4 @@ Visualization
     :toctree: functions
     :template: function.rst
 
-    plot_dsms
+    plot_rdms

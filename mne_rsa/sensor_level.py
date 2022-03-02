@@ -17,14 +17,14 @@ from scipy.spatial import distance
 import mne
 from mne.utils import logger
 
-from .dsm import _n_items_from_dsm, dsm_array
+from .rdm import _n_items_from_rdm, rdm_array
 from .searchlight import searchlight
 from .rsa import rsa_array
 
 
-def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
-                temporal_radius=0.1, evoked_dsm_metric='correlation',
-                evoked_dsm_params=dict(), rsa_metric='spearman', y=None,
+def rsa_evokeds(evokeds, rdm_model, noise_cov=None, spatial_radius=0.04,
+                temporal_radius=0.1, evoked_rdm_metric='correlation',
+                evoked_rdm_params=dict(), rsa_metric='spearman', y=None,
                 n_folds=1, picks=None, tmin=None, tmax=None, n_jobs=1,
                 verbose=False):
     """Perform RSA in a searchlight pattern on evokeds.
@@ -38,13 +38,13 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
         The evoked brain activity for each item. If you have more than one
         Evoked object per item (i.e. repetitions), you can use the ``y``
         parameter to assign evokeds to items.
-    dsm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
-        The model DSM, see :func:`compute_dsm`. For efficiency, you can give it
+    rdm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
+        The model RDM, see :func:`compute_rdm`. For efficiency, you can give it
         in condensed form, meaning only the upper triangle of the matrix as a
         vector. See :func:`scipy.spatial.distance.squareform`. To perform RSA
-        against multiple models at the same time, supply a list of model DSMs.
+        against multiple models at the same time, supply a list of model RDMs.
 
-        Use :func:`compute_dsm` to compute DSMs.
+        Use :func:`compute_rdm` to compute RDMs.
     noise_cov : :class:`mne.Covariance` | None
         When specified, the data will by normalized using the noise covariance.
         This is recommended in all cases, but a hard requirement when the data
@@ -58,17 +58,17 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
         The temporal radius of the searchlight patch in seconds. Set to None to
         only perform the searchlight over sensors, flattening across time.
         Defaults to 0.1.
-    evoked_dsm_metric : str
-        The metric to use to compute the DSM for the evokeds. This can be any
+    evoked_rdm_metric : str
+        The metric to use to compute the RDM for the evokeds. This can be any
         metric supported by the scipy.distance.pdist function. See also the
-        ``evoked_dsm_params`` parameter to specify and additional parameter for
+        ``evoked_rdm_params`` parameter to specify and additional parameter for
         the distance function. Defaults to 'correlation'.
-    evoked_dsm_params : dict
-        Extra arguments for the distance metric used to compute the DSMs.
+    evoked_rdm_params : dict
+        Extra arguments for the distance metric used to compute the RDMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
         and their arguments. Defaults to an empty dictionary.
     rsa_metric : str
-        The RSA metric to use to compare the DSMs. Valid options are:
+        The RSA metric to use to compare the RDMs. Valid options are:
 
         * 'spearman' for Spearman's correlation (the default)
         * 'pearson' for Pearson's correlation
@@ -123,27 +123,27 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
 
     See Also
     --------
-    compute_dsm
+    compute_rdm
     """
-    one_model = type(dsm_model) != list
+    one_model = type(rdm_model) != list
     if one_model:
-        dsm_model = [dsm_model]
+        rdm_model = [rdm_model]
 
-    logger.info(f'Performing RSA between Evokeds and {len(dsm_model)} model '
-                'DSM(s)')
+    logger.info(f'Performing RSA between Evokeds and {len(rdm_model)} model '
+                'RDM(s)')
 
     # Check for compatibility of the evokeds and the model features
-    for dsm in dsm_model:
-        n_items = _n_items_from_dsm(dsm)
+    for rdm in rdm_model:
+        n_items = _n_items_from_rdm(rdm)
         if len(evokeds) != n_items and y is None:
             raise ValueError(
                 'The number of evokeds (%d) should be equal to the '
-                'number of items in `dsm_model` (%d). Alternatively, use '
+                'number of items in `rdm_model` (%d). Alternatively, use '
                 'the `y` parameter to assign evokeds to items.'
                 % (len(evokeds), n_items))
         if y is not None and np.unique(y) != n_items:
             raise ValueError(
-                'The number of items in `dsm_model` (%d) does not match '
+                'The number of items in `rdm_model` (%d) does not match '
                 'the number of items encoded in the `y` matrix (%d).'
                 % (n_items, len(np.unique(y))))
 
@@ -188,8 +188,8 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
                           temporal_radius=temporal_radius,
                           sel_series=picks, samples_from=samples_from,
                           samples_to=samples_to)
-    data = rsa_array(X, dsm_model, patches, data_dsm_metric=evoked_dsm_metric,
-                     data_dsm_params=evoked_dsm_params, rsa_metric=rsa_metric,
+    data = rsa_array(X, rdm_model, patches, data_rdm_metric=evoked_rdm_metric,
+                     data_rdm_params=evoked_rdm_params, rsa_metric=rsa_metric,
                      y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
 
     # Pack the result in an Evoked object
@@ -209,9 +209,9 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
                 for i in range(data.shape[-1])]
 
 
-def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
-               temporal_radius=0.1, epochs_dsm_metric='correlation',
-               epochs_dsm_params=dict(), rsa_metric='spearman', y=None,
+def rsa_epochs(epochs, rdm_model, noise_cov=None, spatial_radius=0.04,
+               temporal_radius=0.1, epochs_rdm_metric='correlation',
+               epochs_rdm_params=dict(), rsa_metric='spearman', y=None,
                n_folds=1, picks=None, tmin=None, tmax=None, n_jobs=1,
                verbose=False):
     """Perform RSA in a searchlight pattern on epochs.
@@ -224,13 +224,13 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
     epochs : instance of mne.Epochs
         The brain activity during the epochs. The event codes are used to
         distinguish between items.
-    dsm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
-        The model DSM, see :func:`compute_dsm`. For efficiency, you can give it
+    rdm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
+        The model RDM, see :func:`compute_rdm`. For efficiency, you can give it
         in condensed form, meaning only the upper triangle of the matrix as a
         vector. See :func:`scipy.spatial.distance.squareform`. To perform RSA
-        against multiple models at the same time, supply a list of model DSMs.
+        against multiple models at the same time, supply a list of model RDMs.
 
-        Use :func:`compute_dsm` to compute DSMs.
+        Use :func:`compute_rdm` to compute RDMs.
     noise_cov : mne.Covariance | None
         When specified, the data will by normalized using the noise covariance.
         This is recommended in all cases, but a hard requirement when the data
@@ -244,17 +244,17 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
         The temporal radius of the searchlight patch in seconds. Set to None to
         only perform the searchlight over sensors, flattening across time.
         Defaults to 0.1.
-    epochs_dsm_metric : str
-        The metric to use to compute the DSM for the epochs. This can be any
+    epochs_rdm_metric : str
+        The metric to use to compute the RDM for the epochs. This can be any
         metric supported by the scipy.distance.pdist function. See also the
-        ``epochs_dsm_params`` parameter to specify and additional parameter for
+        ``epochs_rdm_params`` parameter to specify and additional parameter for
         the distance function. Defaults to 'correlation'.
-    epochs_dsm_params : dict
-        Extra arguments for the distance metric used to compute the DSMs.
+    epochs_rdm_params : dict
+        Extra arguments for the distance metric used to compute the RDMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
         and their arguments. Defaults to an empty dictionary.
     rsa_metric : str
-        The RSA metric to use to compare the DSMs. Valid options are:
+        The RSA metric to use to compare the RDMs. Valid options are:
 
         * 'spearman' for Spearman's correlation (the default)
         * 'pearson' for Pearson's correlation
@@ -310,14 +310,14 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
 
     See Also
     --------
-    compute_dsm
+    compute_rdm
     """
-    one_model = type(dsm_model) is np.ndarray
+    one_model = type(rdm_model) is np.ndarray
     if one_model:
-        dsm_model = [dsm_model]
+        rdm_model = [rdm_model]
 
-    logger.info(f'Performing RSA between Epochs and {len(dsm_model)} model '
-                'DSM(s)')
+    logger.info(f'Performing RSA between Epochs and {len(rdm_model)} model '
+                'RDM(s)')
 
     if y is None:
         y_source = 'Epoch object'
@@ -326,11 +326,11 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
         y_source = '`y` matrix'
 
     # Check for compatibility of the evokeds and the model features
-    for dsm in dsm_model:
-        n_items = _n_items_from_dsm(dsm)
+    for rdm in rdm_model:
+        n_items = _n_items_from_rdm(rdm)
         if len(np.unique(y)) != n_items:
             raise ValueError(
-                'The number of items in `dsm_model` (%d) does not match '
+                'The number of items in `rdm_model` (%d) does not match '
                 'the number of items encoded in the %s (%d).'
                 % (n_items, y_source, len(np.unique(y))))
 
@@ -368,8 +368,8 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
                           temporal_radius=temporal_radius,
                           sel_series=picks, samples_from=samples_from,
                           samples_to=samples_to)
-    data = rsa_array(X, dsm_model, patches, data_dsm_metric=epochs_dsm_metric,
-                     data_dsm_params=epochs_dsm_params, rsa_metric=rsa_metric,
+    data = rsa_array(X, rdm_model, patches, data_rdm_metric=epochs_rdm_metric,
+                     data_rdm_params=epochs_rdm_params, rsa_metric=rsa_metric,
                      y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
 
     # Pack the result in an Evoked object
@@ -390,11 +390,11 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
                 for i in range(data.shape[-1])]
 
 
-def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
+def rdm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
                 temporal_radius=0.1, dist_metric='correlation',
                 dist_params=dict(), y=None, n_folds=None, picks=None,
                 tmin=None, tmax=None):
-    """Generate DSMs in a searchlight pattern on evokeds.
+    """Generate RDMs in a searchlight pattern on evokeds.
 
     Parameters
     ----------
@@ -416,12 +416,12 @@ def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
         only perform the searchlight over sensors, flattening across time.
         Defaults to 0.1.
     dist_metric : str
-        The metric to use to compute the DSM for the evokeds. This can be any
+        The metric to use to compute the RDM for the evokeds. This can be any
         metric supported by the scipy.distance.pdist function. See also the
         ``dist_params`` parameter to specify and additional parameter for the
         distance function. Defaults to 'correlation'.
     dist_params : dict
-        Extra arguments for the distance metric used to compute the DSMs.
+        Extra arguments for the distance metric used to compute the RDMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
         and their arguments. Defaults to an empty dictionary.
     y : ndarray of int, shape (n_items,) | None
@@ -455,8 +455,8 @@ def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
 
     Yields
     ------
-    dsm : ndarray, shape (n_items, n_items)
-        A DSM for each searchlight patch.
+    rdm : ndarray, shape (n_items, n_items)
+        A RDM for each searchlight patch.
     """
     times = evokeds[0].times
     for evoked in evokeds:
@@ -484,20 +484,20 @@ def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
         raise ValueError("`picks` are not unique. Please remove duplicates.")
     sel_samples = _tmin_tmax_to_indices(times, tmin, tmax)
 
-    # Compute the DSMs
+    # Compute the RDMs
     X = np.array([evoked.data for evoked in evokeds])
     patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
                           temporal_radius=temporal_radius,
                           sel_series=picks, sel_samples=sel_samples)
-    yield from dsm_array(X, patches, dist_metric=dist_metric,
+    yield from rdm_array(X, patches, dist_metric=dist_metric,
                          dist_params=dist_params, y=y, n_folds=n_folds)
 
 
-def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
+def rdm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
                temporal_radius=0.1, dist_metric='correlation',
                dist_params=dict(), y=None, n_folds=None, picks=None,
                tmin=None, tmax=None):
-    """Generate DSMs in a searchlight pattern on epochs.
+    """Generate RDMs in a searchlight pattern on epochs.
 
     Parameters
     ----------
@@ -518,12 +518,12 @@ def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
         only perform the searchlight over sensors, flattening across time.
         Defaults to 0.1.
     dist_metric : str
-        The metric to use to compute the DSM for the epochs. This can be any
+        The metric to use to compute the RDM for the epochs. This can be any
         metric supported by the scipy.distance.pdist function. See also the
-        ``epochs_dsm_params`` parameter to specify and additional parameter for
+        ``epochs_rdm_params`` parameter to specify and additional parameter for
         the distance function. Defaults to 'correlation'.
     dist_params : dict
-        Extra arguments for the distance metric used to compute the DSMs.
+        Extra arguments for the distance metric used to compute the RDMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
         and their arguments. Defaults to an empty dictionary.
     y : ndarray of int, shape (n_items,) | None
@@ -557,8 +557,8 @@ def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
 
     Yields
     ------
-    dsm : ndarray, shape (n_items, n_items)
-        A DSM for each searchlight patch.
+    rdm : ndarray, shape (n_items, n_items)
+        A RDM for each searchlight patch.
     """
     if y is None:
         y = epochs.events[:, 2]
@@ -584,13 +584,13 @@ def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
         raise ValueError("`picks` are not unique. Please remove duplicates.")
     samples_from, samples_to = _tmin_tmax_to_indices(epochs.times, tmin, tmax)
 
-    # Compute the DSMs
+    # Compute the RDMs
     X = epochs.get_data()
     patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
                           temporal_radius=temporal_radius,
                           sel_series=picks, samples_from=samples_from,
                           samples_to=samples_to)
-    yield from dsm_array(X, patches, dist_metric=dist_metric,
+    yield from rdm_array(X, patches, dist_metric=dist_metric,
                          dist_params=dist_params, y=y, n_folds=n_folds)
 
 

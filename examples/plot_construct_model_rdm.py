@@ -2,12 +2,12 @@
 # coding: utf-8
 
 """
-Construct a model DSM
+Construct a model RDM
 =====================
 
-This example shows how to create DSMs from arbitrary data. A common use case
-for this is to construct a "model" DSM to RSA against the brain data. In this
-example, we will create a DSM based on the length of the words shown during an
+This example shows how to create RDMs from arbitrary data. A common use case
+for this is to construct a "model" RDM to RSA against the brain data. In this
+example, we will create a RDM based on the length of the words shown during an
 EEG experiment.
 """
 
@@ -28,11 +28,11 @@ epochs = mne.read_epochs(data_path + '/kword_metadata-epo.fif', preload=False)
 print(epochs.metadata.sample(10))
 
 ###############################################################################
-# Now we are ready to create the "model" DSM, which will encode the difference
+# Now we are ready to create the "model" RDM, which will encode the difference
 # in length between the words shown during the experiment.
 
-dsm = mne_rsa.compute_dsm(epochs.metadata.NumberOfLetters, metric='euclidean')
+rdm = mne_rsa.compute_rdm(epochs.metadata.NumberOfLetters, metric='euclidean')
 
-# Plot the DSM
-fig = mne_rsa.plot_dsms(dsm, title='Word length DSM')
+# Plot the RDM
+fig = mne_rsa.plot_rdms(rdm, title='Word length RDM')
 fig.set_size_inches(3, 3)  # Make figure a little bigger to show axis properly

@@ -51,8 +51,8 @@ event_id = {'audio/left': 1,
 epochs = mne.Epochs(raw, events, event_id, preload=True)
 
 ###############################################################################
-# It's important that the model DSM and the epochs are in the same order, so
-# that each row in the model DSM will correspond to an epoch. The model DSM
+# It's important that the model RDM and the epochs are in the same order, so
+# that each row in the model RDM will correspond to an epoch. The model RDM
 # will be easier to interpret visually if the data is ordered such that all
 # epochs belonging to the same experimental condition are right next to
 # each-other, so patterns jump out. This can be achieved by first splitting the
@@ -62,9 +62,9 @@ epoch_splits = [epochs[cl] for cl in ['audio/left', 'audio/right',
 epochs = mne.concatenate_epochs(epoch_splits)
 
 ###############################################################################
-# Now that the epochs are in the proper order, we can create a DSM based on the
-# experimental conditions. This type of DSM is referred to as a "sensitivity
-# DSM". Let's create a sensitivity DSM that will pick up the left auditory
+# Now that the epochs are in the proper order, we can create a RDM based on the
+# experimental conditions. This type of RDM is referred to as a "sensitivity
+# RDM". Let's create a sensitivity RDM that will pick up the left auditory
 # response when RSA-ed against the MEG data. Since we want to capture areas
 # where left beeps generate a large signal, we specify that left beeps should
 # be similar to other left beeps. Since we do not want areas where visual
@@ -89,8 +89,8 @@ def sensitivity_metric(event_id_1, event_id_2):
         return 1  # Not similar at all
 
 
-model_dsm = mne_rsa.compute_dsm(epochs.events[:, 2], metric=sensitivity_metric)
-mne_rsa.plot_dsms(model_dsm, title='Model DSM')
+model_rdm = mne_rsa.compute_rdm(epochs.events[:, 2], metric=sensitivity_metric)
+mne_rsa.plot_rdms(model_rdm, title='Model RDM')
 
 ###############################################################################
 # This example is going to be on source-level, so let's load the inverse
@@ -105,10 +105,10 @@ epochs_stc = mne.minimum_norm.apply_inverse_epochs(epochs, inv, lambda2=0.1111)
 # to parallelize the computation across multiple CPUs.
 rsa_vals = mne_rsa.rsa_stcs(
     epochs_stc,                    # The source localized epochs
-    model_dsm,                     # The model DSM we constructed above
+    model_rdm,                     # The model RDM we constructed above
     src=inv['src'],                # The inverse operator has our source space
-    stc_dsm_metric='correlation',  # Metric to compute the MEG DSMs
-    rsa_metric='kendall-tau-a',    # Metric to compare model and EEG DSMs
+    stc_rdm_metric='correlation',  # Metric to compute the MEG RDMs
+    rsa_metric='kendall-tau-a',    # Metric to compare model and EEG RDMs
     spatial_radius=0.01,           # Spatial radius of the searchlight patch
     temporal_radius=None,          # Don't perform search light over time
     tmin=0.09, tmax=0.11,          # Time interval to analyze

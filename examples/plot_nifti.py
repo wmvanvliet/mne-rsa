@@ -63,12 +63,12 @@ bold = nib.Nifti1Image(bold.get_fdata()[..., meta.index],
 ###############################################################################
 # We're going to hunt for areas in the brain where the signal differentiates
 # nicely between the various object categories. We encode this objective in our
-# "model" DSM: a DSM where stimuli belonging to the same object category have a
+# "model" RDM: a RDM where stimuli belonging to the same object category have a
 # dissimilarity of 0 and stimuli belonging to different categories have a
 # dissimilarity of 1.
-model_dsm = mne_rsa.compute_dsm(meta['labels'],
+model_rdm = mne_rsa.compute_rdm(meta['labels'],
                                 metric=lambda a, b: 0 if a == b else 1)
-mne_rsa.plot_dsms(model_dsm, 'Model DSM')
+mne_rsa.plot_rdms(model_rdm, 'Model RDM')
 
 
 ###############################################################################
@@ -76,9 +76,9 @@ mne_rsa.plot_dsms(model_dsm, 'Model DSM')
 # to parallelize the computation across multiple CPUs.
 rsa_vals = mne_rsa.rsa_nifti(
     bold,                            # The BOLD data
-    model_dsm,                       # The model DSM we constructed above
-    image_dsm_metric='correlation',  # Metric to compute the BOLD DSMs
-    rsa_metric='kendall-tau-a',      # Metric to compare model and BOLD DSMs
+    model_rdm,                       # The model RDM we constructed above
+    image_rdm_metric='correlation',  # Metric to compute the BOLD RDMs
+    rsa_metric='kendall-tau-a',      # Metric to compare model and BOLD RDMs
     spatial_radius=0.01,             # Spatial radius of the searchlight patch
     roi_mask=mask,                   # Restrict analysis to the VT ROI
     n_jobs=1,                        # Only use one CPU core.

@@ -2,58 +2,58 @@ import pytest
 import numpy as np
 from numpy.testing import assert_equal, assert_allclose
 
-from mne_rsa import searchlight, dsm_array, compute_dsm, compute_dsm_cv
-from mne_rsa.dsm import _ensure_condensed, _n_items_from_dsm
+from mne_rsa import searchlight, rdm_array, compute_rdm, compute_rdm_cv
+from mne_rsa.rdm import _ensure_condensed, _n_items_from_rdm
 
 
-class TestDsm:
-    """Test computing a DSM"""
+class Testrdm:
+    """Test computing a rdm"""
 
     def test_basic(self):
-        """Test basic invocation of compute_dsm."""
+        """Test basic invocation of compute_rdm."""
         data = np.array([[1, 2, 3, 4], [1, 2, 3, 4]])
-        dsm = compute_dsm(data)
-        assert dsm.shape == (1,)
-        assert_allclose(dsm, 0, atol=1E-15)
+        rdm = compute_rdm(data)
+        assert rdm.shape == (1,)
+        assert_allclose(rdm, 0, atol=1E-15)
 
     def test_invalid_input(self):
-        """Test giving invalid input to compute_dsm."""
+        """Test giving invalid input to compute_rdm."""
         data = np.array([[1], [1]])
         with pytest.raises(ValueError, match='single feature'):
-            compute_dsm(data, metric='correlation')
+            compute_rdm(data, metric='correlation')
 
     def test_set_metric(self):
-        """Test setting distance metric for computing DSMs."""
+        """Test setting distance metric for computing rdms."""
         data = np.array([[1, 2, 3, 4], [2, 4, 6, 8]])
-        dsm = compute_dsm(data, metric='euclidean')
-        assert dsm.shape == (1,)
-        assert_allclose(dsm, 5.477226)
+        rdm = compute_rdm(data, metric='euclidean')
+        assert rdm.shape == (1,)
+        assert_allclose(rdm, 5.477226)
 
 
-class TestDsmCV:
-    """Test computing a DSM with cross-validation."""
+class TestrdmCV:
+    """Test computing a rdm with cross-validation."""
 
     def test_basic(self):
-        """Test basic invocation of compute_dsm_cv."""
+        """Test basic invocation of compute_rdm_cv."""
         data = np.array([[[1, 2, 3, 4], [1, 2, 3, 4]],
                          [[1, 2, 3, 4], [1, 2, 3, 4]]])
-        dsm = compute_dsm_cv(data)
-        assert dsm.shape == (1,)
-        assert_allclose(dsm, 0, atol=1E-15)
+        rdm = compute_rdm_cv(data)
+        assert rdm.shape == (1,)
+        assert_allclose(rdm, 0, atol=1E-15)
 
     def test_invalid_input(self):
-        """Test giving invalid input to compute_dsm."""
+        """Test giving invalid input to compute_rdm."""
         data = np.array([[[1], [1]]])
         with pytest.raises(ValueError, match='single feature'):
-            compute_dsm_cv(data, metric='correlation')
+            compute_rdm_cv(data, metric='correlation')
 
     def test_set_metric(self):
-        """Test setting distance metric for computing DSMs."""
+        """Test setting distance metric for computing rdms."""
         data = np.array([[[1, 2, 3, 4], [2, 4, 6, 8]],
                          [[1, 2, 3, 4], [2, 4, 6, 8]]])
-        dsm = compute_dsm_cv(data, metric='euclidean')
-        assert dsm.shape == (1,)
-        assert_allclose(dsm, 5.477226)
+        rdm = compute_rdm_cv(data, metric='euclidean')
+        assert rdm.shape == (1,)
+        assert_allclose(rdm, 5.477226)
 
 
 class TestEnsureCondensed:
@@ -61,12 +61,12 @@ class TestEnsureCondensed:
 
     def test_basic(self):
         """Test basic invocation of _ensure_condensed."""
-        dsm = _ensure_condensed(np.array([[0, 1, 2],
+        rdm = _ensure_condensed(np.array([[0, 1, 2],
                                           [1, 0, 3],
                                           [2, 3, 0]]),
                                 var_name='test')
-        assert dsm.shape == (3,)
-        assert_equal(dsm, [1, 2, 3])
+        assert rdm.shape == (3,)
+        assert_equal(rdm, [1, 2, 3])
 
     def test_list(self):
         """Test invocation of _ensure_condensed on a list."""
@@ -76,17 +76,17 @@ class TestEnsureCondensed:
                 np.array([[0, 1, 2],
                           [1, 0, 3],
                           [2, 3, 0]])]
-        dsm = _ensure_condensed(full, var_name='full')
-        assert len(dsm) == 2
-        assert dsm[0].shape == (3,)
-        assert dsm[1].shape == (3,)
-        assert_equal(dsm, [[1, 2, 3], [1, 2, 3]])
+        rdm = _ensure_condensed(full, var_name='full')
+        assert len(rdm) == 2
+        assert rdm[0].shape == (3,)
+        assert rdm[1].shape == (3,)
+        assert_equal(rdm, [[1, 2, 3], [1, 2, 3]])
 
     def test_condensed(self):
-        """Test invocation of _ensure_condensed on already condensed DSM."""
-        dsm = _ensure_condensed(np.array([1, 2, 3]), var_name='test')
-        assert dsm.shape == (3,)
-        assert_equal(dsm, [1, 2, 3])
+        """Test invocation of _ensure_condensed on already condensed rdm."""
+        rdm = _ensure_condensed(np.array([1, 2, 3]), var_name='test')
+        assert rdm.shape == (3,)
+        assert_equal(rdm, [1, 2, 3])
 
     def test_invalid(self):
         """Test _ensure_condensed with invalid inputs."""
@@ -106,43 +106,43 @@ class TestEnsureCondensed:
             _ensure_condensed([1, 2, 3], var_name='test')
 
 
-class TestNItemsFromDSM:
-    """Test the _n_items_from_dsm function."""
+class TestNItemsFromrdm:
+    """Test the _n_items_from_rdm function."""
     def test_basic(self):
-        """Test basic invocation of _n_items_from_dsm."""
-        assert _n_items_from_dsm(np.array([1, 2, 3])) == 3
-        assert _n_items_from_dsm(np.array([[0, 1, 2],
+        """Test basic invocation of _n_items_from_rdm."""
+        assert _n_items_from_rdm(np.array([1, 2, 3])) == 3
+        assert _n_items_from_rdm(np.array([[0, 1, 2],
                                            [1, 0, 3],
                                            [2, 3, 0]])) == 3
 
 
-class TestDsmsSearchlight:
-    """Test computing DSMs with searchlight patches."""
+class TestrdmsSearchlight:
+    """Test computing rdms with searchlight patches."""
 
     def test_temporal(self):
-        """Test computing DSMs using a temporal searchlight."""
+        """Test computing rdms using a temporal searchlight."""
         data = np.array([[1, 2, 3, 4], [1, 2, 3, 4]])
         patches = searchlight(data.shape, temporal_radius=1)
-        dsms = dsm_array(data, patches, dist_metric='euclidean')
-        assert len(dsms) == len(patches)
-        assert dsms.shape == (2, 1)
-        assert_equal(list(dsms), [0, 0])
+        rdms = rdm_array(data, patches, dist_metric='euclidean')
+        assert len(rdms) == len(patches)
+        assert rdms.shape == (2, 1)
+        assert_equal(list(rdms), [0, 0])
 
     def test_spatial(self):
-        """Test computing DSMs using a spatial searchlight."""
+        """Test computing rdms using a spatial searchlight."""
         dist = np.array([[0, 1, 2, 3],
                          [1, 0, 1, 2],
                          [2, 1, 0, 1],
                          [3, 2, 1, 0]])
         data = np.array([[1, 2, 3, 4], [1, 2, 3, 4]])
         patches = searchlight(data.shape, dist, spatial_radius=1)
-        dsms = dsm_array(data, patches, dist_metric='euclidean')
-        assert len(dsms) == len(patches)
-        assert dsms.shape == (4, 1)
-        assert_equal(list(dsms), [0, 0, 0, 0])
+        rdms = rdm_array(data, patches, dist_metric='euclidean')
+        assert len(rdms) == len(patches)
+        assert rdms.shape == (4, 1)
+        assert_equal(list(rdms), [0, 0, 0, 0])
 
     def test_spatio_temporal(self):
-        """Test computing DSMs using a spatio-temporal searchlight."""
+        """Test computing rdms using a spatio-temporal searchlight."""
         data = np.array([[[1, 2, 3], [2, 3, 4]],
                          [[2, 3, 4], [3, 4, 5]],
                          [[3, 4, 5], [4, 5, 6]]])
@@ -151,23 +151,23 @@ class TestDsmsSearchlight:
                          [2, 1, 0]])
         patches = searchlight(data.shape, dist, spatial_radius=1,
                               temporal_radius=1)
-        dsms = dsm_array(data, patches, dist_metric='correlation')
-        assert len(dsms) == len(patches)
-        assert dsms.shape == (2, 1, 3)
-        assert_allclose(list(dsms), [[0, 0, 0], [0, 0, 0]], atol=1E-15)
+        rdms = rdm_array(data, patches, dist_metric='correlation')
+        assert len(rdms) == len(patches)
+        assert rdms.shape == (2, 1, 3)
+        assert_allclose(list(rdms), [[0, 0, 0], [0, 0, 0]], atol=1E-15)
 
     def test_single_patch(self):
-        """Test computing DSMs using a single searchlight patch."""
+        """Test computing rdms using a single searchlight patch."""
         data = np.array([[[1, 2, 3], [2, 3, 4]],
                          [[2, 3, 4], [3, 4, 5]],
                          [[3, 4, 5], [4, 5, 6]]])
-        dsms = dsm_array(data, dist_metric='correlation')
-        assert len(dsms) == 1
-        assert dsms.shape == (3,)
-        assert_allclose(list(dsms), [[0, 0, 0]], atol=1E-15)
+        rdms = rdm_array(data, dist_metric='correlation')
+        assert len(rdms) == 1
+        assert rdms.shape == (3,)
+        assert_allclose(list(rdms), [[0, 0, 0]], atol=1E-15)
 
     def test_crossvalidation(self):
-        """Test computing DSMs using a searchlight and cross-validation."""
+        """Test computing rdms using a searchlight and cross-validation."""
         data = np.array([[[1, 2, 3], [2, 3, 4]],
                          [[2, 3, 4], [3, 4, 5]],
                          [[3, 4, 5], [4, 5, 6]],
@@ -179,7 +179,7 @@ class TestDsmsSearchlight:
                          [2, 1, 0]])
         patches = searchlight(data.shape, dist, spatial_radius=1,
                               temporal_radius=1)
-        dsms = dsm_array(data, patches, y=[1, 2, 3, 1, 2, 3], n_folds=2)
-        assert len(dsms) == len(patches)
-        assert dsms.shape == (2, 1, 3)
-        assert_allclose(list(dsms), [[0, 0, 0], [0, 0, 0]], atol=1E-15)
+        rdms = rdm_array(data, patches, y=[1, 2, 3, 1, 2, 3], n_folds=2)
+        assert len(rdms) == len(patches)
+        assert rdms.shape == (2, 1, 3)
+        assert_allclose(list(rdms), [[0, 0, 0], [0, 0, 0]], atol=1E-15)
