@@ -37,8 +37,8 @@ Use cases
 
 This is what the package can do for you:
 
--  Compute rdms on arbitrary data
--  Compute rdms in a searchlight across:
+-  Compute RDMs on arbitrary data
+-  Compute RDMs in a searchlight across:
 
    -  vertices/voxels and samples (source level)
    -  sensors and samples (sensor level)
@@ -46,16 +46,16 @@ This is what the package can do for you:
    -  sensors only (sensor level)
    -  samples only (source and sensor level)
 
--  Use cross-validated distance metrics when computing rdms
--  And of course: compute RSA between rdms
+-  Use cross-validated distance metrics when computing RDMs
+-  And of course: compute RSA between RDMs
 
-Supported metrics for comparing rdms:
+Supported metrics for comparing RDMs:
 
 -  Spearman correlation (the default)
 -  Pearson correlation
 -  Kendall’s Tau-A
--  Linear regression (when comparing multiple rdms at once)
--  Partial correlation (when comparing multiple rdms at once)
+-  Linear regression (when comparing multiple RDMs at once)
+-  Partial correlation (when comparing multiple RDMs at once)
 
 Juicy bits of the API
 ---------------------
@@ -99,7 +99,7 @@ Basic example on the EEG “kiloword” data:
    import rsa
    data_path = mne.datasets.kiloword.data_path(verbose=True)
    epochs = mne.read_epochs(data_path + '/kword_metadata-epo.fif')
-   # Compute the model rdm using all word properties
+   # Compute the model RDM using all word properties
    rdm_model = rsa.compute_rdm(epochs.metadata.iloc[:, 1:].values)
    evoked_rsa = rsa.rsa_epochs(epochs, rdm_model,
                                spatial_radius=0.04, temporal_radius=0.01,
@@ -128,7 +128,7 @@ Performance
 
 This package aims to be fast and memory efficient. An important design
 feature is that under the hood, everything operates on generators. The
-searchlight routines produce a generator of rdms which are consumed by a
+searchlight routines produce a generator of RDMs which are consumed by a
 generator of RSA values. Parallel processing is also supported, so you
 can use all of your CPU cores.
 
