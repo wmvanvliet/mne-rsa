@@ -115,7 +115,7 @@ def rsa_gen(dsm_data_gen, dsm_model, metric='spearman'):
         Defaults to 'spearman'.
 
     Yields
-    -------
+    ------
     rsa_val : float | ndarray, shape (len(dsm_model),)
         For each data DSM, the representational similarity with the model DSM.
         When multiple model DSMs are specified, this will be a 1D array of

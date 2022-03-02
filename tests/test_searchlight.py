@@ -43,7 +43,7 @@ class TestSearchLight:
 
         # Test using subsets of series and samples
         s = searchlight((10, 3, 4), dist, spatial_radius=2, temporal_radius=1,
-                        sel_series=[1, 2], sel_samples=[2, 3])
+                        sel_series=[1, 2], samples_from=2, samples_to=4)
         assert len(s) == 2
         assert s.shape == (2, 1)
         assert_equal(list(s), [
@@ -136,10 +136,11 @@ class TestSearchLight:
         assert_equal(next(s), (slice(None),))
 
         # Test using subsets of series and samples
-        s = searchlight((10, 3, 4), sel_series=[1, 2], sel_samples=[2, 3])
+        s = searchlight((10, 3, 4), sel_series=[1, 2],
+                        samples_from=2, samples_to=4)
         assert len(s) == 1
         assert s.shape == tuple()
-        assert_equal(next(s), (slice(None), [1, 2], [2, 3]))
+        assert_equal(next(s), (slice(None), [1, 2], slice(2, 4)))
 
     def test_invalid_input(self):
         """Test giving invalid input to searchlight generator."""
@@ -168,4 +169,4 @@ class TestSearchLight:
         with pytest.raises(ValueError, match='no temporal dimension'):
             searchlight((10,), dist=dist, temporal_radius=1)
         with pytest.raises(ValueError, match='no temporal dimension'):
-            searchlight((10,), dist=dist, sel_samples=[1, 2])
+            searchlight((10,), dist=dist, samples_from=1, samples_to=3)

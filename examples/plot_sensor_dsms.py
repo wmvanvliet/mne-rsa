@@ -32,11 +32,11 @@ epochs = epochs.resample(100)
 
 # This will create a generator for the DSMs
 dsms = mne_rsa.dsm_epochs(
-    epochs,                           # The EEG data
-    dist_metric='correlation',        # Metric to compute the EEG DSMs
-    spatial_radius=45,                # Spatial radius of the searchlight patch
-    temporal_radius=None,             # Perform only spatial searchlight
-    tmin=0.15, tmax=0.25,             # To save time, only analyze this time interval
+    epochs,                     # The EEG data
+    dist_metric='correlation',  # Metric to compute the EEG DSMs
+    spatial_radius=45,          # Spatial radius of the searchlight patch
+    temporal_radius=None,       # Perform only spatial searchlight
+    tmin=0.15, tmax=0.25,       # To save time, only analyze this time interval
 )
 
 # Unpack the generator into a NumPy array so we can plot it

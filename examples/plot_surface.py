@@ -25,27 +25,28 @@ either the left or right ear or visual field.
 # sphinx_gallery_thumbnail_number=2
 
 # Import required packages
-import os.path as op
 from matplotlib import pyplot as plt
 import mne
 import mne_rsa
 
 mne.set_log_level(False)  # Be less verbose
-mne.viz.set_3d_backend('mayavi')
+mne.viz.set_3d_backend('pyvista')
 
 ###############################################################################
 # We'll be using the data from the MNE-sample set. To speed up computations in
 # this example, we're going to use one of the sparse source spaces from the
-# testing set. 
-sample_path = op.join(mne.datasets.sample.data_path(verbose=True), 'MEG', 'sample')
-testing_path = op.join(mne.datasets.testing.data_path(verbose=True), 'MEG', 'sample')
-subjects_dir = op.join(mne.datasets.sample.data_path(verbose=True), 'subjects')
+# testing set.
+sample_root = mne.datasets.sample.data_path(verbose=True)
+testing_root = mne.datasets.testing.data_path(verbose=True)
+sample_path = f'{sample_root}/MEG/sample'
+testing_path = f'{testing_root}/MEG/sample'
+subjects_dir = f'{sample_root}/subjects'
 
 ###############################################################################
 # Creating epochs from the continuous (raw) data. We downsample to 100 Hz to
 # speed up the RSA computations later on.
-raw = mne.io.read_raw_fif(op.join(sample_path, 'sample_audvis_filt-0-40_raw.fif'))
-events = mne.read_events(op.join(sample_path, 'sample_audvis_filt-0-40_raw-eve.fif'))
+raw = mne.io.read_raw_fif(f'{sample_path}/sample_audvis_filt-0-40_raw.fif')
+events = mne.read_events(f'{sample_path}/sample_audvis_filt-0-40_raw-eve.fif')
 event_id = {'audio/left': 1,
             'audio/right': 2,
             'visual/left': 3,
@@ -60,8 +61,8 @@ epochs.resample(100)
 # epochs belonging to the same experimental condition are right next to
 # each-other, so patterns jump out. This can be achieved by first splitting the
 # epochs by experimental condition and then concatenating them together again.
-epoch_splits = [epochs[cl]
-                for cl in ['audio/left', 'audio/right', 'visual/left', 'visual/right']]
+epoch_splits = [epochs[cl] for cl in ['audio/left', 'audio/right',
+                                      'visual/left', 'visual/right']]
 epochs = mne.concatenate_epochs(epoch_splits)
 
 ###############################################################################
@@ -76,6 +77,8 @@ epochs = mne.concatenate_epochs(epoch_splits)
 # only a small signal, random noise will dominate, we also specify that visual
 # stimuli are different from other visual stimuli. Finally left and right
 # auditory beeps will be somewhat similar.
+
+
 def sensitivity_metric(event_id_1, event_id_2):
     """Determine similarity between two epochs, given their event ids."""
     if event_id_1 == 1 and event_id_2 == 1:
@@ -89,6 +92,7 @@ def sensitivity_metric(event_id_1, event_id_2):
     else:
         return 1  # Not similar at all
 
+
 model_dsm = mne_rsa.compute_dsm(epochs.events[:, 2], metric=sensitivity_metric)
 mne_rsa.plot_dsms(model_dsm, title='Model DSM')
 
@@ -99,23 +103,23 @@ mne_rsa.plot_dsms(model_dsm, title='Model DSM')
 # the testing dataset that was created using a sparse source space with not too
 # many vertices.
 inv = mne.minimum_norm.read_inverse_operator(
-    op.join(testing_path, 'sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif'))
+    f'{testing_path}/sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif')
 epochs_stc = mne.minimum_norm.apply_inverse_epochs(epochs, inv, lambda2=0.1111)
 
 ###############################################################################
 # Performing the RSA. This will take some time. Consider increasing ``n_jobs``
 # to parallelize the computation across multiple CPUs.
 rsa_vals = mne_rsa.rsa_stcs(
-    epochs_stc,                   # The source localized epochs
-    model_dsm,                    # The model DSM we constructed above
-    src=inv['src'],               # The inverse operator has our source space
-    stc_dsm_metric='correlation', # Metric to compute the MEG DSMs
-    rsa_metric='kendall-tau-a',   # Metric to compare model and EEG DSMs
-    spatial_radius=0.02,          # Spatial radius of the searchlight patch
-    temporal_radius=0.02,         # Temporal radius of the searchlight path
-    tmin=0, tmax=0.3,             # To save time, only analyze this time interval
-    n_jobs=1,                     # Only use one CPU core. Increase this for more speed.
-    verbose=False)                # Set to True to display a progress bar
+    epochs_stc,                    # The source localized epochs
+    model_dsm,                     # The model DSM we constructed above
+    src=inv['src'],                # The inverse operator has our source space
+    stc_dsm_metric='correlation',  # Metric to compute the MEG DSMs
+    rsa_metric='kendall-tau-a',    # Metric to compare model and EEG DSMs
+    spatial_radius=0.02,           # Spatial radius of the searchlight patch
+    temporal_radius=0.02,          # Temporal radius of the searchlight path
+    tmin=0, tmax=0.3,              # To save time, only analyze this time interval
+    n_jobs=1,                      # Only use one CPU core. Increase this for more speed.
+    verbose=False)                 # Set to True to display a progress bar
 
 # Find the searchlight patch with highest RSA score
 peak_vertex, peak_time = rsa_vals.get_peak(vert_as_index=True)

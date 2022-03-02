@@ -7,7 +7,7 @@ API Documentation
 .. currentmodule:: mne_rsa
 
 Main MNE-RSA functions
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 .. autosummary::
     :toctree: functions
     :template: function.rst
@@ -18,7 +18,7 @@ Main MNE-RSA functions
     rsa_nifti
 
 Constructing DSMs
-~~~~~~~~~~~~~~~~~
+-----------------
 .. autosummary::
     :toctree: functions
     :template: function.rst
@@ -36,7 +36,7 @@ Constructing DSMs
     dsm_array
 
 Performing RSA
-~~~~~~~~~~~~~~
+--------------
 .. autosummary::
     :toctree: functions
     :template: function.rst
@@ -53,9 +53,8 @@ Making searchlight patches
 
     searchlight
 
-
 Visualization
-~~~~~~~~~~~~~
+-------------
 .. autosummary::
     :toctree: functions
     :template: function.rst
