@@ -27,6 +27,7 @@ import nibabel as nib
 import pandas as pd
 import tarfile
 import urllib.request
+from nilearn.plotting import plot_glass_brain
 
 ###############################################################################
 # We'll be using the data from the Haxby et al. 2001 set, which can be found
@@ -85,5 +86,4 @@ rsa_vals = mne_rsa.rsa_nifti(
 
 ###############################################################################
 # Plot the result using nilearn.
-from nilearn.plotting import plot_glass_brain
 plot_glass_brain(rsa_vals)

@@ -293,7 +293,7 @@ def rsa_nifti(image, dsm_model, spatial_radius=0.01,
     """Perform RSA in a searchlight pattern on Nibabel Nifti-like images.
 
     The output is a 3D Nifti image where the data at each voxel is is
-    the RSA, computed for a patch surrounding the voxel. 
+    the RSA, computed for a patch surrounding the voxel.
 
     .. versionadded:: 0.4
 

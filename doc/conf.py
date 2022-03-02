@@ -317,7 +317,7 @@ sphinx_gallery_conf = {
     'examples_dirs': '../examples',
     'gallery_dirs': 'auto_examples',
     'backreferences_dir': 'generated',
-    'image_scrapers': ['matplotlib', 'pyvista', mne.viz._brain._BrainScraper()],
+    'image_scrapers': ['matplotlib', mne.viz._brain._BrainScraper()],
     'reference_url': {
         'mne': 'http://mne-tools.github.io/stable/',
         'numpy': 'https://numpy.org/devdocs/',

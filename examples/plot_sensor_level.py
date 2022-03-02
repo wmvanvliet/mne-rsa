@@ -88,7 +88,7 @@ rsa_result = mne_rsa.rsa_epochs(
 # and tweak the range of the colormap.
 
 rsa_result.plot_topomap(rsa_result.times, units=dict(eeg='kendall-tau-a'),
-                        scalings=dict(eeg=1), cbar_fmt='%.4f', vmin=0, nrows=2);
+                        scalings=dict(eeg=1), cbar_fmt='%.4f', vmin=0, nrows=2)
 
 ###############################################################################
 # Unsurprisingly, we get the highest correspondance between number of letters

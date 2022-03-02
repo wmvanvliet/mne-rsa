@@ -5,7 +5,6 @@ Methods to compute dissimilarity matrices (DSMs).
 
 import numpy as np
 from scipy.spatial import distance
-from mne.utils import logger
 
 from .folds import _create_folds
 from .searchlight import searchlight
@@ -149,7 +148,7 @@ def _n_items_from_dsm(dsm):
 class dsm_array:
     """Generate DSMs from an array of data, possibly in a searchlight pattern.
 
-    First use :class:`searchlight_patches` to compute the searchlight patches.
+    First use :class:`searchlight` to compute the searchlight patches.
     Then you can use this function to compute DSMs for each searchlight patch.
 
     Parameters
