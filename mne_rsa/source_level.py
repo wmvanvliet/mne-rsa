@@ -182,19 +182,22 @@ def rsa_stcs(stcs, dsm_model, src, spatial_radius=0.04, temporal_radius=0.1,
 
     if one_model:
         if src.kind == 'volume':
-            return mne.VolSourceEstimate(data, vertices, tmin, tstep,
-                                         subject=stcs[0].subject)
+            return mne.VolSourceEstimate(
+                np.atleast_2d(data), vertices, tmin, tstep,
+                subject=stcs[0].subject)
         else:
-            return mne.SourceEstimate(data, vertices, tmin, tstep,
-                                      subject=stcs[0].subject)
+            return mne.SourceEstimate(
+                np.atleast_2d(data), vertices, tmin, tstep,
+                subject=stcs[0].subject)
     else:
         if src.kind == 'volume':
-            return [mne.VolSourceEstimate(data[:, :, i], vertices, tmin, tstep,
+            return [mne.VolSourceEstimate(np.atleast_2d(data[..., i]),
+                                          vertices, tmin, tstep,
                                           subject=stcs[0].subject)
                     for i in range(data.shape[-1])]
         else:
-            return [mne.SourceEstimate(data[:, :, i], vertices, tmin, tstep,
-                                       subject=stcs[0].subject)
+            return [mne.SourceEstimate(np.atleast_2d(data[..., i]), vertices,
+                                       tmin, tstep, subject=stcs[0].subject)
                     for i in range(data.shape[-1])]
 
 

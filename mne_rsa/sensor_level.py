@@ -201,11 +201,11 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
                            temporal_radius)
 
     if one_model:
-        return mne.EvokedArray(data[:, :, 0], info, tmin, comment='RSA',
-                               nave=len(evokeds))
+        return mne.EvokedArray(np.atleast_2d(data[..., 0]), info, tmin,
+                               comment='RSA', nave=len(evokeds))
     else:
-        return [mne.EvokedArray(data[:, :, i], info, tmin, comment='RSA',
-                                nave=len(evokeds))
+        return [mne.EvokedArray(np.atleast_2d(data[..., i]), info, tmin,
+                                comment='RSA', nave=len(evokeds))
                 for i in range(data.shape[-1])]
 
 
@@ -382,11 +382,11 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
                            temporal_radius)
 
     if one_model:
-        return mne.EvokedArray(data, info, tmin, comment='RSA',
+        return mne.EvokedArray(np.atleast_2d(data), info, tmin, comment='RSA',
                                nave=len(np.unique(y)))
     else:
-        return [mne.EvokedArray(data[:, :, i], info, tmin, comment='RSA',
-                                nave=len(np.unique(y)))
+        return [mne.EvokedArray(np.atleast_2d(data[..., i]), info, tmin,
+                                comment='RSA', nave=len(np.unique(y)))
                 for i in range(data.shape[-1])]
 
 
