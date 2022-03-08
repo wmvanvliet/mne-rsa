@@ -4,7 +4,7 @@ import os
 import os.path as op
 import codecs
 
-# get the version (don't import mne here, so dependencies are not needed)
+# get the version (don't import mne-rsa here, so dependencies are not needed)
 version = None
 with open(op.join('mne_rsa', '__init__.py'), 'r') as fid:
     for line in (line.strip() for line in fid):

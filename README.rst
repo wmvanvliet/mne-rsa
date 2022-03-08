@@ -27,9 +27,11 @@ https://doi.org/10.3389/neuro.06.004.2008
 Installation
 ------------
 
-Here is how to install the package as a user:
+The package can be installed either through PIP:  
+``pip install mne-rsa``  
+or through conda using the conda-forge channel:  
+``conda install -c conda-forge mne-rsa``
 
-``pip install mne-rsa``
 
 Use cases
 ---------
