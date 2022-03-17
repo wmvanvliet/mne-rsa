@@ -155,8 +155,7 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
     # Convert the temporal radius to samples
     if temporal_radius is not None:
         temporal_radius = round(evokeds[0].info['sfreq'] * temporal_radius)
-        if temporal_radius < 1:
-            raise ValueError('Temporal radius is less than one sample.')
+ 
 
     # Normalize with the noise cov
     if noise_cov is not None:
@@ -337,8 +336,7 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
     # Convert the temporal radius to samples
     if temporal_radius is not None:
         temporal_radius = round(epochs.info['sfreq'] * temporal_radius)
-        if temporal_radius < 1:
-            raise ValueError('Temporal radius is less than one sample.')
+
 
     # # Normalize with the noise cov
     # if noise_cov is not None:
@@ -466,8 +464,7 @@ def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
     # Convert the temporal radius to samples
     if temporal_radius is not None:
         temporal_radius = round(evokeds[0].info['sfreq'] * temporal_radius)
-        if temporal_radius < 1:
-            raise ValueError('Temporal radius is less than one sample.')
+
 
     # Normalize with the noise cov
     if noise_cov is not None:
@@ -566,8 +563,7 @@ def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
     # Convert the temporal radius to samples
     if temporal_radius is not None:
         temporal_radius = round(epochs.info['sfreq'] * temporal_radius)
-        if temporal_radius < 1:
-            raise ValueError('Temporal radius is less than one sample.')
+
 
     # # Normalize with the noise cov
     # if noise_cov is not None:
