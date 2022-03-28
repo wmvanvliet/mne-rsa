@@ -90,7 +90,7 @@ mne_rsa.plot_dsms_topo(dsms, epochs.info)
 ###############################################################################
 # For performance reasons, the low-level functions of MNE-RSA do not take a
 # ``y`` list for cross-validation. Instead, they require the data to be already
-# split into folds. The :func:`mne_rsa.create_folds` function can create these
+# split into folds. The :func:`create_folds` function can create these
 # folds.
 
 X = epochs.get_data()

@@ -10,7 +10,7 @@ class searchlight:
     searchlight patch along time, space or both.
 
     This function is flexible in regards to shape of the data array. The
-    intepretation of the dimensions is as follows::
+    intepretation of the dimensions is as follows:
 
     4 or more dimensions
         ``(n_folds, n_items, n_series, n_samples, ...)``

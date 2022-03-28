@@ -60,3 +60,12 @@ Visualization
     :template: function.rst
 
     plot_dsms
+
+
+Utility functions
+-----------------
+.. autosummary::
+    :toctree: functions
+    :template: function.rst
+
+    create_folds
