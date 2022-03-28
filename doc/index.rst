@@ -22,15 +22,16 @@ systems neuroscience. Frontiers in Systems Neuroscience, 2(4).
 https://doi.org/10.3389/neuro.06.004.2008
 
 .. image:: https://raw.githubusercontent.com/wmvanvliet/mne-rsa/master/doc/rsa.png
-   :width: 400
 
 
 Installation
 ------------
 
-Here is how to install the package as a user:
+The package can be installed either through PIP:  
+``pip install mne-rsa``  
+or through conda using the conda-forge channel:  
+``conda install -c conda-forge mne-rsa``
 
-``pip install mne-rsa``
 
 Use cases
 ---------
@@ -62,31 +63,29 @@ Juicy bits of the API
 
 .. code:: python
 
-   def compute_dsm(model, pca=False, metric='correlation', **kwargs)
+   def compute_dsm(data, metric='correlation', **kwargs)
 
-   def rsa_stcs(stcs, model_dsm, src, y=None,
-                spatial_radius=0.04, temporal_radius=0.1,
-                stc_dsm_metric='correlation', stc_dsm_params=None,
-                rsa_metric='spearman',
-                n_jobs=1, verbose=False)
+   def rsa_stcs(stcs, dsm_model, src, spatial_radius=0.04, temporal_radius=0.1,
+                stc_dsm_metric='correlation', stc_dsm_params=dict(),
+                rsa_metric='spearman', y=None, n_folds=1, sel_vertices=None,
+                tmin=None, tmax=None, n_jobs=1, verbose=False):
 
-   def rsa_evokeds(evokeds, model_dsm, y=None, noise_cov=None,
-                   spatial_radius=0.04, temporal_radius=0.1,
-                   evoked_dsm_metric='correlation', evoked_dsm_params=None,
-                   rsa_metric='spearman',
-                   n_jobs=1, verbose=False)
+   def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
+                   temporal_radius=0.1, evoked_dsm_metric='correlation',
+                   evoked_dsm_params=dict(), rsa_metric='spearman', y=None,
+                   n_folds=1, picks=None, tmin=None, tmax=None, n_jobs=1,
+                   verbose=False):
 
-   def rsa_epochs(epochs, model_dsm, y=None, noise_cov=None,
-                  spatial_radius=0.04, temporal_radius=0.1,
-                  epochs_dsm_metric='correlation', epochs_dsm_params=None,
-                  rsa_metric='spearman',
-                  n_jobs=1, verbose=False)
+   def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
+                  temporal_radius=0.1, epochs_dsm_metric='correlation',
+                  epochs_dsm_params=dict(), rsa_metric='spearman', y=None,
+                  n_folds=1, picks=None, tmin=None, tmax=None, n_jobs=1,
+                  verbose=False):
 
-   def rsa_nifti(image, model_dsm, src, y=None,
-                 spatial_radius=0.01, 
-                 image_dsm_metric='correlation', image_dsm_params=None,
-                 rsa_metric='spearman',
-                 n_jobs=1, verbose=False)
+   def rsa_nifti(image, dsm_model, spatial_radius=0.01,
+                 image_dsm_metric='correlation', image_dsm_params=dict(),
+                 rsa_metric='spearman', y=None, n_folds=1, roi_mask=None,
+                 brain_mask=None, n_jobs=1, verbose=False):
 
 Example usage
 -------------
@@ -111,8 +110,8 @@ Documentation
 For quick guides on how to do specific things, see the
 `examples <https://users.aalto.fi/~vanvlm1/mne-rsa/auto_examples/index.html>`__.
 
-Finally, there is the `API
-reference <https://users.aalto.fi/~vanvlm1/mne-rsa/api.html>`__
+Finally, there is the
+`API reference <https://users.aalto.fi/~vanvlm1/mne-rsa/api.html>`__
 documentation.
 
 Integration with other packages
@@ -137,11 +136,8 @@ Development
 
 Here is how to set up the package as a developer:
 
-::
+.. code:: bash
 
    git clone git@github.com:wmvanvliet/mne-rsa.git
    cd mne-rsa
    python setup.py develop --user
-
-.. |CircleCI| image:: https://circleci.com/gh/wmvanvliet/mne-rsa.svg?style=shield
-   :target: https://circleci.com/gh/wmvanvliet/mne-rsa
