@@ -62,6 +62,9 @@ def plot_dsms(dsms, names=None, items=None, n_rows=1, cmap='viridis',
                 if names is not None:
                     name = names[i]
                     ax[row, col].set_title(name)
+                if items is not None:
+                    ax[row, col].set_xticklabels(items)
+                    ax[row, col].set_yticklabels(items)
             else:
                 ax[row, col].set_visible(False)
 
