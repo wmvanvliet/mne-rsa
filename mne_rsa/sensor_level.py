@@ -395,7 +395,7 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
 
 def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
                 temporal_radius=0.1, dist_metric='correlation',
-                dist_params=dict(), y=None, n_folds=None, picks=None,
+                dist_params=dict(), y=None, n_folds=1, picks=None,
                 tmin=None, tmax=None):
     """Generate DSMs in a searchlight pattern on evokeds.
 
@@ -499,7 +499,7 @@ def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
 
 def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
                temporal_radius=0.1, dist_metric='correlation',
-               dist_params=dict(), y=None, n_folds=None, picks=None,
+               dist_params=dict(), y=None, n_folds=1, picks=None,
                tmin=None, tmax=None):
     """Generate DSMs in a searchlight pattern on epochs.
 
