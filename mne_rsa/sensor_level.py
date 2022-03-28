@@ -82,10 +82,13 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
         For each Evoked, a number indicating the item to which it belongs.
         When ``None``, each Evoked is assumed to belong to a different item.
         Defaults to ``None``.
-    n_folds : int | None
+    n_folds : int | sklearn.model_selection.BaseCrollValidator | None
         Number of cross-validation folds to use when computing the distance
         metric. Folds are created based on the ``y`` parameter. Specify
         ``None`` to use the maximum number of folds possible, given the data.
+        Alternatively, you can pass a Scikit-Learn cross validator object (e.g.
+        ``sklearn.model_selection.KFold``) to assert fine-grained control over
+        how folds are created.
         Defaults to 1 (no cross-validation).
     picks : str | list | slice | None
         Channels to include. Slices and lists of integers will be interpreted
@@ -268,11 +271,13 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
         For each Epoch, a number indicating the item to which it belongs.
         When ``None``, the event codes are used to differentiate between items.
         Defaults to ``None``.
-    n_folds : int | None
+    n_folds : int | sklearn.model_selection.BaseCrollValidator | None
         Number of cross-validation folds to use when computing the distance
-        metric. Folds are created based on the ``y`` parameter, or the event
-        codes if ``y`` is not specified. Specify ``None`` to use the maximum
-        number of folds possible, given the data.
+        metric. Folds are created based on the ``y`` parameter. Specify
+        ``None`` to use the maximum number of folds possible, given the data.
+        Alternatively, you can pass a Scikit-Learn cross validator object (e.g.
+        ``sklearn.model_selection.KFold``) to assert fine-grained control over
+        how folds are created.
         Defaults to 1 (no cross-validation).
     picks : str | list | slice | None
         Channels to include. Slices and lists of integers will be interpreted
@@ -428,11 +433,13 @@ def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
         For each Evoked, a number indicating the item to which it belongs.
         When ``None``, each Evoked is assumed to belong to a different item.
         Defaults to ``None``.
-    n_folds : int | None
+    n_folds : int | sklearn.model_selection.BaseCrollValidator | None
         Number of cross-validation folds to use when computing the distance
-        metric. Folds are created based on the ``y`` parameter, or the event
-        codes if ``y`` is not specified. Specify -1 to use the maximum number
-        of folds possible, given the data.
+        metric. Folds are created based on the ``y`` parameter. Specify
+        ``None`` to use the maximum number of folds possible, given the data.
+        Alternatively, you can pass a Scikit-Learn cross validator object (e.g.
+        ``sklearn.model_selection.KFold``) to assert fine-grained control over
+        how folds are created.
         Defaults to 1 (no cross-validation).
     picks : str | list | slice | None
         Channels to include. Slices and lists of integers will be interpreted
@@ -530,11 +537,13 @@ def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
         For each Epoch, a number indicating the item to which it belongs.
         When ``None``, the event codes are used to differentiate between items.
         Defaults to ``None``.
-    n_folds : int | None
+    n_folds : int | sklearn.model_selection.BaseCrollValidator | None
         Number of cross-validation folds to use when computing the distance
-        metric. Folds are created based on the ``y`` parameter, or the event
-        codes if ``y`` is not specified. Specify -1 to use the maximum number
-        of folds possible, given the data.
+        metric. Folds are created based on the ``y`` parameter. Specify
+        ``None`` to use the maximum number of folds possible, given the data.
+        Alternatively, you can pass a Scikit-Learn cross validator object (e.g.
+        ``sklearn.model_selection.KFold``) to assert fine-grained control over
+        how folds are created.
         Defaults to 1 (no cross-validation).
     picks : str | list | slice | None
         Channels to include. Slices and lists of integers will be interpreted

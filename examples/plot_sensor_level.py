@@ -46,6 +46,15 @@ epochs = mne.read_epochs(data_path + '/kword_metadata-epo.fif')
 epochs = epochs.resample(100)
 
 ###############################################################################
+# The kiloword datas was erroneously stored with sensor locations given in
+# centimeters instead of meters. We will fix it now. For your own data, the
+# sensor locations are likely properly stored in meters, so you can skip this
+# step.
+for ch in epochs.info['chs']:
+    ch['loc'] /= 100
+
+
+###############################################################################
 # The ``epochs`` object contains a ``.metadata`` field that contains
 # information about the 960 words that were used in the experiment. Let's have
 # a look at the metadata for the 10 random words:
@@ -65,19 +74,20 @@ mne_rsa.plot_dsms(dsm_vis)
 # are going to compare the model DSM against DSMs created from the EEG data.
 # The EEG DSMs will be created using a "searchlight" pattern. We are using
 # squared Euclidean distance for our DSM metric, since we only have a few data
-# points in each searlight patch. Feel free to play around with other metrics.
+# points in each searchlight patch. Feel free to play around with other metrics.
 
 rsa_result = mne_rsa.rsa_epochs(
     epochs,                           # The EEG data
     dsm_vis,                          # The model DSM
     epochs_dsm_metric='sqeuclidean',  # Metric to compute the EEG DSMs
     rsa_metric='kendall-tau-a',       # Metric to compare model and EEG DSMs
-    spatial_radius=45,                # Spatial radius of the searchlight patch
-    temporal_radius=0.05,             # Temporal radius of the searchlight path
+    spatial_radius=0.45,                # Spatial radius of the searchlight patch in meters.
+    temporal_radius=0.05,             # Temporal radius of the searchlight path in seconds.
     tmin=0.15, tmax=0.25,             # To save time, only analyze this time interval
     n_jobs=1,                         # Only use one CPU core. Increase this for more speed.
     n_folds=None,
     verbose=False)                    # Set to True to display a progress bar
+
 
 ###############################################################################
 # The result is packed inside an MNE-Python :class:`mne.Evoked` object. This

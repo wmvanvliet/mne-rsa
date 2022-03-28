@@ -85,10 +85,13 @@ def rsa_stcs(stcs, dsm_model, src, spatial_radius=0.04, temporal_radius=0.1,
         For each source estimate, a number indicating the item to which it
         belongs. When ``None``, each source estimate is assumed to belong to a
         different item. Defaults to ``None``.
-    n_folds : int | None
-        Number of folds to use when using cross-validation to compute the
-        evoked DSM metric. Specify ``None``, to use the maximum number of folds
-        possible, given the data.
+    n_folds : int | sklearn.model_selection.BaseCrollValidator | None
+        Number of cross-validation folds to use when computing the distance
+        metric. Folds are created based on the ``y`` parameter. Specify
+        ``None`` to use the maximum number of folds possible, given the data.
+        Alternatively, you can pass a Scikit-Learn cross validator object (e.g.
+        ``sklearn.model_selection.KFold``) to assert fine-grained control over
+        how folds are created.
         Defaults to 1 (no cross-validation).
     sel_vertices : list of int | None
         When set, searchlight patches will only be generated for the subset of
@@ -237,10 +240,14 @@ def dsm_stcs(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
         For each source estimate, a number indicating the item to which it
         belongs. When ``None``, each source estimate is assumed to belong to a
         different item. Defaults to ``None``.
-    n_folds : int | None
-        Number of folds to use when using cross-validation to compute the
-        evoked DSM metric.  Defaults to ``None``, which means the maximum
-        number of folds possible, given the data.
+    n_folds : int | sklearn.model_selection.BaseCrollValidator | None
+        Number of cross-validation folds to use when computing the distance
+        metric. Folds are created based on the ``y`` parameter. Specify
+        ``None`` to use the maximum number of folds possible, given the data.
+        Alternatively, you can pass a Scikit-Learn cross validator object (e.g.
+        ``sklearn.model_selection.KFold``) to assert fine-grained control over
+        how folds are created.
+        Defaults to 1 (no cross-validation).
     sel_vertices : list of int | None
         When set, searchlight patches will only be generated for the subset of
         vertices/voxels with the given indices. Defaults to ``None``, in which
@@ -337,10 +344,13 @@ def rsa_nifti(image, dsm_model, spatial_radius=0.01,
         For each source estimate, a number indicating the item to which it
         belongs. When ``None``, each source estimate is assumed to belong to a
         different item. Defaults to ``None``.
-    n_folds : int | None
-        Number of folds to use when using cross-validation to compute the
-        evoked DSM metric. Specify ``None``, to use the maximum number of folds
-        possible, given the data.
+    n_folds : int | sklearn.model_selection.BaseCrollValidator | None
+        Number of cross-validation folds to use when computing the distance
+        metric. Folds are created based on the ``y`` parameter. Specify
+        ``None`` to use the maximum number of folds possible, given the data.
+        Alternatively, you can pass a Scikit-Learn cross validator object (e.g.
+        ``sklearn.model_selection.KFold``) to assert fine-grained control over
+        how folds are created.
         Defaults to 1 (no cross-validation).
     roi_mask : 3D Nifti-like image | None
         When set, searchlight patches will only be generated for the subset of
@@ -491,10 +501,13 @@ def dsm_nifti(image, spatial_radius=0.01, dist_metric='correlation',
         For each source estimate, a number indicating the item to which it
         belongs. When ``None``, each source estimate is assumed to belong to a
         different item. Defaults to ``None``.
-    n_folds : int | None
-        Number of folds to use when using cross-validation to compute the
-        evoked DSM metric. Specify ``None``, to use the maximum number of folds
-        possible, given the data.
+    n_folds : int | sklearn.model_selection.BaseCrollValidator | None
+        Number of cross-validation folds to use when computing the distance
+        metric. Folds are created based on the ``y`` parameter. Specify
+        ``None`` to use the maximum number of folds possible, given the data.
+        Alternatively, you can pass a Scikit-Learn cross validator object (e.g.
+        ``sklearn.model_selection.KFold``) to assert fine-grained control over
+        how folds are created.
         Defaults to 1 (no cross-validation).
     roi_mask : 3D Nifti-like image | None
         When set, searchlight patches will only be generated for the subset of

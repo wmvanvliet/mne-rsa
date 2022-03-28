@@ -7,7 +7,7 @@ import numpy as np
 from scipy import stats
 from joblib import Parallel, delayed
 
-from .folds import _create_folds
+from .folds import create_folds
 from .dsm import _ensure_condensed, compute_dsm, compute_dsm_cv
 from .searchlight import searchlight
 
@@ -286,10 +286,13 @@ def rsa_array(X, dsm_model, patches=None, data_dsm_metric='correlation',
         For each item, a number indicating the class to which the item belongs.
         When ``None``, each item is assumed to belong to a different class.
         Defaults to ``None``.
-    n_folds : int | None
+    n_folds : int | sklearn.model_selection.BaseCrollValidator | None
         Number of cross-validation folds to use when computing the distance
-        metric. Folds are created based on the ``y`` parameter. Specify -1 to
-        use the maximum number of folds possible, given the data.
+        metric. Folds are created based on the ``y`` parameter. Specify
+        ``None`` to use the maximum number of folds possible, given the data.
+        Alternatively, you can pass a Scikit-Learn cross validator object (e.g.
+        ``sklearn.model_selection.KFold``) to assert fine-grained control over
+        how folds are created.
         Defaults to 1 (no cross-validation).
     n_jobs : int
         The number of processes (=number of CPU cores) to use. Specify -1 to
@@ -317,7 +320,7 @@ def rsa_array(X, dsm_model, patches=None, data_dsm_metric='correlation',
         patches = searchlight(X.shape)  # One big searchlight patch
 
     # Create folds for cross-validated DSM metrics
-    X = _create_folds(X, y, n_folds)
+    X = create_folds(X, y, n_folds)
     # The data is now folds x items x n_series x n_times
 
     if type(dsm_model) == list:

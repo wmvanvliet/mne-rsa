@@ -4,8 +4,37 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import OneHotEncoder
 
 
-def _create_folds(X, y, n_folds=None):
-    """Split the observations in X into stratified folds."""
+def create_folds(X, y=None, n_folds=None):
+    """Group individual items into folds suitable for cross-validation.
+
+    The ``y`` list should contain an integer label for each item in ``X``.
+    Repetitions of the same item have the same integer label. Repeated items
+    are distributed evenly across the folds, and averaged within a fold.
+
+    Parameters
+    ----------
+    X : ndarray, shape (n_items, ...)
+        For each item, all the features. The first dimension are the items and
+        all other dimensions will be flattened and treated as features.
+    y : ndarray of int, shape (n_items,) | None
+        For each item, a number indicating the class to which the item belongs.
+        When ``None``, each item is assumed to belong to a different class.
+        Defaults to ``None``.
+    n_folds : int | sklearn.BaseCrossValidator | None
+        Number of cross-validation folds to use when computing the distance
+        metric. Folds are created based on the ``y`` parameter. Specify
+        ``None`` to use the maximum number of folds possible, given the data.
+        Alternatively, you can pass a Scikit-Learn cross validator object (e.g.
+        ``sklearn.model_selection.KFold``) to assert fine-grained control over
+        how folds are created.
+        Defaults to ``None``.
+
+    Returns
+    -------
+    folds : ndarray, shape (n_folds, n_items, ...)
+        The folded data.
+        
+    """
     if y is None:
         # No folding
         return X[np.newaxis, ...]
@@ -27,7 +56,13 @@ def _create_folds(X, y, n_folds=None):
     if n_folds == 1:
         # Making one fold is easy
         folds = [_compute_item_means(X, y_one_hot)]
+    elif hasattr(n_folds, 'split'):
+        # Scikit-learn object passed as `n_folds`
+        folds = []
+        for _, fold in n_folds.split(X, y):
+            folds.append(_compute_item_means(X, y_one_hot, fold))
     else:
+        # Use StratifiedKFold as folding strategy
         folds = []
         for _, fold in StratifiedKFold(n_folds).split(X, y):
             folds.append(_compute_item_means(X, y_one_hot, fold))

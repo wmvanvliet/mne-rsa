@@ -6,7 +6,7 @@ Methods to compute dissimilarity matrices (DSMs).
 import numpy as np
 from scipy.spatial import distance
 
-from .folds import _create_folds
+from .folds import create_folds
 from .searchlight import searchlight
 
 
@@ -16,8 +16,8 @@ def compute_dsm(data, metric='correlation', **kwargs):
     Parameters
     ----------
     data : ndarray, shape (n_items, ...)
-        For each item, all the features. The first are the items and all other
-        dimensions will be flattened and treated as features.
+        For each item, all the features. The first dimension are the items and
+        all other dimensions will be flattened and treated as features.
     metric : str | function
         The distance metric to use to compute the DSM. Can be any metric
         supported by :func:`scipy.spatial.distance.pdist`. When a function is
@@ -173,10 +173,13 @@ class dsm_array:
         For each item, a number indicating the class to which the item belongs.
         When ``None``, each item is assumed to belong to a different class.
         Defaults to ``None``.
-    n_folds : int | None
+    n_folds : int | sklearn.model_selection.BaseCrollValidator | None
         Number of cross-validation folds to use when computing the distance
         metric. Folds are created based on the ``y`` parameter. Specify
         ``None`` to use the maximum number of folds possible, given the data.
+        Alternatively, you can pass a Scikit-Learn cross validator object (e.g.
+        ``sklearn.model_selection.KFold``) to assert fine-grained control over
+        how folds are created.
         Defaults to 1 (no cross-validation).
 
     Yields
@@ -217,7 +220,7 @@ class dsm_array:
             patches = searchlight(X.shape)
 
         # Create folds for cross-validated DSM metrics
-        self.X = _create_folds(X, y, n_folds)
+        self.X = create_folds(X, y, n_folds)
         # The data is now folds x items x n_series x ...
 
         self.patches = patches

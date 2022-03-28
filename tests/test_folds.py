@@ -2,46 +2,46 @@ import pytest
 import numpy as np
 from numpy.testing import assert_equal
 
-from mne_rsa.folds import (_create_folds, _convert_to_one_hot,
+from mne_rsa.folds import (create_folds, _convert_to_one_hot,
                            _compute_item_means)
 
 
 class TestCreateFolds:
-    """Test the _create_folds function."""
+    """Test the create_folds function."""
 
     def test_basic(self):
-        """Test basic invocation of _create_folds."""
+        """Test basic invocation of create_folds."""
         data = np.array([1, 1, 1, 2, 2, 2, 3, 3, 3])
         y = [1, 2, 3, 1, 2, 3, 1, 2, 3]
 
-        folds = _create_folds(data, y, n_folds=1)
+        folds = create_folds(data, y, n_folds=1)
         assert_equal(folds, [[2, 2, 2]])
 
-        folds = _create_folds(data, y, n_folds=2)
+        folds = create_folds(data, y, n_folds=2)
         assert_equal(folds, [[1.5, 1, 1.5], [3, 2.5, 3]])
 
-        folds = _create_folds(data, y, n_folds=3)
+        folds = create_folds(data, y, n_folds=3)
         assert_equal(folds, [[1, 1, 1], [2, 2, 2], [3, 3, 3]])
 
-        folds = _create_folds(data[:, np.newaxis], y, n_folds=3)
+        folds = create_folds(data[:, np.newaxis], y, n_folds=3)
         assert_equal(folds, [[[1], [1], [1]], [[2], [2], [2]],
                              [[3], [3], [3]]])
 
         # Default value for n_folds is maximum number of folds
-        assert_equal(_create_folds(data, y),
-                     _create_folds(data, y, n_folds=3))
+        assert_equal(create_folds(data, y),
+                     create_folds(data, y, n_folds=3))
 
         # No folding when y=None
-        folds = _create_folds(data, y=None)
+        folds = create_folds(data, y=None)
         assert_equal(folds, [data])
 
     def test_invalid_input(self):
-        """Test passing invalid input to _create_folds."""
+        """Test passing invalid input to create_folds."""
         # Invalid y
         data = np.array([1, 1, 1, 2, 2, 2, 3, 3, 3])
         y = [1, 2, 3]
         with pytest.raises(ValueError, match='length of y'):
-            _create_folds(data, y)
+            create_folds(data, y)
 
 
 class TestConvertToOneHot:
