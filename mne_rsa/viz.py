@@ -1,4 +1,5 @@
 from functools import partial
+import types
 import matplotlib.pyplot as plt
 from mne.viz.topo import _iter_topography
 import numpy as np
@@ -102,8 +103,10 @@ def _plot_dsms_topo_timepoint(dsms, info, layout=None, fig=None, title=None,
 
     Parameters
     ----------
-    dsms: ndarray, shape (n_sensors, n_dsm_datapoints)
+    dsms: ndarray, shape (n_sensors, n_dsm_datapoints) | generator
         DSMs of MEG recordings; one DSM for each sensor.
+        Can also be a generator of DSMs as produced by the :func:`dsm_epochs`,
+        :func:`dsm_evokeds` or :func:`dsm_array` functions.
     info: mne.io.meas_info.Info
         Info object that contains meta data of MEG recordings.
     layout: mne.channels.layout.Layout | None
@@ -205,6 +208,9 @@ def plot_dsms_topo(dsms, info, time=None, layout=None, fig=None,
     fig: matplotlib.pyplot.Figure
         Figure object in which DSMs are plotted on 2D sensor topography.
     """
+    if isinstance(dsms, types.GeneratorType):
+        dsms = np.array(list(dsms))
+
     if dsms.ndim != 2 and dsms.ndim != 3:
         raise ValueError('dsms have to be a 2D or 3D ndarray or numpy.memmap, '
                          '[n_sensors,[ n_times,] n_dsm_datapoints]')
