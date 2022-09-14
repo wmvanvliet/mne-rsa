@@ -30,8 +30,8 @@ from .sensor_level import _tmin_tmax_to_indices, _construct_tmin
 
 def rsa_stcs(stcs, dsm_model, src, spatial_radius=0.04, temporal_radius=0.1,
              stc_dsm_metric='correlation', stc_dsm_params=dict(),
-             rsa_metric='spearman', y=None, n_folds=1, sel_vertices=None,
-             tmin=None, tmax=None, n_jobs=1, verbose=False):
+             rsa_metric='spearman', ignore_nan=False, y=None, n_folds=1,
+             sel_vertices=None, tmin=None, tmax=None, n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern on MNE-Python source estimates.
 
     The output is a source estimate where the "signal" at each source point is
@@ -81,6 +81,9 @@ def rsa_stcs(stcs, dsm_model, src, spatial_radius=0.04, temporal_radius=0.1,
         * 'regression' for linear regression weights
 
         Defaults to 'spearman'.
+    ignore_nan : bool
+        Whether to treat NaN's as missing values and ignore them when computing
+        the distance metric. Defaults to ``False``.
     y : ndarray of int, shape (n_items,) | None
         For each source estimate, a number indicating the item to which it
         belongs. When ``None``, each source estimate is assumed to belong to a
@@ -167,7 +170,8 @@ def rsa_stcs(stcs, dsm_model, src, spatial_radius=0.04, temporal_radius=0.1,
                           samples_to=samples_to)
     data = rsa_array(X, dsm_model, patches, data_dsm_metric=stc_dsm_metric,
                      data_dsm_params=stc_dsm_params, rsa_metric=rsa_metric,
-                     y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
+                     ignore_nan=ignore_nan, y=y, n_folds=n_folds,
+                     n_jobs=n_jobs, verbose=verbose)
 
     # Pack the result in a SourceEstimate object
     if spatial_radius is not None:
@@ -295,8 +299,8 @@ def dsm_stcs(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
 
 def rsa_nifti(image, dsm_model, spatial_radius=0.01,
               image_dsm_metric='correlation', image_dsm_params=dict(),
-              rsa_metric='spearman', y=None, n_folds=1, roi_mask=None,
-              brain_mask=None, n_jobs=1, verbose=False):
+              rsa_metric='spearman', ignore_nan=False, y=None, n_folds=1,
+              roi_mask=None, brain_mask=None, n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern on Nibabel Nifti-like images.
 
     The output is a 3D Nifti image where the data at each voxel is is
@@ -340,6 +344,9 @@ def rsa_nifti(image, dsm_model, spatial_radius=0.01,
         * 'regression' for linear regression weights
 
         Defaults to 'spearman'.
+    ignore_nan : bool
+        Whether to treat NaN's as missing values and ignore them when computing
+        the distance metric. Defaults to ``False``.
     y : ndarray of int, shape (n_items,) | None
         For each source estimate, a number indicating the item to which it
         belongs. When ``None``, each source estimate is assumed to belong to a
@@ -454,8 +461,8 @@ def rsa_nifti(image, dsm_model, spatial_radius=0.01,
     rsa_result = rsa_array(X, dsm_model, patches,
                            data_dsm_metric=image_dsm_metric,
                            data_dsm_params=image_dsm_params,
-                           rsa_metric=rsa_metric, y=y, n_folds=n_folds,
-                           n_jobs=n_jobs, verbose=verbose)
+                           rsa_metric=rsa_metric, ignore_nan=ignore_nan, y=y,
+                           n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
 
     if one_model:
         data = np.zeros(image.shape[:3])

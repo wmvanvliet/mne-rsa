@@ -24,9 +24,9 @@ from .rsa import rsa_array
 
 def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
                 temporal_radius=0.1, evoked_dsm_metric='correlation',
-                evoked_dsm_params=dict(), rsa_metric='spearman', y=None,
-                n_folds=1, picks=None, tmin=None, tmax=None, n_jobs=1,
-                verbose=False):
+                evoked_dsm_params=dict(), rsa_metric='spearman',
+                ignore_nan=False, y=None, n_folds=1, picks=None, tmin=None,
+                tmax=None, n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern on evokeds.
 
     The output is an Evoked object where the "signal" at each sensor is
@@ -78,6 +78,9 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
         * 'regression' for linear regression weights
 
         Defaults to 'spearman'.
+    ignore_nan : bool
+        Whether to treat NaN's as missing values and ignore them when computing
+        the distance metric. Defaults to ``False``.
     y : ndarray of int, shape (n_items,) | None
         For each Evoked, a number indicating the item to which it belongs.
         When ``None``, each Evoked is assumed to belong to a different item.
@@ -158,7 +161,6 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
     # Convert the temporal radius to samples
     if temporal_radius is not None:
         temporal_radius = round(evokeds[0].info['sfreq'] * temporal_radius)
- 
 
     # Normalize with the noise cov
     if noise_cov is not None:
@@ -192,7 +194,8 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
                           samples_to=samples_to)
     data = rsa_array(X, dsm_model, patches, data_dsm_metric=evoked_dsm_metric,
                      data_dsm_params=evoked_dsm_params, rsa_metric=rsa_metric,
-                     y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
+                     ignore_nan=ignore_nan, y=y, n_folds=n_folds,
+                     n_jobs=n_jobs, verbose=verbose)
 
     # Pack the result in an Evoked object
     if spatial_radius is not None:
@@ -213,9 +216,9 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
 
 def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
                temporal_radius=0.1, epochs_dsm_metric='correlation',
-               epochs_dsm_params=dict(), rsa_metric='spearman', y=None,
-               n_folds=1, picks=None, tmin=None, tmax=None, n_jobs=1,
-               verbose=False):
+               epochs_dsm_params=dict(), rsa_metric='spearman',
+               ignore_nan=False, y=None, n_folds=1, picks=None, tmin=None,
+               tmax=None, n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern on epochs.
 
     The output is an Evoked object where the "signal" at each sensor is
@@ -266,6 +269,9 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
         * 'regression' for linear regression weights
 
         Defaults to 'spearman'.
+    ignore_nan : bool
+        Whether to treat NaN's as missing values and ignore them when computing
+        the distance metric. Defaults to ``False``.
     y : ndarray of int, shape (n_items,) | None
         For each Epoch, a number indicating the item to which it belongs.
         When ``None``, the event codes are used to differentiate between items.
@@ -373,7 +379,8 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
                           samples_to=samples_to)
     data = rsa_array(X, dsm_model, patches, data_dsm_metric=epochs_dsm_metric,
                      data_dsm_params=epochs_dsm_params, rsa_metric=rsa_metric,
-                     y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
+                     ignore_nan=ignore_nan, y=y, n_folds=n_folds,
+                     n_jobs=n_jobs, verbose=verbose)
 
     # Pack the result in an Evoked object
     if spatial_radius is not None:
@@ -395,8 +402,8 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
 
 def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
                 temporal_radius=0.1, dist_metric='correlation',
-                dist_params=dict(), y=None, n_folds=1, picks=None,
-                tmin=None, tmax=None):
+                dist_params=dict(), y=None, n_folds=1, picks=None, tmin=None,
+                tmax=None):
     """Generate DSMs in a searchlight pattern on evokeds.
 
     Parameters

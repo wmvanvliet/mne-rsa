@@ -199,8 +199,8 @@ def _rsa_single_dsm(dsm_data, dsm_model, metric, masks):
     return rsa_vals
 
 
-def rsa(dsm_data, dsm_model, metric='spearman', n_data_dsms=None, n_jobs=1,
-        verbose=False):
+def rsa(dsm_data, dsm_model, metric='spearman', ignore_nan=False,
+        n_data_dsms=None, n_jobs=1, verbose=False):
     """Perform RSA between data and model DSMs.
 
     Parameters
@@ -220,7 +220,9 @@ def rsa(dsm_data, dsm_model, metric='spearman', n_data_dsms=None, n_jobs=1,
         * 'regression' for linear regression weights
 
         Defaults to 'spearman'.
-
+    ignore_nan : bool
+        Whether to treat NaN's as missing values and ignore them when computing
+        the distance metric. Defaults to ``False``.
     n_data_dsms : int | None
         The number of data DSMs. This is useful when displaying a progress bar,
         so an estimate can be made of the computation time remaining. This
@@ -262,10 +264,10 @@ def rsa(dsm_data, dsm_model, metric='spearman', n_data_dsms=None, n_jobs=1,
         dsm_data = tqdm(dsm_data, total=total, unit='DSM')
 
     if n_jobs == 1:
-        rsa_vals = list(rsa_gen(dsm_data, dsm_model, metric))
+        rsa_vals = list(rsa_gen(dsm_data, dsm_model, metric, ignore_nan))
     else:
         def process_single_dsm(dsm):
-            return next(rsa_gen([dsm], dsm_model, metric))
+            return next(rsa_gen([dsm], dsm_model, metric, ignore_nan))
         rsa_vals = Parallel(n_jobs)(delayed(process_single_dsm)(dsm)
                                     for dsm in dsm_data)
     if return_array:
@@ -275,8 +277,8 @@ def rsa(dsm_data, dsm_model, metric='spearman', n_data_dsms=None, n_jobs=1,
 
 
 def rsa_array(X, dsm_model, patches=None, data_dsm_metric='correlation',
-              data_dsm_params=dict(), rsa_metric='spearman', y=None, n_folds=1,
-              ignore_nan=False, n_jobs=1, verbose=False):
+              data_dsm_params=dict(), rsa_metric='spearman', ignore_nan=False,
+              y=None, n_folds=1, n_jobs=1, verbose=False):
     """Perform RSA on an array of data, possibly in a searchlight pattern.
 
     Parameters
@@ -312,6 +314,9 @@ def rsa_array(X, dsm_model, patches=None, data_dsm_metric='correlation',
         * 'regression' for linear regression weights
 
         Defaults to 'spearman'.
+    ignore_nan : bool
+        Whether to treat NaN's as missing values and ignore them when computing
+        the distance metric. Defaults to ``False``.
     y : ndarray of int, shape (n_items,) | None
         For each item, a number indicating the class to which the item belongs.
         When ``None``, each item is assumed to belong to a different class.
@@ -324,9 +329,6 @@ def rsa_array(X, dsm_model, patches=None, data_dsm_metric='correlation',
         ``sklearn.model_selection.KFold``) to assert fine-grained control over
         how folds are created.
         Defaults to 1 (no cross-validation).
-    ignore_nan : bool
-        Whether to treat NaN's as missing values and ignore them when computing
-        the distance metric. Defaults to ``False``.
     n_jobs : int
         The number of processes (=number of CPU cores) to use. Specify -1 to
         use all available cores. Defaults to 1.
