@@ -38,15 +38,15 @@ mne.viz.set_3d_backend('pyvista')
 # testing set.
 sample_root = mne.datasets.sample.data_path(verbose=True)
 testing_root = mne.datasets.testing.data_path(verbose=True)
-sample_path = f'{sample_root}/MEG/sample'
-testing_path = f'{testing_root}/MEG/sample'
-subjects_dir = f'{sample_root}/subjects'
+sample_path = sample_root / 'MEG' / 'sample'
+testing_path = testing_root / 'MEG' / 'sample'
+subjects_dir = sample_root / 'subjects'
 
 ###############################################################################
 # Creating epochs from the continuous (raw) data. We downsample to 100 Hz to
 # speed up the RSA computations later on.
-raw = mne.io.read_raw_fif(f'{sample_path}/sample_audvis_filt-0-40_raw.fif')
-events = mne.read_events(f'{sample_path}/sample_audvis_filt-0-40_raw-eve.fif')
+raw = mne.io.read_raw_fif(sample_path / 'sample_audvis_filt-0-40_raw.fif')
+events = mne.read_events(sample_path / 'sample_audvis_filt-0-40_raw-eve.fif')
 event_id = {'audio/left': 1,
             'audio/right': 2,
             'visual/left': 3,
@@ -103,7 +103,7 @@ mne_rsa.plot_dsms(model_dsm, title='Model DSM')
 # the testing dataset that was created using a sparse source space with not too
 # many vertices.
 inv = mne.minimum_norm.read_inverse_operator(
-    f'{testing_path}/sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif')
+    testing_path / 'sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif')
 epochs_stc = mne.minimum_norm.apply_inverse_epochs(epochs, inv, lambda2=0.1111)
 
 ###############################################################################

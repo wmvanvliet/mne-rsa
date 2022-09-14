@@ -42,7 +42,7 @@ import mne_rsa
 # the data from the original 250 Hz. to 100 Hz.
 
 data_path = mne.datasets.kiloword.data_path(verbose=True)
-epochs = mne.read_epochs(data_path + '/kword_metadata-epo.fif')
+epochs = mne.read_epochs(data_path / 'kword_metadata-epo.fif')
 epochs = epochs.resample(100)
 
 ###############################################################################
@@ -98,7 +98,8 @@ rsa_result = mne_rsa.rsa_epochs(
 # and tweak the range of the colormap.
 
 rsa_result.plot_topomap(rsa_result.times, units=dict(eeg='kendall-tau-a'),
-                        scalings=dict(eeg=1), cbar_fmt='%.4f', vmin=0, nrows=2)
+                        scalings=dict(eeg=1), cbar_fmt='%.4f', vmin=0, nrows=2,
+                        sphere=1)
 
 ###############################################################################
 # Unsurprisingly, we get the highest correspondance between number of letters

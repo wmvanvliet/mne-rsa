@@ -24,7 +24,7 @@ import mne_rsa
 # prevent MNE-Python from loading the EEG data, which is a nice speed gain.
 
 data_path = mne.datasets.kiloword.data_path(verbose=True)
-epochs = mne.read_epochs(data_path + '/kword_metadata-epo.fif')
+epochs = mne.read_epochs(data_path / 'kword_metadata-epo.fif')
 
 # Show the metadata of 10 random epochs
 epochs.metadata.sample(10)
