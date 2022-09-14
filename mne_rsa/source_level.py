@@ -36,7 +36,12 @@ def rsa_stcs(stcs, dsm_model, src, spatial_radius=0.04, temporal_radius=0.1,
 
     The output is a source estimate where the "signal" at each source point is
     the RSA, computed for a patch surrounding the source point. Source estimate
-    objects can be either defined along a cortical surface or volumetric.
+    objects can be either defined along a cortical surface (``SourceEstimate``
+    objects) or volumetric (``VolSourceEstimate`` objects).  For surface source
+    estimates, distances between vertices are measured in 2D space, namely as
+    the length of the path along the surface from one vertex to another. For
+    volume source estimates, distances are measured in 3D space as a straight
+    line from one voxel to another.
 
     Parameters
     ----------
@@ -208,8 +213,12 @@ def dsm_stcs(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
     """Generate DSMs in a searchlight pattern on MNE-Python source estimates.
 
     DSMs are computed using a patch surrounding each source point. Source
-    estimate objects can be either defined along a cortical surface or
-    volumetric.
+    estimate objects can be either defined along a cortical surface
+    (``SourceEstimate`` objects) or volumetric (``VolSourceEstimate`` objects).
+    For surface source estimates, distances between vertices are measured in 2D
+    space, namely as the length of the path along the surface from one vertex
+    to another. For volume source estimates, distances are measured in 3D space
+    as a straight line from one voxel to another.
 
     Parameters
     ----------
