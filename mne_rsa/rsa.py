@@ -133,6 +133,8 @@ def rsa_gen(dsm_data_gen, dsm_model, metric='spearman', ignore_nan=False):
         Whether to treat NaN's as missing values and ignore them when computing
         the distance metric. Defaults to ``False``.
 
+        .. versionadded:: 0.8
+
     Yields
     ------
     rsa_val : float | ndarray, shape (len(dsm_model),)
@@ -223,6 +225,8 @@ def rsa(dsm_data, dsm_model, metric='spearman', ignore_nan=False,
     ignore_nan : bool
         Whether to treat NaN's as missing values and ignore them when computing
         the distance metric. Defaults to ``False``.
+
+        .. versionadded:: 0.8
     n_data_dsms : int | None
         The number of data DSMs. This is useful when displaying a progress bar,
         so an estimate can be made of the computation time remaining. This
@@ -317,6 +321,8 @@ def rsa_array(X, dsm_model, patches=None, data_dsm_metric='correlation',
     ignore_nan : bool
         Whether to treat NaN's as missing values and ignore them when computing
         the distance metric. Defaults to ``False``.
+
+        .. versionadded:: 0.8
     y : ndarray of int, shape (n_items,) | None
         For each item, a number indicating the class to which the item belongs.
         When ``None``, each item is assumed to belong to a different class.

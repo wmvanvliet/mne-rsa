@@ -81,11 +81,11 @@ rsa_result = mne_rsa.rsa_epochs(
     dsm_vis,                          # The model DSM
     epochs_dsm_metric='sqeuclidean',  # Metric to compute the EEG DSMs
     rsa_metric='kendall-tau-a',       # Metric to compare model and EEG DSMs
-    spatial_radius=0.45,                # Spatial radius of the searchlight patch in meters.
+    spatial_radius=0.45,              # Spatial radius of the searchlight patch in meters.
     temporal_radius=0.05,             # Temporal radius of the searchlight path in seconds.
     tmin=0.15, tmax=0.25,             # To save time, only analyze this time interval
     n_jobs=1,                         # Only use one CPU core. Increase this for more speed.
-    n_folds=None,
+    n_folds=None,                     # Don't use any cross-validation
     verbose=False)                    # Set to True to display a progress bar
 
 

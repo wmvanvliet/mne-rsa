@@ -84,6 +84,8 @@ def rsa_stcs(stcs, dsm_model, src, spatial_radius=0.04, temporal_radius=0.1,
     ignore_nan : bool
         Whether to treat NaN's as missing values and ignore them when computing
         the distance metric. Defaults to ``False``.
+
+        .. versionadded:: 0.8
     y : ndarray of int, shape (n_items,) | None
         For each source estimate, a number indicating the item to which it
         belongs. When ``None``, each source estimate is assumed to belong to a
@@ -347,6 +349,8 @@ def rsa_nifti(image, dsm_model, spatial_radius=0.01,
     ignore_nan : bool
         Whether to treat NaN's as missing values and ignore them when computing
         the distance metric. Defaults to ``False``.
+
+        .. versionadded:: 0.8
     y : ndarray of int, shape (n_items,) | None
         For each source estimate, a number indicating the item to which it
         belongs. When ``None``, each source estimate is assumed to belong to a
