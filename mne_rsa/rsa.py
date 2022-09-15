@@ -73,7 +73,17 @@ def _kendall_tau_a(x, y):
     return tau
 
 
-def _partial_correlation(dsm_data, dsm_model, type='pearson'):
+def _consolidate_masks(masks):
+    if type(masks[0]) == slice:
+        mask = slice(None)
+    else:
+        mask = masks[0]
+        for m in masks[1:]:
+            mask &= m
+    return mask
+
+
+def _partial_correlation(dsm_data, dsm_model, masks=None, type='pearson'):
     """Compute partial Pearson/Spearman correlation."""
     if len(dsm_model) == 1:
         raise ValueError('Need more than one model DSM to use partial '
@@ -81,6 +91,12 @@ def _partial_correlation(dsm_data, dsm_model, type='pearson'):
     if type not in ['pearson', 'spearman']:
         raise ValueError("Correlation type must be either 'pearson' or "
                          "'spearman'")
+
+    if masks is not None:
+        mask = _consolidate_masks(masks)
+        dsm_model = [dsm[mask] for dsm in dsm_model]
+        dsm_data = dsm_data[mask]
+
     X = np.vstack([dsm_data] + dsm_model).T
     if type == 'spearman':
         X = np.apply_along_axis(stats.rankdata, 0, X)
@@ -91,7 +107,7 @@ def _partial_correlation(dsm_data, dsm_model, type='pearson'):
     return -R_partial[0, 1:]
 
 
-def rsa_gen(dsm_data_gen, dsm_model, metric='spearman'):
+def rsa_gen(dsm_data_gen, dsm_model, metric='spearman', ignore_nan=False):
     """Generate RSA values between data and model DSMs.
 
     Will yield RSA scores for each data DSM.
@@ -113,6 +129,11 @@ def rsa_gen(dsm_data_gen, dsm_model, metric='spearman'):
         * 'regression' for linear regression weights
 
         Defaults to 'spearman'.
+    ignore_nan : bool
+        Whether to treat NaN's as missing values and ignore them when computing
+        the distance metric. Defaults to ``False``.
+
+        .. versionadded:: 0.8
 
     Yields
     ------
@@ -132,32 +153,43 @@ def rsa_gen(dsm_data_gen, dsm_model, metric='spearman'):
         return_array = False
         dsm_model = [_ensure_condensed(dsm_model, 'dsm_model')]
 
+    if ignore_nan:
+        masks = [~np.isnan(dsm) for dsm in dsm_model]
+    else:
+        masks = [slice(None)] * len(dsm_model)
+
     for dsm_data in dsm_data_gen:
         dsm_data = _ensure_condensed(dsm_data, 'dsm_data')
-        rsa_vals = _rsa_single_dsm(dsm_data, dsm_model, metric)
+        if ignore_nan:
+            data_mask = ~np.isnan(dsm_data)
+            masks = [m & data_mask for m in masks]
+        rsa_vals = _rsa_single_dsm(dsm_data, dsm_model, metric, masks)
         if return_array:
             yield np.asarray(rsa_vals)
         else:
             yield rsa_vals[0]
 
 
-def _rsa_single_dsm(dsm_data, dsm_model, metric):
+def _rsa_single_dsm(dsm_data, dsm_model, metric, masks):
     """Compute RSA between a single data DSM and one or more model DSMs."""
     if metric == 'spearman':
-        rsa_vals = [stats.spearmanr(dsm_data, dsm_model_)[0]
-                    for dsm_model_ in dsm_model]
+        rsa_vals = [stats.spearmanr(dsm_data[mask], dsm_model_[mask])[0]
+                    for dsm_model_, mask in zip(dsm_model, masks)]
     elif metric == 'pearson':
-        rsa_vals = [stats.pearsonr(dsm_data, dsm_model_)[0]
-                    for dsm_model_ in dsm_model]
+        rsa_vals = [stats.pearsonr(dsm_data[mask], dsm_model_[mask])[0]
+                    for dsm_model_, mask in zip(dsm_model, masks)]
     elif metric == 'kendall-tau-a':
-        rsa_vals = [_kendall_tau_a(dsm_data, dsm_model_)
-                    for dsm_model_ in dsm_model]
+        rsa_vals = [_kendall_tau_a(dsm_data[mask], dsm_model_[mask])
+                    for dsm_model_, mask in zip(dsm_model, masks)]
     elif metric == 'partial':
-        rsa_vals = _partial_correlation(dsm_data, dsm_model)
+        rsa_vals = _partial_correlation(dsm_data, dsm_model, masks)
     elif metric == 'partial-spearman':
-        rsa_vals = _partial_correlation(dsm_data, dsm_model,
+        rsa_vals = _partial_correlation(dsm_data, dsm_model, masks,
                                         type='spearman')
     elif metric == 'regression':
+        mask = _consolidate_masks(masks)
+        dsm_model = [dsm[mask] for dsm in dsm_model]
+        dsm_data = dsm_data[mask]
         X = np.atleast_2d(np.array(dsm_model)).T
         X = X - X.mean(axis=0)
         y = dsm_data - dsm_data.mean()
@@ -169,8 +201,8 @@ def _rsa_single_dsm(dsm_data, dsm_model, metric):
     return rsa_vals
 
 
-def rsa(dsm_data, dsm_model, metric='spearman', n_data_dsms=None, n_jobs=1,
-        verbose=False):
+def rsa(dsm_data, dsm_model, metric='spearman', ignore_nan=False,
+        n_data_dsms=None, n_jobs=1, verbose=False):
     """Perform RSA between data and model DSMs.
 
     Parameters
@@ -190,7 +222,11 @@ def rsa(dsm_data, dsm_model, metric='spearman', n_data_dsms=None, n_jobs=1,
         * 'regression' for linear regression weights
 
         Defaults to 'spearman'.
+    ignore_nan : bool
+        Whether to treat NaN's as missing values and ignore them when computing
+        the distance metric. Defaults to ``False``.
 
+        .. versionadded:: 0.8
     n_data_dsms : int | None
         The number of data DSMs. This is useful when displaying a progress bar,
         so an estimate can be made of the computation time remaining. This
@@ -232,10 +268,10 @@ def rsa(dsm_data, dsm_model, metric='spearman', n_data_dsms=None, n_jobs=1,
         dsm_data = tqdm(dsm_data, total=total, unit='DSM')
 
     if n_jobs == 1:
-        rsa_vals = list(rsa_gen(dsm_data, dsm_model, metric))
+        rsa_vals = list(rsa_gen(dsm_data, dsm_model, metric, ignore_nan))
     else:
         def process_single_dsm(dsm):
-            return next(rsa_gen([dsm], dsm_model, metric))
+            return next(rsa_gen([dsm], dsm_model, metric, ignore_nan))
         rsa_vals = Parallel(n_jobs)(delayed(process_single_dsm)(dsm)
                                     for dsm in dsm_data)
     if return_array:
@@ -245,8 +281,8 @@ def rsa(dsm_data, dsm_model, metric='spearman', n_data_dsms=None, n_jobs=1,
 
 
 def rsa_array(X, dsm_model, patches=None, data_dsm_metric='correlation',
-              data_dsm_params=dict(), rsa_metric='spearman', y=None, n_folds=1,
-              n_jobs=1, verbose=False):
+              data_dsm_params=dict(), rsa_metric='spearman', ignore_nan=False,
+              y=None, n_folds=1, n_jobs=1, verbose=False):
     """Perform RSA on an array of data, possibly in a searchlight pattern.
 
     Parameters
@@ -282,6 +318,11 @@ def rsa_array(X, dsm_model, patches=None, data_dsm_metric='correlation',
         * 'regression' for linear regression weights
 
         Defaults to 'spearman'.
+    ignore_nan : bool
+        Whether to treat NaN's as missing values and ignore them when computing
+        the distance metric. Defaults to ``False``.
+
+        .. versionadded:: 0.8
     y : ndarray of int, shape (n_items,) | None
         For each item, a number indicating the class to which the item belongs.
         When ``None``, each item is assumed to belong to a different class.
@@ -328,6 +369,11 @@ def rsa_array(X, dsm_model, patches=None, data_dsm_metric='correlation',
     else:
         dsm_model = [_ensure_condensed(dsm_model, 'dsm_model')]
 
+    if ignore_nan:
+        masks = [~np.isnan(dsm) for dsm in dsm_model]
+    else:
+        masks = [slice(None)] * len(dsm_model)
+
     if verbose:
         from tqdm import tqdm
         shape = patches.shape
@@ -344,7 +390,12 @@ def rsa_array(X, dsm_model, patches=None, data_dsm_metric='correlation',
             # Use cross-validation
             dsm_data = compute_dsm_cv(X[(slice(None),) + patch],
                                       data_dsm_metric, **data_dsm_params)
-        return _rsa_single_dsm(dsm_data, dsm_model, metric=rsa_metric)
+        if ignore_nan:
+            data_mask = ~np.isnan(dsm_data)
+            patch_masks = [m & data_mask for m in masks]
+        else:
+            patch_masks = masks
+        return _rsa_single_dsm(dsm_data, dsm_model, rsa_metric, patch_masks)
 
     # Call RSA multiple times in parallel for each searchlight patch
     data = Parallel(n_jobs)(delayed(rsa_single_patch)(patch)
