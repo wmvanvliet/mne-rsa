@@ -31,17 +31,30 @@ class TestRSAGen:
         model_dsm = np.array([2, 3, 3.5])
         assert next(rsa_gen(data_dsm, model_dsm, metric='spearman')) == 1.0
 
+        data_dsm = dsm_gen([[np.NaN, 2, 3, 4, 5]])
+        model_dsm = np.array([2, np.NaN, 3.5, 4, 5])
+        assert next(rsa_gen(data_dsm, model_dsm, metric='spearman', ignore_nan=True)) == 1.0
+
     def test_pearson(self):
         """Test computing RSA with Pearson correlation"""
         data_dsm = dsm_gen([[1, 2, 3]])
         model_dsm = np.array([2, 3, 3.5])
         assert next(rsa_gen(data_dsm, model_dsm, metric='pearson')) < 1.0
 
+        data_dsm = dsm_gen([[np.NaN, 2, 3, 4, 5]])
+        model_dsm = np.array([2, np.NaN, 3.5, 4, 5])
+        assert next(rsa_gen(data_dsm, model_dsm, metric='pearson', ignore_nan=True)) < 1.0
+
     def test_kendall_tau_a(self):
         """Test computing RSA with Kendall's Tau Alpha"""
         data_dsm = dsm_gen([[1, 2, 3]])
         model_dsm = np.array([1, 3, 3])  # This metric deals well with ties
         rsa_val = next(rsa_gen(data_dsm, model_dsm, metric='kendall-tau-a'))
+        assert rsa_val == 2 / 3
+
+        data_dsm = dsm_gen([[1, np.NaN, 2, 3, 4]])
+        model_dsm = np.array([1, 2, 3, 3, np.NaN])
+        rsa_val = next(rsa_gen(data_dsm, model_dsm, metric='kendall-tau-a', ignore_nan=True))
         assert rsa_val == 2 / 3
 
     def test_regression(self):
@@ -51,6 +64,13 @@ class TestRSAGen:
         data_dsm = dsm_gen([3 * model_dsm1 + 5 * model_dsm2])
         rsa_val = next(rsa_gen(data_dsm, [model_dsm1, model_dsm2],
                                metric='regression'))
+        assert_allclose(rsa_val, [3, 5])
+
+        model_dsm1 = np.array([-1, np.NaN, 0, 1, 1])
+        model_dsm2 = np.array([1, 3, -2, 1, np.NaN])
+        data_dsm = dsm_gen([3 * model_dsm1 + 5 * model_dsm2])
+        rsa_val = next(rsa_gen(data_dsm, [model_dsm1, model_dsm2],
+                               metric='regression', ignore_nan=True))
         assert_allclose(rsa_val, [3, 5])
 
     def test_partial(self):
@@ -63,6 +83,13 @@ class TestRSAGen:
                                metric='partial'))
         assert_allclose(rsa_val, [0.919145, 0.912871])
 
+        model_dsm1 = np.array([1, np.NaN, 2, 3, 4, 4])
+        model_dsm2 = np.array([0, 0, 0, 1, 1, np.NaN])
+        data_dsm = dsm_gen([[2, np.NaN, 4, 15, 20, np.NaN]])
+        rsa_val = next(rsa_gen(data_dsm, [model_dsm1, model_dsm2],
+                               metric='partial', ignore_nan=True))
+        assert_allclose(rsa_val, [0.919145, 0.912871])
+
     def test_partial_spearman(self):
         """Test computing RSA with partial spearman correlation."""
         # Example verified with MATLAB's partialcorr function
@@ -71,6 +98,13 @@ class TestRSAGen:
         data_dsm = dsm_gen([[2, 4, 20, 15]])
         rsa_val = next(rsa_gen(data_dsm, [model_dsm1, model_dsm2],
                                metric='partial-spearman'))
+        assert_allclose(rsa_val, [0, 2 / 3], atol=1E-15)
+
+        model_dsm1 = np.array([1, np.NaN, 2, 3, 4, 4])
+        model_dsm2 = np.array([0, 0, 0, 1, 1, np.NaN])
+        data_dsm = dsm_gen([[2, np.NaN, 4, 20, 15, np.NaN]])
+        rsa_val = next(rsa_gen(data_dsm, [model_dsm1, model_dsm2],
+                               metric='partial-spearman', ignore_nan=True))
         assert_allclose(rsa_val, [0, 2 / 3], atol=1E-15)
 
     def test_invalid_metric(self):
@@ -83,6 +117,11 @@ class TestRSAGen:
             next(rsa_gen(dsm_gen([dsm()]), dsm(), metric='partial'))
         with pytest.raises(ValueError, match='Need more than one model DSM'):
             next(rsa_gen(dsm_gen([dsm()]), dsm(), metric='partial-spearman'))
+
+    def test_nan(self):
+        """Test whether NaNs generate an error when appropriate."""
+        assert np.isnan(next(rsa_gen(dsm_gen([[1, 2, np.NaN, 4, 5, 6]]), dsm())))
+        assert_allclose(next(rsa_gen(dsm_gen([[1, 2, np.NaN, 4, 5, 6]]), dsm(), ignore_nan=True)), 1, atol=1E-15)
 
 
 class TestRSA:

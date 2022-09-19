@@ -36,14 +36,14 @@ mne.set_log_level(False)  # Be less verbose
 ###############################################################################
 # We'll be using the data from the MNE-sample set.
 sample_root = mne.datasets.sample.data_path(verbose=True)
-sample_path = f'{sample_root}/MEG/sample'
-mri_dir = f'{sample_root}/subjects/sample'
+sample_path = sample_root / 'MEG' / 'sample'
+mri_dir = sample_root / 'subjects' / 'sample'
 
 ###############################################################################
 # Creating epochs from the continuous (raw) data. We downsample to 100 Hz to
 # speed up the RSA computations later on.
-raw = mne.io.read_raw_fif(f'{sample_path}/sample_audvis_filt-0-40_raw.fif')
-events = mne.read_events(f'{sample_path}/sample_audvis_filt-0-40_raw-eve.fif')
+raw = mne.io.read_raw_fif(sample_path / 'sample_audvis_filt-0-40_raw.fif')
+events = mne.read_events(sample_path / 'sample_audvis_filt-0-40_raw-eve.fif')
 event_id = {'audio/left': 1,
             'audio/right': 2,
             'visual/left': 3,
@@ -97,7 +97,7 @@ mne_rsa.plot_dsms(model_dsm, title='Model DSM')
 # operator and apply it to obtain a volumetric source estimate for each
 # epoch.
 inv = mne.minimum_norm.read_inverse_operator(
-    f'{sample_path}/sample_audvis-meg-vol-7-meg-inv.fif')
+    sample_path / 'sample_audvis-meg-vol-7-meg-inv.fif')
 epochs_stc = mne.minimum_norm.apply_inverse_epochs(epochs, inv, lambda2=0.1111)
 
 ###############################################################################
@@ -118,5 +118,5 @@ rsa_vals = mne_rsa.rsa_stcs(
 ###############################################################################
 # Here is how to plot the result using nilearn.
 img = rsa_vals.as_volume(inv['src'], mri_resolution=False)
-t1_fname = f'{mri_dir}/mri/T1.mgz'
+t1_fname = mri_dir / 'mri' / 'T1.mgz'
 plot_stat_map(img, t1_fname, threshold=0.1)

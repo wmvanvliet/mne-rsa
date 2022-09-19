@@ -42,7 +42,7 @@ import mne_rsa
 # the data from the original 250 Hz. to 100 Hz.
 
 data_path = mne.datasets.kiloword.data_path(verbose=True)
-epochs = mne.read_epochs(data_path + '/kword_metadata-epo.fif')
+epochs = mne.read_epochs(data_path / 'kword_metadata-epo.fif')
 epochs = epochs.resample(100)
 
 ###############################################################################
@@ -81,11 +81,11 @@ rsa_result = mne_rsa.rsa_epochs(
     dsm_vis,                          # The model DSM
     epochs_dsm_metric='sqeuclidean',  # Metric to compute the EEG DSMs
     rsa_metric='kendall-tau-a',       # Metric to compare model and EEG DSMs
-    spatial_radius=0.45,                # Spatial radius of the searchlight patch in meters.
+    spatial_radius=0.45,              # Spatial radius of the searchlight patch in meters.
     temporal_radius=0.05,             # Temporal radius of the searchlight path in seconds.
     tmin=0.15, tmax=0.25,             # To save time, only analyze this time interval
     n_jobs=1,                         # Only use one CPU core. Increase this for more speed.
-    n_folds=None,
+    n_folds=None,                     # Don't use any cross-validation
     verbose=False)                    # Set to True to display a progress bar
 
 
@@ -98,7 +98,8 @@ rsa_result = mne_rsa.rsa_epochs(
 # and tweak the range of the colormap.
 
 rsa_result.plot_topomap(rsa_result.times, units=dict(eeg='kendall-tau-a'),
-                        scalings=dict(eeg=1), cbar_fmt='%.4f', vmin=0, nrows=2)
+                        scalings=dict(eeg=1), cbar_fmt='%.4f', vmin=0, nrows=2,
+                        sphere=1)
 
 ###############################################################################
 # Unsurprisingly, we get the highest correspondance between number of letters

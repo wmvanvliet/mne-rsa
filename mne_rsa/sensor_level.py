@@ -24,9 +24,9 @@ from .rsa import rsa_array
 
 def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
                 temporal_radius=0.1, evoked_dsm_metric='correlation',
-                evoked_dsm_params=dict(), rsa_metric='spearman', y=None,
-                n_folds=1, picks=None, tmin=None, tmax=None, n_jobs=1,
-                verbose=False):
+                evoked_dsm_params=dict(), rsa_metric='spearman',
+                ignore_nan=False, y=None, n_folds=1, picks=None, tmin=None,
+                tmax=None, n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern on evokeds.
 
     The output is an Evoked object where the "signal" at each sensor is
@@ -78,6 +78,11 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
         * 'regression' for linear regression weights
 
         Defaults to 'spearman'.
+    ignore_nan : bool
+        Whether to treat NaN's as missing values and ignore them when computing
+        the distance metric. Defaults to ``False``.
+
+        .. versionadded:: 0.8
     y : ndarray of int, shape (n_items,) | None
         For each Evoked, a number indicating the item to which it belongs.
         When ``None``, each Evoked is assumed to belong to a different item.
@@ -158,7 +163,6 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
     # Convert the temporal radius to samples
     if temporal_radius is not None:
         temporal_radius = round(evokeds[0].info['sfreq'] * temporal_radius)
- 
 
     # Normalize with the noise cov
     if noise_cov is not None:
@@ -192,7 +196,8 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
                           samples_to=samples_to)
     data = rsa_array(X, dsm_model, patches, data_dsm_metric=evoked_dsm_metric,
                      data_dsm_params=evoked_dsm_params, rsa_metric=rsa_metric,
-                     y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
+                     ignore_nan=ignore_nan, y=y, n_folds=n_folds,
+                     n_jobs=n_jobs, verbose=verbose)
 
     # Pack the result in an Evoked object
     if spatial_radius is not None:
@@ -213,9 +218,9 @@ def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
 
 def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
                temporal_radius=0.1, epochs_dsm_metric='correlation',
-               epochs_dsm_params=dict(), rsa_metric='spearman', y=None,
-               n_folds=1, picks=None, tmin=None, tmax=None, n_jobs=1,
-               verbose=False):
+               epochs_dsm_params=dict(), rsa_metric='spearman',
+               ignore_nan=False, y=None, n_folds=1, picks=None, tmin=None,
+               tmax=None, dropped_as_nan=False, n_jobs=1, verbose=False):
     """Perform RSA in a searchlight pattern on epochs.
 
     The output is an Evoked object where the "signal" at each sensor is
@@ -266,6 +271,11 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
         * 'regression' for linear regression weights
 
         Defaults to 'spearman'.
+    ignore_nan : bool
+        Whether to treat NaN's as missing values and ignore them when computing
+        the distance metric. Defaults to ``False``.
+
+        .. versionadded:: 0.8
     y : ndarray of int, shape (n_items,) | None
         For each Epoch, a number indicating the item to which it belongs.
         When ``None``, the event codes are used to differentiate between items.
@@ -296,6 +306,15 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
         including this time point. This value is given in seconds. Defaults to
         ``None``, in which case patches are generated up to and including the
         last time point.
+    dropped_as_nan : bool
+        When this is set to ``True``, the drop log will be used to inject NaN
+        values in the DSMs at the locations where a bad epoch was dropped. This
+        is useful to ensure the dimensions of the DSM are the same,
+        irregardless of any bad epochs that were dropped. Make sure to use
+        ``ignore_nan=True`` when using DSMs with NaNs in them during subsequent
+        RSA computations. Defaults to ``False``.
+
+        .. versionadded:: 0.8
     n_jobs : int
         The number of processes (=number of CPU cores) to use. Specify -1 to
         use all available cores. Defaults to 1.
@@ -329,7 +348,7 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
     else:
         y_source = '`y` matrix'
 
-    # Check for compatibility of the evokeds and the model features
+    # Check for compatibility of the epochs and the model features
     for dsm in dsm_model:
         n_items = _n_items_from_dsm(dsm)
         if len(np.unique(y)) != n_items:
@@ -373,7 +392,8 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
                           samples_to=samples_to)
     data = rsa_array(X, dsm_model, patches, data_dsm_metric=epochs_dsm_metric,
                      data_dsm_params=epochs_dsm_params, rsa_metric=rsa_metric,
-                     y=y, n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
+                     ignore_nan=ignore_nan, y=y, n_folds=n_folds,
+                     n_jobs=n_jobs, verbose=verbose)
 
     # Pack the result in an Evoked object
     if spatial_radius is not None:
@@ -395,8 +415,8 @@ def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
 
 def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
                 temporal_radius=0.1, dist_metric='correlation',
-                dist_params=dict(), y=None, n_folds=1, picks=None,
-                tmin=None, tmax=None):
+                dist_params=dict(), y=None, n_folds=1, picks=None, tmin=None,
+                tmax=None):
     """Generate DSMs in a searchlight pattern on evokeds.
 
     Parameters
@@ -500,7 +520,7 @@ def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
 def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
                temporal_radius=0.1, dist_metric='correlation',
                dist_params=dict(), y=None, n_folds=1, picks=None,
-               tmin=None, tmax=None):
+               tmin=None, tmax=None, dropped_as_nan=False):
     """Generate DSMs in a searchlight pattern on epochs.
 
     Parameters
@@ -560,6 +580,15 @@ def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
         including this time point. This value is given in seconds. Defaults to
         ``None``, in which case patches are generated up to and including the
         last time point.
+    dropped_as_nan : bool
+        When this is set to ``True``, the drop log will be used to inject NaN
+        values in the DSMs at the locations where a bad epoch was dropped. This
+        is useful to ensure the dimensions of the DSM are the same,
+        irregardless of any bad epochs that were dropped. Make sure to use
+        ``ignore_nan=True`` when using DSMs with NaNs in them during subsequent
+        RSA computations. Defaults to ``False``.
+
+        .. versionadded:: 0.8
 
     Yields
     ------
@@ -595,8 +624,19 @@ def dsm_epochs(epochs, noise_cov=None, spatial_radius=0.04,
                           temporal_radius=temporal_radius,
                           sel_series=picks, samples_from=samples_from,
                           samples_to=samples_to)
-    yield from dsm_array(X, patches, dist_metric=dist_metric,
-                         dist_params=dist_params, y=y, n_folds=n_folds)
+    dsm_gen = dsm_array(X, patches, dist_metric=dist_metric,
+                        dist_params=dist_params, y=y, n_folds=n_folds)
+    if not dropped_as_nan or epochs.drop_log_stats() == 0:
+        yield from dsm_gen
+    else:
+        nan_locations = [i for i, reason in enumerate(epochs.drop_log)
+                         if len(reason) > 0]
+        for dsm in dsm_gen:
+            dsm = distance.squareform(dsm)
+            dsm = np.insert(dsm, nan_locations, np.NaN, axis=0)
+            dsm = np.insert(dsm, nan_locations, np.NaN, axis=1)
+            # Can't use squareform to convert back due to the NaNs.
+            yield dsm[np.triu_indices(len(dsm), 1)]
 
 
 def _tmin_tmax_to_indices(times, tmin, tmax):
@@ -619,3 +659,8 @@ def _construct_tmin(times, samples_from, samples_to, temporal_radius):
         return times[(samples_from + samples_to) // 2]
     else:
         return times[max(temporal_radius, samples_from)]
+
+def _square_to_condensed(i, j, n):
+    if i < j:
+        i, j = j, i
+    return n * j - j * (j+1) // 2 + i - 1 - j

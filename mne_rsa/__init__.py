@@ -6,3 +6,6 @@ from .rsa import rsa, rsa_gen, rsa_array
 from .dsm import compute_dsm, compute_dsm_cv, dsm_array
 from .viz import plot_dsms, plot_dsms_topo
 from .folds import create_folds
+
+# This function is useful to have nearby
+from scipy.spatial.distance import squareform

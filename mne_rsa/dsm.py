@@ -46,7 +46,7 @@ def compute_dsm(data, metric='correlation', **kwargs):
     # Be careful with certain metrics
     if n_features == 1 and metric in ['correlation', 'cosine']:
         raise ValueError("There is only a single feature, so "
-                         "'correlataion' and 'cosine' can not be "
+                         "'correlation' and 'cosine' can not be "
                          "used as DSM metric. Consider using 'sqeuclidean' "
                          "instead.")
 

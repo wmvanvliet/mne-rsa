@@ -37,7 +37,7 @@ import mne_rsa
 # the data from the original 250 Hz. to 100 Hz.
 
 data_path = mne.datasets.kiloword.data_path(verbose=True)
-epochs = mne.read_epochs(data_path + '/kword_metadata-epo.fif')
+epochs = mne.read_epochs(data_path / 'kword_metadata-epo.fif')
 epochs = epochs.resample(100)
 
 
