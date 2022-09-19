@@ -214,8 +214,7 @@ class dsm_array:
     searchlight
     """
     def __init__(self, X, patches=None, dist_metric='correlation',
-                 dist_params=dict(), y=None, n_folds=1, sel_series=None,
-                 sel_samples=None):
+                 dist_params=dict(), y=None, n_folds=1):
         if patches is None:
             patches = searchlight(X.shape)
 

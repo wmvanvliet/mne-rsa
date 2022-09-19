@@ -506,13 +506,13 @@ def dsm_evokeds(evokeds, noise_cov=None, spatial_radius=0.04,
     picks = mne.io.pick._picks_to_idx(evokeds[0].info, picks, none='data')
     if len(picks) != len(set(picks)):
         raise ValueError("`picks` are not unique. Please remove duplicates.")
-    sel_samples = _tmin_tmax_to_indices(times, tmin, tmax)
+    samples_from, samples_to = _tmin_tmax_to_indices(times, tmin, tmax)
 
     # Compute the DSMs
     X = np.array([evoked.data for evoked in evokeds])
     patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
-                          temporal_radius=temporal_radius,
-                          sel_series=picks, sel_samples=sel_samples)
+                          temporal_radius=temporal_radius, sel_series=picks,
+                          samples_from=samples_from, samples_to=samples_to)
     yield from dsm_array(X, patches, dist_metric=dist_metric,
                          dist_params=dist_params, y=y, n_folds=n_folds)
 
