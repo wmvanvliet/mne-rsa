@@ -330,9 +330,12 @@ def rsa_array(X, dsm_model, patches=None, data_dsm_metric='correlation',
 
     if verbose:
         from tqdm import tqdm
-        shape = patches.shape
+        shape = getattr(patches, 'shape', (-1,))
         patches = tqdm(patches, unit='patch')
-        patches.shape = shape
+        try:
+            setattr(patches, 'shape', shape)
+        except AttributeError:
+            pass
 
     def rsa_single_patch(patch):
         """Compute RSA for a single searchlight patch."""
@@ -351,7 +354,7 @@ def rsa_array(X, dsm_model, patches=None, data_dsm_metric='correlation',
                             for patch in patches)
 
     # Figure out the desired dimensions of the resulting array
-    dims = patches.shape
+    dims = getattr(patches, 'shape', (-1,))
     if len(dsm_model) > 1:
         dims = dims + (len(dsm_model),)
 
