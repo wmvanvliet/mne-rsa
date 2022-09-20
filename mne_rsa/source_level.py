@@ -158,12 +158,14 @@ def rsa_stcs(stcs, dsm_model, src, spatial_radius=0.04, temporal_radius=0.1,
                 % (n_items, len(np.unique(y))))
 
     _check_stcs_compatibility(stcs, src)
-    dist = _get_distance_matrix(src, dist_lim=spatial_radius, n_jobs=n_jobs)
-
+    if spatial_radius is not None:
+        dist = _get_distance_matrix(src, dist_lim=spatial_radius,
+                                    n_jobs=n_jobs)
+    else:
+        dist = None
     if temporal_radius is not None:
         # Convert the temporal radius to samples
         temporal_radius = int(temporal_radius // stcs[0].tstep)
-
         if temporal_radius < 1:
             raise ValueError('Temporal radius is less than one sample.')
 
@@ -190,6 +192,7 @@ def rsa_stcs(stcs, dsm_model, src, spatial_radius=0.04, temporal_radius=0.1,
             vertices = [np.array([1])]
         else:
             vertices = [np.array([1]), np.array([])]
+        data = data[np.newaxis, ...]
     tmin = _construct_tmin(stcs[0].times, samples_from, samples_to,
                            temporal_radius)
     tstep = stcs[0].tstep
@@ -288,7 +291,11 @@ def dsm_stcs(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
         A DSM for each searchlight patch.
     """
     _check_stcs_compatibility(stcs, src)
-    dist = _get_distance_matrix(src, dist_lim=spatial_radius, n_jobs=n_jobs)
+    if spatial_radius is not None:
+        dist = _get_distance_matrix(src, dist_lim=spatial_radius,
+                                    n_jobs=n_jobs)
+    else:
+        dist = None
 
     # Convert the temporal radius to samples
     if temporal_radius is not None:
