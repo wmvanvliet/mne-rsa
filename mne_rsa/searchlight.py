@@ -1,3 +1,4 @@
+"""Classes and functions having to do with creating searchlights."""
 import numpy as np
 from mne.utils import logger
 
@@ -42,13 +43,27 @@ class searchlight:
         your distance computations.
 
         Defaults to ``None``.
-    spatial_radius : floats | None
-        The spatial radius of the searchlight patch in meters. All source
-        points within this radius will belong to the searchlight patch. Set to
-        None to only perform the searchlight over time. When this parameter is
-        set, the ``dist`` parameter must also be specified. Defaults to
-        ``None``.
-    temporal_radius : float | None
+    spatial_radius : float | list of list of int | None
+        This controls how spatial patches will be created. There are several
+        ways to do this:
+
+        The first way is to specify a spatial radius in meters. In this case,
+        the ``dist`` parameter must also be specified. This will create a
+        searchlight where each patch contains all source points within this
+        radius.
+
+        The second way is to specify a list of predefined patches. In this
+        case, each element of the list should itself be a list of integer
+        indexes along the spatial dimension of the data array. Each element of
+        this list will become a separate patch using the data at the specified
+        indices.
+
+        The third way is to set this to ``None``, which will disable the making
+        of spatial patches and only perform the searchlight over time. This can
+        be thought of as pooling everything into a single spatial patch.
+
+        Defaults to``None``.
+    temporal_radius : int | None
         The temporal radius of the searchlight patch in samples. Set to
         ``None`` to only perform the searchlight over sensors/source points.
         Defaults to ``None``.
@@ -126,21 +141,29 @@ class searchlight:
 
         # Will we be creating spatial searchlight patches?
         if self.spatial_radius is not None:
-            if self.dist is None:
-                raise ValueError('A spatial radius was requested, but no '
-                                 'distance information was specified '
-                                 '(=dist parameter).')
             if self.series_dim is None:
                 raise ValueError('Cannot create spatial searchlight patches: '
                                  f'the provided data shape ({shape}) has no '
                                  'spatial dimension.')
-            if self.sel_series is None:
-                self.sel_series = np.arange(shape[self.series_dim])
-
-            # Compressed Sparse Row format is optimal for our computations
-            from scipy.sparse import issparse
-            if issparse(self.dist):
-                self.dist = self.dist.tocsr()
+            # If spatial radius is a number, we will be making searchlight
+            # patches based on distance computations. Alternatively, a list of
+            # predefined spatial patches may be provided, and we don't need
+            # `dist`.
+            if type(self.spatial_radius) in [float, int]:
+                if self.dist is None:
+                    raise ValueError('A spatial radius was requested, but no '
+                                     'distance information was specified '
+                                     '(=dist parameter).')
+                # Compressed Sparse Row format is optimal for our computations
+                from scipy.sparse import issparse
+                if issparse(self.dist):
+                    self.dist = self.dist.tocsr()
+                if self.sel_series is None:
+                    self.sel_series = np.arange(shape[self.series_dim])
+            else:
+                # Explicit spatial patches were provided
+                if self.sel_series is None:
+                    self.sel_series = np.arange(len(self.spatial_radius))
 
         # Will we be creating temporal searchlight patches?
         if temporal_radius is not None:
@@ -199,6 +222,7 @@ class searchlight:
             self._generator = iter([tuple(self.patch_template)])
 
     def __iter__(self):
+        """Get an iterator over the searchlight patches."""
         return self
 
     def __next__(self):
@@ -211,7 +235,11 @@ class searchlight:
         patch = list(self.patch_template)  # Copy the template
         for series in self.sel_series:
             # Compute all spatial locations in the searchligh path.
-            spat_ind = _get_in_radius(self.dist, series, self.spatial_radius)
+            if type(self.spatial_radius) in [float, int]:
+                spat_ind = _get_in_radius(self.dist, series,
+                                          self.spatial_radius)
+            else:
+                spat_ind = self.spatial_radius[series]
             patch[self.series_dim] = spat_ind
             for sample in self.time_centers:
                 temp_ind = slice(sample - self.temporal_radius,
@@ -224,7 +252,11 @@ class searchlight:
         logger.info('Creating spatial searchlight patches')
         patch = list(self.patch_template)  # Copy the template
         for series in self.sel_series:
-            spat_ind = _get_in_radius(self.dist, series, self.spatial_radius)
+            if type(self.spatial_radius) in [float, int]:
+                spat_ind = _get_in_radius(self.dist, series,
+                                          self.spatial_radius)
+            else:
+                spat_ind = self.spatial_radius[series]
             patch[self.series_dim] = spat_ind
             yield tuple(patch)
 
@@ -239,7 +271,7 @@ class searchlight:
 
     @property
     def shape(self):
-        """Number of generated patches along multiple dimensions.
+        """Get the number of generated patches along multiple dimensions.
 
         This is useful for re-shaping the result obtained after consuming the
         this generator.

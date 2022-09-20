@@ -308,6 +308,192 @@ def dsm_stcs(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
                          dist_params=dist_params, y=y, n_folds=n_folds)
 
 
+def rsa_stcs_rois(stcs, dsm_model, src, rois, temporal_radius=0.1,
+                  stc_dsm_metric='correlation', stc_dsm_params=dict(),
+                  rsa_metric='spearman', ignore_nan=False, y=None, n_folds=1,
+                  sel_vertices=None, tmin=None, tmax=None, n_jobs=1,
+                  verbose=False):
+    """Perform RSA for a list of ROIs using MNE-Python source estimates.
+
+    The output is a source estimate where the "signal" at each source point is
+    the RSA, computed for a patch surrounding the source point. Source estimate
+    objects can be either defined along a cortical surface (``SourceEstimate``
+    objects) or volumetric (``VolSourceEstimate`` objects).  For surface source
+    estimates, distances between vertices are measured in 2D space, namely as
+    the length of the path along the surface from one vertex to another. For
+    volume source estimates, distances are measured in 3D space as a straight
+    line from one voxel to another.
+
+    Parameters
+    ----------
+    stcs : list of mne.SourceEstimate | list of mne.VolSourceEstimate
+        For each item, a source estimate for the brain activity.
+    dsm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
+        The model DSM, see :func:`compute_dsm`. For efficiency, you can give it
+        in condensed form, meaning only the upper triangle of the matrix as a
+        vector. See :func:`scipy.spatial.distance.squareform`. To perform RSA
+        against multiple models at the same time, supply a list of model DSMs.
+
+        Use :func:`compute_dsm` to compute DSMs.
+    src : instance of mne.SourceSpaces
+        The source space used by the source estimates specified in the `stcs`
+        parameter.
+    rois : list of mne.Label
+        The spatial regions of interest (ROIs) to compute the RSA for. This
+        needs to be specified as a list of ``mne.Label`` objects, such as
+        returned by ``mne.read_annotations``.
+    temporal_radius : float | None
+        The temporal radius of the searchlight patch in seconds. Set to None to
+        only perform the searchlight over sensors, flattening across time.
+        Defaults to 0.1.
+    stc_dsm_metric : str
+        The metric to use to compute the DSM for the source estimates. This can
+        be any metric supported by the scipy.distance.pdist function. See also
+        the ``stc_dsm_params`` parameter to specify and additional parameter
+        for the distance function. Defaults to 'correlation'.
+    stc_dsm_params : dict
+        Extra arguments for the distance metric used to compute the DSMs.
+        Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
+        and their arguments. Defaults to an empty dictionary.
+    rsa_metric : str
+        The RSA metric to use to compare the DSMs. Valid options are:
+
+        * 'spearman' for Spearman's correlation (the default)
+        * 'pearson' for Pearson's correlation
+        * 'kendall-tau-a' for Kendall's Tau (alpha variant)
+        * 'partial' for partial Pearson correlations
+        * 'partial-spearman' for partial Spearman correlations
+        * 'regression' for linear regression weights
+
+        Defaults to 'spearman'.
+    ignore_nan : bool
+        Whether to treat NaN's as missing values and ignore them when computing
+        the distance metric. Defaults to ``False``.
+
+        .. versionadded:: 0.8
+    y : ndarray of int, shape (n_items,) | None
+        For each source estimate, a number indicating the item to which it
+        belongs. When ``None``, each source estimate is assumed to belong to a
+        different item. Defaults to ``None``.
+    n_folds : int | sklearn.model_selection.BaseCrollValidator | None
+        Number of cross-validation folds to use when computing the distance
+        metric. Folds are created based on the ``y`` parameter. Specify
+        ``None`` to use the maximum number of folds possible, given the data.
+        Alternatively, you can pass a Scikit-Learn cross validator object (e.g.
+        ``sklearn.model_selection.KFold``) to assert fine-grained control over
+        how folds are created.
+        Defaults to 1 (no cross-validation).
+    sel_vertices : list of int | None
+        When set, searchlight patches will only be generated for the subset of
+        vertices/voxels with the given indices. Defaults to ``None``, in which
+        case patches for all vertices/voxels are generated.
+    tmin : float | None
+        When set, searchlight patches will only be generated from subsequent
+        time points starting from this time point. This value is given in
+        seconds. Defaults to ``None``, in which case patches are generated
+        starting from the first time point.
+    tmax : float | None
+        When set, searchlight patches will only be generated up to and
+        including this time point. This value is given in seconds. Defaults to
+        ``None``, in which case patches are generated up to and including the
+        last time point.
+    n_jobs : int
+        The number of processes (=number of CPU cores) to use. Specify -1 to
+        use all available cores. Defaults to 1.
+    verbose : bool
+        Whether to display a progress bar. In order for this to work, you need
+        the tqdm python module installed. Defaults to False.
+
+    Returns
+    -------
+    data : ndarray, shape (n_rois, n_times) | list of ndarray
+        The correlation values for each ROI. When temporal_radius is set to
+        None, there will be time dimension. When multiple models have been
+        supplied, a list will be returned containing the RSA results for each
+        model.
+    stc : SourceEstimate | list of SourceEstimate
+        The correlation values for each ROI, backfilled into a full
+        SourceEstimate object. Each vertex belonging to the same ROI will have
+        the same values. When temporal_radius is set to None, there will only
+        be one time point. When multiple models have been supplied, a list will
+        be returned containing the RSA results for each model.
+
+    See Also
+    --------
+    compute_dsm
+    """  # noqa E501
+    # Check for compatibility of the source estimates and the model features
+    one_model = type(dsm_model) is np.ndarray
+    if one_model:
+        dsm_model = [dsm_model]
+
+    # Check for compatibility of the stcs and the model features
+    for dsm in dsm_model:
+        n_items = _n_items_from_dsm(dsm)
+        if len(stcs) != n_items and y is None:
+            raise ValueError(
+                'The number of source estimates (%d) should be equal to the '
+                'number of items in `dsm_model` (%d). Alternatively, use '
+                'the `y` parameter to assign source estimates to items.'
+                % (len(stcs), n_items))
+        if y is not None and len(np.unique(y)) != n_items:
+            raise ValueError(
+                'The number of items in `dsm_model` (%d) does not match '
+                'the number of items encoded in the `y` matrix (%d).'
+                % (n_items, len(np.unique(y))))
+
+    _check_stcs_compatibility(stcs, src)
+
+    if temporal_radius is not None:
+        # Convert the temporal radius to samples
+        temporal_radius = int(temporal_radius // stcs[0].tstep)
+
+        if temporal_radius < 1:
+            raise ValueError('Temporal radius is less than one sample.')
+
+    samples_from, samples_to = _tmin_tmax_to_indices(stcs[0].times, tmin, tmax)
+
+    # Convert the labels to data indices
+    roi_inds = list()
+    for roi in rois:
+        roi = roi.copy().restrict(src)
+        if roi.hemi == 'lh':
+            roi_ind = np.searchsorted(src[0]['vertno'], roi.vertices)
+        else:
+            roi_ind = np.searchsorted(src[1]['vertno'], roi.vertices)
+            roi_ind += src[0]['nuse']
+        roi_inds.append(roi_ind)
+
+    # Perform the RSA
+    X = np.array([stc.data for stc in stcs])
+    patches = searchlight(X.shape, spatial_radius=roi_inds,
+                          temporal_radius=temporal_radius,
+                          sel_series=sel_vertices, samples_from=samples_from,
+                          samples_to=samples_to)
+    data = rsa_array(X, dsm_model, patches, data_dsm_metric=stc_dsm_metric,
+                     data_dsm_params=stc_dsm_params, rsa_metric=rsa_metric,
+                     ignore_nan=ignore_nan, y=y, n_folds=n_folds,
+                     n_jobs=n_jobs, verbose=verbose)
+
+    # Pack the result in SourceEstimate objects
+    vertices = stcs[0].vertices
+    subject = stcs[0].subject
+    if sel_vertices is not None:
+        vertices = vertices[sel_vertices]
+    tmin = _construct_tmin(stcs[0].times, samples_from, samples_to,
+                           temporal_radius)
+    tstep = stcs[0].tstep
+    if one_model:
+        stc = backfill_stc_from_rois(data, rois, src, tmin=tmin, tstep=tstep,
+                                     subject=subject)
+    else:
+        stc = [backfill_stc_from_rois(data[..., i], rois, src, tmin=tmin,
+                                      tstep=tstep, subject=subject)
+               for i in range(data.shape[-1])]
+
+    return data, stc
+
+
 def rsa_nifti(image, dsm_model, spatial_radius=0.01,
               image_dsm_metric='correlation', image_dsm_params=dict(),
               rsa_metric='spearman', ignore_nan=False, y=None, n_folds=1,
@@ -762,3 +948,53 @@ def make_mri_con_matrix(img):
     con_matrix = csr_matrix((dist, (rows, cols)),
                             shape=(len(voxels), len(voxels)))
     return con_matrix
+
+
+def backfill_stc_from_rois(values, rois, src, tmin=0, tstep=1, subject=None):
+    """Backfill the ROI values into a full mne.SourceEstimate object.
+
+    Each vertex belonging to the same region of interest (ROI) will have the
+    sample value.
+
+    Parameters
+    ----------
+    values : ndarray, shape (n_rois, ...)
+        For each ROI, either a single value or a timecourse of values.
+    rois : list of mne.Label
+        The spatial regions of interest (ROIs) to compute the RSA for. This
+        needs to be specified as a list of ``mne.Label`` objects, such as
+        returned by ``mne.read_annotations``.
+    src : instance of mne.SourceSpaces
+        The source space used by the source estimates specified in the `stcs`
+        parameter.
+    tmin : float
+        Time corrsponding to the first sample.
+    tstep : float
+        Difference in time between two samples.
+    subject : str | None
+        The name of the FreeSurfer subject.
+
+    Returns
+    -------
+    stc : mne.SourceEstimate
+        The backfilled source estimate object.
+    """
+    values = np.asarray(values)
+    if values.ndim == 1:
+        n_samples = 1
+    else:
+        n_samples = values.shape[1]
+    data = np.zeros((src[0]['nuse'] + src[1]['nuse'], n_samples))
+    verts_lh = src[0]['vertno']
+    verts_rh = src[1]['vertno']
+    for roi, rsa_timecourse in zip(rois, values):
+        roi = roi.copy().restrict(src)
+        if roi.hemi == 'lh':
+            roi_ind = np.searchsorted(verts_lh, roi.vertices)
+        else:
+            roi_ind = np.searchsorted(verts_rh, roi.vertices)
+            roi_ind += src[0]['nuse']
+        for ind in roi_ind:
+            data[ind] = rsa_timecourse
+    return mne.SourceEstimate(data, vertices=[verts_lh, verts_rh], tmin=tmin,
+                              tstep=tstep, subject=subject)

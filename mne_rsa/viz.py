@@ -250,3 +250,55 @@ def plot_dsms_topo(dsms, info, time=None, layout=None, fig=None,
                                     fig_facecolor=fig_facecolor,
                                     figsize=figsize, cmap=cmap, show=show)
     return fig
+
+
+def plot_roi_map(values, rois, subject, subjects_dir, cmap='plasma',
+                 alpha=1.0):
+    """Plot ROI values on a FreeSurfer brain.
+
+    Parameters
+    ----------
+    values : array-like, shape (n_rois,)
+        The values to plot. One value per ROI.
+    rois : list of mne.Label
+        The labels corrsponding to the ROIs.
+    subject : str
+        The name of the FreeSurfer subject to plot the brain for.
+    subjects_dir : str
+        The folder in which the FreeSurfer subject data is kept. Inside this
+        folder should be a folder with the same name as the `subject`
+        parameter.
+    cmap : str
+        The name of the matplotlib colormap to use. Defaults to 'plasma'.
+    alpha : float
+        The alpha (opacity, 1.0 is fully opaque, 0.0 is fully transparant) of
+        the data being plotted on top of the brain.
+
+    Returns
+    -------
+    brain : mne.viz.Brain
+        The MNE-Python brain plotting object that was created and currently
+        being shown. You can use this to modify the plot.
+    """
+    cmap = get_cmap(cmap)
+    max_val = np.max(values)
+    brain = mne.viz.Brain(subject=subject, subjects_dir=subjects_dir,
+                          surf='inflated', hemi='both')
+    labels_lh = np.zeros(inv['src'][0]['np'], dtype=int)
+    labels_rh = np.zeros(inv['src'][1]['np'], dtype=int)
+    ctab_lh = list()
+    ctab_rh = list()
+    for i, (roi, value) in enumerate(zip(rois, values), 1):
+        if roi.hemi == 'lh':
+            labels = labels_lh
+            ctab = ctab_lh
+        else:
+            labels = labels_rh
+            ctab = ctab_rh
+        labels[roi.vertices] = i
+        ctab.append([int(x * 255) for x in cmap(value / max_val)[:4]] + [i])
+    ctab_lh = np.array(ctab_lh)
+    ctab_rh = np.array(ctab_rh)
+    brain.add_annotation([(labels_lh, ctab_lh), (labels_rh, ctab_rh)],
+                         borders=False, alpha=alpha)
+    return brain
