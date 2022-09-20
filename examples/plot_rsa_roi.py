@@ -12,6 +12,7 @@ The dataset will be the MNE-sample dataset: a collection of 288 epochs in which
 the participant was presented with an auditory beep or visual stimulus to
 either the left or right ear or visual field.
 """
+# sphinx_gallery_thumbnail_number=2
 # Import required packages
 import mne
 import mne_rsa
@@ -111,5 +112,6 @@ rsa_vals, stc = mne_rsa.rsa_stcs_rois(epochs_stc, model_dsm, inv['src'], rois,
 ###############################################################################
 # To plot the RSA values on a brain, we can use one of MNE-RSA's own
 # visualization functions.
-mne_rsa.plot_roi_map(rsa_vals, rois, subject='sample',
-                     subjects_dir=subjects_dir)
+brain = mne_rsa.plot_roi_map(rsa_vals, rois, subject='sample',
+                             subjects_dir=subjects_dir)
+brain.show_view('lateral', distance=600)

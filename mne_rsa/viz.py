@@ -2,6 +2,7 @@ from functools import partial
 import types
 import matplotlib.pyplot as plt
 from matplotlib.cm import get_cmap
+from mne.viz import Brain
 from mne.viz.topo import _iter_topography
 import numpy as np
 from scipy.spatial import distance
@@ -283,10 +284,10 @@ def plot_roi_map(values, rois, subject, subjects_dir, cmap='plasma',
     """
     cmap = get_cmap(cmap)
     max_val = np.max(values)
-    brain = mne.viz.Brain(subject=subject, subjects_dir=subjects_dir,
-                          surf='inflated', hemi='both')
-    labels_lh = np.zeros(inv['src'][0]['np'], dtype=int)
-    labels_rh = np.zeros(inv['src'][1]['np'], dtype=int)
+    brain = Brain(subject=subject, subjects_dir=subjects_dir, surf='inflated',
+                  hemi='both')
+    labels_lh = np.zeros(len(brain.geo['lh'].coords), dtype=int)
+    labels_rh = np.zeros(len(brain.geo['rh'].coords), dtype=int)
     ctab_lh = list()
     ctab_rh = list()
     for i, (roi, value) in enumerate(zip(rois, values), 1):
