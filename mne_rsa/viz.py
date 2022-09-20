@@ -1,6 +1,7 @@
 from functools import partial
 import types
 import matplotlib.pyplot as plt
+from matplotlib.cm import get_cmap
 from mne.viz.topo import _iter_topography
 import numpy as np
 from scipy.spatial import distance

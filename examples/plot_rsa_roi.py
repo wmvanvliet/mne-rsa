@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # coding: utf-8
-
 """
 Source-level RSA using ROI's
 ============================
@@ -14,10 +13,6 @@ the participant was presented with an auditory beep or visual stimulus to
 either the left or right ear or visual field.
 """
 # Import required packages
-from matplotlib import pyplot as plt
-from matplotlib.cm import get_cmap
-import numpy as np
-
 import mne
 import mne_rsa
 
