@@ -23,7 +23,7 @@ import mne_rsa
 # the data from the original 250 Hz. to 100 Hz.
 
 data_path = mne.datasets.kiloword.data_path(verbose=True)
-epochs = mne.read_epochs(data_path / 'kword_metadata-epo.fif')
+epochs = mne.read_epochs(data_path / "kword_metadata-epo.fif")
 epochs = epochs.resample(100)
 
 ###############################################################################
@@ -32,15 +32,16 @@ epochs = epochs.resample(100)
 
 # This will create a generator for the DSMs
 dsms = mne_rsa.dsm_epochs(
-    epochs,                     # The EEG data
-    dist_metric='correlation',  # Metric to compute the EEG DSMs
-    spatial_radius=45,          # Spatial radius of the searchlight patch
-    temporal_radius=None,       # Perform only spatial searchlight
-    tmin=0.15, tmax=0.25,       # To save time, only analyze this time interval
+    epochs,  # The EEG data
+    dist_metric="correlation",  # Metric to compute the EEG DSMs
+    spatial_radius=45,  # Spatial radius of the searchlight patch
+    temporal_radius=None,  # Perform only spatial searchlight
+    tmin=0.15,
+    tmax=0.25,  # To save time, only analyze this time interval
 )
 
 # Unpack the generator into a NumPy array so we can plot it
 dsms = np.array(list(dsms))
 
 # Visualize the DSMs.
-mne_rsa.viz.plot_dsms_topo(dsms, epochs.info, cmap='magma')
+mne_rsa.viz.plot_dsms_topo(dsms, epochs.info, cmap="magma")

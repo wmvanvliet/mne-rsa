@@ -33,7 +33,7 @@ def create_folds(X, y=None, n_folds=None):
     -------
     folds : ndarray, shape (n_folds, n_items, ...)
         The folded data.
-        
+
     """
     if y is None:
         # No folding
@@ -41,8 +41,10 @@ def create_folds(X, y=None, n_folds=None):
 
     y = np.asarray(y)
     if len(y) != len(X):
-        raise ValueError(f'The length of y ({len(y)}) does not match the '
-                         f'number of items ({len(X)}).')
+        raise ValueError(
+            f"The length of y ({len(y)}) does not match the "
+            f"number of items ({len(X)})."
+        )
 
     y_one_hot = _convert_to_one_hot(y)
     n_items = y_one_hot.shape[1]
@@ -50,13 +52,16 @@ def create_folds(X, y=None, n_folds=None):
     if n_folds is None:
         # Set n_folds to maximum value
         n_folds = len(X) // n_items
-        logger.info(f'Automatic dermination of folds: {n_folds}'
-                    + ' (no cross-validation)' if n_folds == 1 else '')
+        logger.info(
+            f"Automatic dermination of folds: {n_folds}" + " (no cross-validation)"
+            if n_folds == 1
+            else ""
+        )
 
     if n_folds == 1:
         # Making one fold is easy
         folds = [_compute_item_means(X, y_one_hot)]
-    elif hasattr(n_folds, 'split'):
+    elif hasattr(n_folds, "split"):
         # Scikit-learn object passed as `n_folds`
         folds = []
         for _, fold in n_folds.split(X, y):
@@ -77,10 +82,10 @@ def _convert_to_one_hot(y):
 
     if y.ndim == 2 and y.shape[1] == 1:
         # y needs to be converted
-        enc = OneHotEncoder(categories='auto').fit(y)
+        enc = OneHotEncoder(categories="auto").fit(y)
         return enc.transform(y).toarray()
     elif y.ndim > 2:
-        raise ValueError('Wrong number of dimensions for `y`.')
+        raise ValueError("Wrong number of dimensions for `y`.")
     else:
         # y is probably already in one-hot form. We're not going to test this
         # explicitly, as it would take too long.

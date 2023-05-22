@@ -22,7 +22,7 @@ import mne_rsa
 # prevent MNE-Python from loading the EEG data, which is a nice speed gain.
 
 data_path = mne.datasets.kiloword.data_path(verbose=True)
-epochs = mne.read_epochs(data_path / 'kword_metadata-epo.fif', preload=False)
+epochs = mne.read_epochs(data_path / "kword_metadata-epo.fif", preload=False)
 
 # Show the metadata of 10 random epochs
 print(epochs.metadata.sample(10))
@@ -31,8 +31,8 @@ print(epochs.metadata.sample(10))
 # Now we are ready to create the "model" DSM, which will encode the difference
 # in length between the words shown during the experiment.
 
-dsm = mne_rsa.compute_dsm(epochs.metadata.NumberOfLetters, metric='euclidean')
+dsm = mne_rsa.compute_dsm(epochs.metadata.NumberOfLetters, metric="euclidean")
 
 # Plot the DSM
-fig = mne_rsa.plot_dsms(dsm, title='Word length DSM')
+fig = mne_rsa.plot_dsms(dsm, title="Word length DSM")
 fig.set_size_inches(3, 3)  # Make figure a little bigger to show axis properly

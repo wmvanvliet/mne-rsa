@@ -24,7 +24,7 @@ import mne_rsa
 # prevent MNE-Python from loading the EEG data, which is a nice speed gain.
 
 data_path = mne.datasets.kiloword.data_path(verbose=True)
-epochs = mne.read_epochs(data_path / 'kword_metadata-epo.fif')
+epochs = mne.read_epochs(data_path / "kword_metadata-epo.fif")
 
 # Show the metadata of 10 random epochs
 epochs.metadata.sample(10)
@@ -33,17 +33,17 @@ epochs.metadata.sample(10)
 # Compute DSMs based on word length and visual complexity.
 
 metadata = epochs.metadata
-dsm1 = mne_rsa.compute_dsm(metadata.NumberOfLetters, metric='euclidean')
-dsm2 = mne_rsa.compute_dsm(metadata.VisualComplexity, metric='euclidean')
+dsm1 = mne_rsa.compute_dsm(metadata.NumberOfLetters, metric="euclidean")
+dsm2 = mne_rsa.compute_dsm(metadata.VisualComplexity, metric="euclidean")
 
 # Plot the DSMs
-mne_rsa.plot_dsms([dsm1, dsm2], names=['Word length', 'Vis. complexity'])
+mne_rsa.plot_dsms([dsm1, dsm2], names=["Word length", "Vis. complexity"])
 
 ###############################################################################
 # Perform RSA between the two DSMs using Spearman correlation
 
-rsa_result = mne_rsa.rsa(dsm1, dsm2, metric='spearman')
-print('RSA score:', rsa_result)
+rsa_result = mne_rsa.rsa(dsm1, dsm2, metric="spearman")
+print("RSA score:", rsa_result)
 
 ###############################################################################
 # We can compute RSA between multiple DSMs by passing lists to the
@@ -51,8 +51,7 @@ print('RSA score:', rsa_result)
 
 # Create DSMs for each stimulus property
 columns = metadata.columns[1:]  # Skip the first column: WORD
-dsms = [mne_rsa.compute_dsm(metadata[col], metric='euclidean')
-        for col in columns]
+dsms = [mne_rsa.compute_dsm(metadata[col], metric="euclidean") for col in columns]
 
 # Plot the DSMs
 fig = mne_rsa.plot_dsms(dsms, names=columns, n_rows=2)
@@ -60,7 +59,7 @@ fig.set_size_inches(12, 4)
 
 # Compute RSA between the first two DSMs (Concreteness and WordFrequency) and
 # the others.
-rsa_results = mne_rsa.rsa(dsms[:2], dsms[2:], metric='spearman')
+rsa_results = mne_rsa.rsa(dsms[:2], dsms[2:], metric="spearman")
 
 # Pack the result into a Pandas DataFrame for easy viewing
 print(pd.DataFrame(rsa_results, index=columns[:2], columns=columns[2:]))
@@ -95,15 +94,21 @@ n_trials, n_sensors, n_times = eeg_data.shape
 def generate_eeg_dsms():
     """Generate DSMs for each time sample."""
     for i in range(n_times):
-        yield mne_rsa.compute_dsm(eeg_data[:, :, i], metric='correlation')
+        yield mne_rsa.compute_dsm(eeg_data[:, :, i], metric="correlation")
 
 
-rsa_results = mne_rsa.rsa(generate_eeg_dsms(), dsms, metric='spearman',
-                          verbose=True, n_data_dsms=n_times, n_jobs=1)
+rsa_results = mne_rsa.rsa(
+    generate_eeg_dsms(),
+    dsms,
+    metric="spearman",
+    verbose=True,
+    n_data_dsms=n_times,
+    n_jobs=1,
+)
 
 # Plot the RSA values over time using standard matplotlib commands
 plt.figure(figsize=(8, 4))
 plt.plot(epochs.times, rsa_results)
-plt.xlabel('time (s)')
-plt.ylabel('RSA value')
+plt.xlabel("time (s)")
+plt.ylabel("RSA value")
 plt.legend(columns)

@@ -28,10 +28,24 @@ from .searchlight import searchlight
 from .sensor_level import _tmin_tmax_to_indices, _construct_tmin
 
 
-def rsa_stcs(stcs, dsm_model, src, spatial_radius=0.04, temporal_radius=0.1,
-             stc_dsm_metric='correlation', stc_dsm_params=dict(),
-             rsa_metric='spearman', ignore_nan=False, y=None, n_folds=1,
-             sel_vertices=None, tmin=None, tmax=None, n_jobs=1, verbose=False):
+def rsa_stcs(
+    stcs,
+    dsm_model,
+    src,
+    spatial_radius=0.04,
+    temporal_radius=0.1,
+    stc_dsm_metric="correlation",
+    stc_dsm_params=dict(),
+    rsa_metric="spearman",
+    ignore_nan=False,
+    y=None,
+    n_folds=1,
+    sel_vertices=None,
+    tmin=None,
+    tmax=None,
+    n_jobs=1,
+    verbose=False,
+):
     """Perform RSA in a searchlight pattern on MNE-Python source estimates.
 
     The output is a source estimate where the "signal" at each source point is
@@ -147,40 +161,55 @@ def rsa_stcs(stcs, dsm_model, src, spatial_radius=0.04, temporal_radius=0.1,
         n_items = _n_items_from_dsm(dsm)
         if len(stcs) != n_items and y is None:
             raise ValueError(
-                'The number of source estimates (%d) should be equal to the '
-                'number of items in `dsm_model` (%d). Alternatively, use '
-                'the `y` parameter to assign source estimates to items.'
-                % (len(stcs), n_items))
+                "The number of source estimates (%d) should be equal to the "
+                "number of items in `dsm_model` (%d). Alternatively, use "
+                "the `y` parameter to assign source estimates to items."
+                % (len(stcs), n_items)
+            )
         if y is not None and len(np.unique(y)) != n_items:
             raise ValueError(
-                'The number of items in `dsm_model` (%d) does not match '
-                'the number of items encoded in the `y` matrix (%d).'
-                % (n_items, len(np.unique(y))))
+                "The number of items in `dsm_model` (%d) does not match "
+                "the number of items encoded in the `y` matrix (%d)."
+                % (n_items, len(np.unique(y)))
+            )
 
     _check_stcs_compatibility(stcs, src)
     if spatial_radius is not None:
-        dist = _get_distance_matrix(src, dist_lim=spatial_radius,
-                                    n_jobs=n_jobs)
+        dist = _get_distance_matrix(src, dist_lim=spatial_radius, n_jobs=n_jobs)
     else:
         dist = None
     if temporal_radius is not None:
         # Convert the temporal radius to samples
         temporal_radius = int(temporal_radius // stcs[0].tstep)
         if temporal_radius < 1:
-            raise ValueError('Temporal radius is less than one sample.')
+            raise ValueError("Temporal radius is less than one sample.")
 
     samples_from, samples_to = _tmin_tmax_to_indices(stcs[0].times, tmin, tmax)
 
     # Perform the RSA
     X = np.array([stc.data for stc in stcs])
-    patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
-                          temporal_radius=temporal_radius,
-                          sel_series=sel_vertices, samples_from=samples_from,
-                          samples_to=samples_to)
-    data = rsa_array(X, dsm_model, patches, data_dsm_metric=stc_dsm_metric,
-                     data_dsm_params=stc_dsm_params, rsa_metric=rsa_metric,
-                     ignore_nan=ignore_nan, y=y, n_folds=n_folds,
-                     n_jobs=n_jobs, verbose=verbose)
+    patches = searchlight(
+        X.shape,
+        dist=dist,
+        spatial_radius=spatial_radius,
+        temporal_radius=temporal_radius,
+        sel_series=sel_vertices,
+        samples_from=samples_from,
+        samples_to=samples_to,
+    )
+    data = rsa_array(
+        X,
+        dsm_model,
+        patches,
+        data_dsm_metric=stc_dsm_metric,
+        data_dsm_params=stc_dsm_params,
+        rsa_metric=rsa_metric,
+        ignore_nan=ignore_nan,
+        y=y,
+        n_folds=n_folds,
+        n_jobs=n_jobs,
+        verbose=verbose,
+    )
 
     # Pack the result in a SourceEstimate object
     if spatial_radius is not None:
@@ -188,37 +217,55 @@ def rsa_stcs(stcs, dsm_model, src, spatial_radius=0.04, temporal_radius=0.1,
         if sel_vertices is not None:
             vertices = vertices[sel_vertices]
     else:
-        if src.kind == 'volume':
+        if src.kind == "volume":
             vertices = [np.array([1])]
         else:
             vertices = [np.array([1]), np.array([])]
         data = data[np.newaxis, ...]
-    tmin = _construct_tmin(stcs[0].times, samples_from, samples_to,
-                           temporal_radius)
+    tmin = _construct_tmin(stcs[0].times, samples_from, samples_to, temporal_radius)
     tstep = stcs[0].tstep
 
     if one_model:
-        if src.kind == 'volume':
-            return mne.VolSourceEstimate(data, vertices, tmin, tstep,
-                                         subject=stcs[0].subject)
+        if src.kind == "volume":
+            return mne.VolSourceEstimate(
+                data, vertices, tmin, tstep, subject=stcs[0].subject
+            )
         else:
-            return mne.SourceEstimate(data, vertices, tmin, tstep,
-                                      subject=stcs[0].subject)
+            return mne.SourceEstimate(
+                data, vertices, tmin, tstep, subject=stcs[0].subject
+            )
     else:
-        if src.kind == 'volume':
-            return [mne.VolSourceEstimate(data[..., i], vertices, tmin, tstep,
-                                          subject=stcs[0].subject)
-                    for i in range(data.shape[-1])]
+        if src.kind == "volume":
+            return [
+                mne.VolSourceEstimate(
+                    data[..., i], vertices, tmin, tstep, subject=stcs[0].subject
+                )
+                for i in range(data.shape[-1])
+            ]
         else:
-            return [mne.SourceEstimate(data[..., i], vertices, tmin, tstep,
-                                       subject=stcs[0].subject)
-                    for i in range(data.shape[-1])]
+            return [
+                mne.SourceEstimate(
+                    data[..., i], vertices, tmin, tstep, subject=stcs[0].subject
+                )
+                for i in range(data.shape[-1])
+            ]
 
 
-def dsm_stcs(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
-             dist_metric='sqeuclidean', dist_params=dict(), y=None,
-             n_folds=None, sel_vertices=None, tmin=None, tmax=None, n_jobs=1,
-             verbose=False):
+def dsm_stcs(
+    stcs,
+    src,
+    spatial_radius=0.04,
+    temporal_radius=0.1,
+    dist_metric="sqeuclidean",
+    dist_params=dict(),
+    y=None,
+    n_folds=None,
+    sel_vertices=None,
+    tmin=None,
+    tmax=None,
+    n_jobs=1,
+    verbose=False,
+):
     """Generate DSMs in a searchlight pattern on MNE-Python source estimates.
 
     DSMs are computed using a patch surrounding each source point. Source
@@ -292,8 +339,7 @@ def dsm_stcs(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
     """
     _check_stcs_compatibility(stcs, src)
     if spatial_radius is not None:
-        dist = _get_distance_matrix(src, dist_lim=spatial_radius,
-                                    n_jobs=n_jobs)
+        dist = _get_distance_matrix(src, dist_lim=spatial_radius, n_jobs=n_jobs)
     else:
         dist = None
 
@@ -302,24 +348,48 @@ def dsm_stcs(stcs, src, spatial_radius=0.04, temporal_radius=0.1,
         temporal_radius = int(temporal_radius // stcs[0].tstep)
 
         if temporal_radius < 1:
-            raise ValueError('Temporal radius is less than one sample.')
+            raise ValueError("Temporal radius is less than one sample.")
 
     samples_from, samples_to = _tmin_tmax_to_indices(stcs[0].times, tmin, tmax)
 
     X = np.array([stc.data for stc in stcs])
-    patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
-                          temporal_radius=temporal_radius,
-                          sel_series=sel_vertices, samples_from=samples_from,
-                          samples_to=samples_to)
-    yield from dsm_array(X, patches, dist_metric=dist_metric,
-                         dist_params=dist_params, y=y, n_folds=n_folds)
+    patches = searchlight(
+        X.shape,
+        dist=dist,
+        spatial_radius=spatial_radius,
+        temporal_radius=temporal_radius,
+        sel_series=sel_vertices,
+        samples_from=samples_from,
+        samples_to=samples_to,
+    )
+    yield from dsm_array(
+        X,
+        patches,
+        dist_metric=dist_metric,
+        dist_params=dist_params,
+        y=y,
+        n_folds=n_folds,
+    )
 
 
-def rsa_stcs_rois(stcs, dsm_model, src, rois, temporal_radius=0.1,
-                  stc_dsm_metric='correlation', stc_dsm_params=dict(),
-                  rsa_metric='spearman', ignore_nan=False, y=None, n_folds=1,
-                  sel_vertices=None, tmin=None, tmax=None, n_jobs=1,
-                  verbose=False):
+def rsa_stcs_rois(
+    stcs,
+    dsm_model,
+    src,
+    rois,
+    temporal_radius=0.1,
+    stc_dsm_metric="correlation",
+    stc_dsm_params=dict(),
+    rsa_metric="spearman",
+    ignore_nan=False,
+    y=None,
+    n_folds=1,
+    sel_vertices=None,
+    tmin=None,
+    tmax=None,
+    n_jobs=1,
+    verbose=False,
+):
     """Perform RSA for a list of ROIs using MNE-Python source estimates.
 
     The output is a source estimate where the "signal" at each source point is
@@ -439,15 +509,17 @@ def rsa_stcs_rois(stcs, dsm_model, src, rois, temporal_radius=0.1,
         n_items = _n_items_from_dsm(dsm)
         if len(stcs) != n_items and y is None:
             raise ValueError(
-                'The number of source estimates (%d) should be equal to the '
-                'number of items in `dsm_model` (%d). Alternatively, use '
-                'the `y` parameter to assign source estimates to items.'
-                % (len(stcs), n_items))
+                "The number of source estimates (%d) should be equal to the "
+                "number of items in `dsm_model` (%d). Alternatively, use "
+                "the `y` parameter to assign source estimates to items."
+                % (len(stcs), n_items)
+            )
         if y is not None and len(np.unique(y)) != n_items:
             raise ValueError(
-                'The number of items in `dsm_model` (%d) does not match '
-                'the number of items encoded in the `y` matrix (%d).'
-                % (n_items, len(np.unique(y))))
+                "The number of items in `dsm_model` (%d) does not match "
+                "the number of items encoded in the `y` matrix (%d)."
+                % (n_items, len(np.unique(y)))
+            )
 
     _check_stcs_compatibility(stcs, src)
 
@@ -456,7 +528,7 @@ def rsa_stcs_rois(stcs, dsm_model, src, rois, temporal_radius=0.1,
         temporal_radius = int(temporal_radius // stcs[0].tstep)
 
         if temporal_radius < 1:
-            raise ValueError('Temporal radius is less than one sample.')
+            raise ValueError("Temporal radius is less than one sample.")
 
     samples_from, samples_to = _tmin_tmax_to_indices(stcs[0].times, tmin, tmax)
 
@@ -464,47 +536,74 @@ def rsa_stcs_rois(stcs, dsm_model, src, rois, temporal_radius=0.1,
     roi_inds = list()
     for roi in rois:
         roi = roi.copy().restrict(src)
-        if roi.hemi == 'lh':
-            roi_ind = np.searchsorted(src[0]['vertno'], roi.vertices)
+        if roi.hemi == "lh":
+            roi_ind = np.searchsorted(src[0]["vertno"], roi.vertices)
         else:
-            roi_ind = np.searchsorted(src[1]['vertno'], roi.vertices)
-            roi_ind += src[0]['nuse']
+            roi_ind = np.searchsorted(src[1]["vertno"], roi.vertices)
+            roi_ind += src[0]["nuse"]
         roi_inds.append(roi_ind)
 
     # Perform the RSA
     X = np.array([stc.data for stc in stcs])
-    patches = searchlight(X.shape, spatial_radius=roi_inds,
-                          temporal_radius=temporal_radius,
-                          sel_series=sel_vertices, samples_from=samples_from,
-                          samples_to=samples_to)
-    data = rsa_array(X, dsm_model, patches, data_dsm_metric=stc_dsm_metric,
-                     data_dsm_params=stc_dsm_params, rsa_metric=rsa_metric,
-                     ignore_nan=ignore_nan, y=y, n_folds=n_folds,
-                     n_jobs=n_jobs, verbose=verbose)
+    patches = searchlight(
+        X.shape,
+        spatial_radius=roi_inds,
+        temporal_radius=temporal_radius,
+        sel_series=sel_vertices,
+        samples_from=samples_from,
+        samples_to=samples_to,
+    )
+    data = rsa_array(
+        X,
+        dsm_model,
+        patches,
+        data_dsm_metric=stc_dsm_metric,
+        data_dsm_params=stc_dsm_params,
+        rsa_metric=rsa_metric,
+        ignore_nan=ignore_nan,
+        y=y,
+        n_folds=n_folds,
+        n_jobs=n_jobs,
+        verbose=verbose,
+    )
 
     # Pack the result in SourceEstimate objects
     vertices = stcs[0].vertices
     subject = stcs[0].subject
     if sel_vertices is not None:
         vertices = vertices[sel_vertices]
-    tmin = _construct_tmin(stcs[0].times, samples_from, samples_to,
-                           temporal_radius)
+    tmin = _construct_tmin(stcs[0].times, samples_from, samples_to, temporal_radius)
     tstep = stcs[0].tstep
     if one_model:
-        stc = backfill_stc_from_rois(data, rois, src, tmin=tmin, tstep=tstep,
-                                     subject=subject)
+        stc = backfill_stc_from_rois(
+            data, rois, src, tmin=tmin, tstep=tstep, subject=subject
+        )
     else:
-        stc = [backfill_stc_from_rois(data[..., i], rois, src, tmin=tmin,
-                                      tstep=tstep, subject=subject)
-               for i in range(data.shape[-1])]
+        stc = [
+            backfill_stc_from_rois(
+                data[..., i], rois, src, tmin=tmin, tstep=tstep, subject=subject
+            )
+            for i in range(data.shape[-1])
+        ]
 
     return data, stc
 
 
-def rsa_nifti(image, dsm_model, spatial_radius=0.01,
-              image_dsm_metric='correlation', image_dsm_params=dict(),
-              rsa_metric='spearman', ignore_nan=False, y=None, n_folds=1,
-              roi_mask=None, brain_mask=None, n_jobs=1, verbose=False):
+def rsa_nifti(
+    image,
+    dsm_model,
+    spatial_radius=0.01,
+    image_dsm_metric="correlation",
+    image_dsm_params=dict(),
+    rsa_metric="spearman",
+    ignore_nan=False,
+    y=None,
+    n_folds=1,
+    roi_mask=None,
+    brain_mask=None,
+    n_jobs=1,
+    verbose=False,
+):
     """Perform RSA in a searchlight pattern on Nibabel Nifti-like images.
 
     The output is a 3D Nifti image where the data at each voxel is is
@@ -603,25 +702,28 @@ def rsa_nifti(image, dsm_model, spatial_radius=0.01,
     if one_model:
         dsm_model = [dsm_model]
 
-    if (not isinstance(image, tuple(nib.imageclasses.all_image_classes))
-            or image.ndim != 4):
-        raise ValueError('The image data must be 4-dimensional Nifti-like '
-                         'images')
+    if (
+        not isinstance(image, tuple(nib.imageclasses.all_image_classes))
+        or image.ndim != 4
+    ):
+        raise ValueError("The image data must be 4-dimensional Nifti-like " "images")
 
     # Check for compatibility of the BOLD images and the model features
     for dsm in dsm_model:
         n_items = _n_items_from_dsm(dsm)
         if image.shape[3] != n_items and y is None:
             raise ValueError(
-                'The number of images (%d) should be equal to the '
-                'number of items in `dsm_model` (%d). Alternatively, use '
-                'the `y` parameter to assign evokeds to items.'
-                % (image.shape[3], n_items))
+                "The number of images (%d) should be equal to the "
+                "number of items in `dsm_model` (%d). Alternatively, use "
+                "the `y` parameter to assign evokeds to items."
+                % (image.shape[3], n_items)
+            )
         if y is not None and len(np.unique(y)) != n_items:
             raise ValueError(
-                'The number of items in `dsm_model` (%d) does not match '
-                'the number of items encoded in the `y` matrix (%d).'
-                % (n_items, len(np.unique(y))))
+                "The number of items in `dsm_model` (%d) does not match "
+                "the number of items encoded in the `y` matrix (%d)."
+                % (n_items, len(np.unique(y)))
+            )
 
     # Get data as (n_items x n_voxels)
     X = image.get_fdata().reshape(-1, image.shape[3]).T
@@ -635,9 +737,11 @@ def rsa_nifti(image, dsm_model, spatial_radius=0.01,
     result_mask = np.ones(image.shape[:3], dtype=bool)
     if brain_mask is not None:
         if brain_mask.ndim != 3 or brain_mask.shape != image.shape[:3]:
-            raise ValueError('Brain mask must be a 3-dimensional Nifi-like '
-                             'image with the same dimensions as the data '
-                             'image')
+            raise ValueError(
+                "Brain mask must be a 3-dimensional Nifi-like "
+                "image with the same dimensions as the data "
+                "image"
+            )
         brain_mask = brain_mask.get_fdata() != 0
         result_mask &= brain_mask
         brain_mask = brain_mask.ravel()
@@ -645,9 +749,11 @@ def rsa_nifti(image, dsm_model, spatial_radius=0.01,
         voxel_loc = voxel_loc[brain_mask]
     if roi_mask is not None:
         if roi_mask.ndim != 3 or roi_mask.shape != image.shape[:3]:
-            raise ValueError('ROI mask must be a 3-dimensional Nifi-like '
-                             'image with the same dimensions as the data '
-                             'image')
+            raise ValueError(
+                "ROI mask must be a 3-dimensional Nifi-like "
+                "image with the same dimensions as the data "
+                "image"
+            )
         roi_mask = roi_mask.get_fdata() != 0
         result_mask &= roi_mask
         roi_mask = roi_mask.ravel()
@@ -656,19 +762,33 @@ def rsa_nifti(image, dsm_model, spatial_radius=0.01,
         roi_mask = np.flatnonzero(roi_mask)
 
     # Compute distances between voxels
-    logger.info('Computing distances...')
+    logger.info("Computing distances...")
     from sklearn.neighbors import NearestNeighbors
+
     nn = NearestNeighbors(radius=spatial_radius, n_jobs=n_jobs).fit(voxel_loc)
-    dist = nn.radius_neighbors_graph(mode='distance')
+    dist = nn.radius_neighbors_graph(mode="distance")
 
     # Perform the RSA
-    patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
-                          temporal_radius=None, sel_series=roi_mask)
-    rsa_result = rsa_array(X, dsm_model, patches,
-                           data_dsm_metric=image_dsm_metric,
-                           data_dsm_params=image_dsm_params,
-                           rsa_metric=rsa_metric, ignore_nan=ignore_nan, y=y,
-                           n_folds=n_folds, n_jobs=n_jobs, verbose=verbose)
+    patches = searchlight(
+        X.shape,
+        dist=dist,
+        spatial_radius=spatial_radius,
+        temporal_radius=None,
+        sel_series=roi_mask,
+    )
+    rsa_result = rsa_array(
+        X,
+        dsm_model,
+        patches,
+        data_dsm_metric=image_dsm_metric,
+        data_dsm_params=image_dsm_params,
+        rsa_metric=rsa_metric,
+        ignore_nan=ignore_nan,
+        y=y,
+        n_folds=n_folds,
+        n_jobs=n_jobs,
+        verbose=verbose,
+    )
 
     if one_model:
         data = np.zeros(image.shape[:3])
@@ -683,9 +803,18 @@ def rsa_nifti(image, dsm_model, spatial_radius=0.01,
         return results
 
 
-def dsm_nifti(image, spatial_radius=0.01, dist_metric='correlation',
-              dist_params=dict(), y=None, n_folds=1, roi_mask=None,
-              brain_mask=None, n_jobs=1, verbose=False):
+def dsm_nifti(
+    image,
+    spatial_radius=0.01,
+    dist_metric="correlation",
+    dist_params=dict(),
+    y=None,
+    n_folds=1,
+    roi_mask=None,
+    brain_mask=None,
+    n_jobs=1,
+    verbose=False,
+):
     """Generate DSMs in a searchlight pattern on Nibabel Nifty-like images.
 
     DSMs are computed using a patch surrounding each voxel.
@@ -749,10 +878,11 @@ def dsm_nifti(image, spatial_radius=0.01, dist_metric='correlation',
     dsm : ndarray, shape (n_items, n_items)
         A DSM for each searchlight patch.
     """
-    if (not isinstance(image, tuple(nib.imageclasses.all_image_classes))
-            or image.ndim != 4):
-        raise ValueError('The image data must be 4-dimensional Nifti-like '
-                         'images')
+    if (
+        not isinstance(image, tuple(nib.imageclasses.all_image_classes))
+        or image.ndim != 4
+    ):
+        raise ValueError("The image data must be 4-dimensional Nifti-like " "images")
 
     # Get data as (n_items x n_voxels)
     X = image.get_fdata().reshape(-1, image.shape[3]).T
@@ -766,9 +896,11 @@ def dsm_nifti(image, spatial_radius=0.01, dist_metric='correlation',
     result_mask = np.ones(image.shape[:3], dtype=bool)
     if brain_mask is not None:
         if brain_mask.ndim != 3 or brain_mask.shape != image.shape[:3]:
-            raise ValueError('Brain mask must be a 3-dimensional Nifi-like '
-                             'image with the same dimensions as the data '
-                             'image')
+            raise ValueError(
+                "Brain mask must be a 3-dimensional Nifi-like "
+                "image with the same dimensions as the data "
+                "image"
+            )
         brain_mask = brain_mask.get_fdata() != 0
         result_mask &= brain_mask
         brain_mask = brain_mask.ravel()
@@ -776,9 +908,11 @@ def dsm_nifti(image, spatial_radius=0.01, dist_metric='correlation',
         voxel_loc = voxel_loc[brain_mask]
     if roi_mask is not None:
         if roi_mask.ndim != 3 or roi_mask.shape != image.shape[:3]:
-            raise ValueError('ROI mask must be a 3-dimensional Nifi-like '
-                             'image with the same dimensions as the data '
-                             'image')
+            raise ValueError(
+                "ROI mask must be a 3-dimensional Nifi-like "
+                "image with the same dimensions as the data "
+                "image"
+            )
         roi_mask = roi_mask.get_fdata() != 0
         result_mask &= roi_mask
         roi_mask = roi_mask.ravel()
@@ -787,41 +921,55 @@ def dsm_nifti(image, spatial_radius=0.01, dist_metric='correlation',
         roi_mask = np.flatnonzero(roi_mask)
 
     # Compute distances between voxels
-    logger.info('Computing distances...')
+    logger.info("Computing distances...")
     from sklearn.neighbors import NearestNeighbors
+
     nn = NearestNeighbors(radius=spatial_radius, n_jobs=n_jobs).fit(voxel_loc)
-    dist = nn.radius_neighbors_graph(mode='distance')
+    dist = nn.radius_neighbors_graph(mode="distance")
 
     # Compute DSMs
-    patches = searchlight(X.shape, dist=dist, spatial_radius=spatial_radius,
-                          temporal_radius=None, sel_series=roi_mask)
-    yield from dsm_array(X, patches, dist_metric=dist_metric,
-                         dist_params=dist_params, y=y, n_folds=n_folds,
-                         n_jobs=n_jobs, verbose=verbose)
+    patches = searchlight(
+        X.shape,
+        dist=dist,
+        spatial_radius=spatial_radius,
+        temporal_radius=None,
+        sel_series=roi_mask,
+    )
+    yield from dsm_array(
+        X,
+        patches,
+        dist_metric=dist_metric,
+        dist_params=dist_params,
+        y=y,
+        n_folds=n_folds,
+        n_jobs=n_jobs,
+        verbose=verbose,
+    )
 
 
 def _check_stcs_compatibility(stcs, src):
     """Check for compatibility of the source estimates and source space."""
-    if src.kind == 'volume' and not isinstance(stcs[0], mne.VolSourceEstimate):
-        raise ValueError(f'Volume source estimates provided, but not a volume '
-                         f'source space (src.kind={src.kind}).')
+    if src.kind == "volume" and not isinstance(stcs[0], mne.VolSourceEstimate):
+        raise ValueError(
+            f"Volume source estimates provided, but not a volume "
+            f"source space (src.kind={src.kind})."
+        )
 
     for stc in stcs:
-        if src.kind == 'volume':
-            if np.any(stc.vertices != src[0]['vertno']):
-                raise ValueError('Not all source estimates have the same '
-                                 'vertices.')
+        if src.kind == "volume":
+            if np.any(stc.vertices != src[0]["vertno"]):
+                raise ValueError("Not all source estimates have the same " "vertices.")
         else:
             for src_hemi, stc_hemi_vertno in zip(src, stcs[0].vertices):
-                if np.any(stc_hemi_vertno != src_hemi['vertno']):
-                    raise ValueError('Not all source estimates have the same '
-                                     'vertices.')
+                if np.any(stc_hemi_vertno != src_hemi["vertno"]):
+                    raise ValueError(
+                        "Not all source estimates have the same " "vertices."
+                    )
 
     times = stcs[0].times
     for stc in stcs:
         if np.any(stc.times != times):
-            raise ValueError('Not all source estimates have the same '
-                             'time points.')
+            raise ValueError("Not all source estimates have the same " "time points.")
 
 
 def _get_distance_matrix(src, dist_lim, n_jobs=1):
@@ -854,32 +1002,34 @@ def _get_distance_matrix(src, dist_lim, n_jobs=1):
     # dist_lim setting.
     needs_distance_computation = False
     for hemi in src:
-        if 'dist' not in hemi or hemi['dist'] is None:
+        if "dist" not in hemi or hemi["dist"] is None:
             needs_distance_computation = True
         else:
-            if hemi['dist_limit'][0] < dist_lim:
-                warn(f'Source space has pre-computed distances, but all '
-                     f'distances are smaller than the searchlight radius '
-                     f'({dist_lim}). You may want to consider recomputing '
-                     f'the source space distances using the '
-                     f'mne.add_source_space_distances function.')
+            if hemi["dist_limit"][0] < dist_lim:
+                warn(
+                    f"Source space has pre-computed distances, but all "
+                    f"distances are smaller than the searchlight radius "
+                    f"({dist_lim}). You may want to consider recomputing "
+                    f"the source space distances using the "
+                    f"mne.add_source_space_distances function."
+                )
 
     if needs_distance_computation:
         if dist_lim is None:
             dist_lim = np.inf
-        if src.kind == 'volume':
+        if src.kind == "volume":
             src = _add_volume_source_space_distances(src, dist_lim)
         else:
             src = mne.add_source_space_distances(src, dist_lim, n_jobs=n_jobs)
 
     for hemi in src:
-        inuse = np.flatnonzero(hemi['inuse'])
-        dist.append(hemi['dist'][np.ix_(inuse, inuse)].toarray())
+        inuse = np.flatnonzero(hemi["inuse"])
+        dist.append(hemi["dist"][np.ix_(inuse, inuse)].toarray())
 
     # Collect the distances in a single matrix
     dist = block_diag(*dist)
     dist[dist == 0] = np.inf  # Across hemisphere distance is infinity
-    dist.flat[::dist.shape[0] + 1] = 0  # Distance to yourself is zero
+    dist.flat[:: dist.shape[0] + 1] = 0  # Distance to yourself is zero
 
     return dist
 
@@ -909,30 +1059,31 @@ def _add_volume_source_space_distances(src, dist_limit):
     # Lazy import to not have to load the huge scipy module every time mne_rsa
     # get's loaded.
     from scipy.sparse import csr_matrix
-    assert src.kind == 'volume'
-    n_sources = src[0]['np']
-    neighbors = np.array(src[0]['neighbor_vert'])
+
+    assert src.kind == "volume"
+    n_sources = src[0]["np"]
+    neighbors = np.array(src[0]["neighbor_vert"])
     rows, cols = np.nonzero(neighbors != -1)
     cols = neighbors[(rows, cols)]
-    dist = np.linalg.norm(src[0]['rr'][rows, :] - src[0]['rr'][cols, :],
-                          axis=1)
+    dist = np.linalg.norm(src[0]["rr"][rows, :] - src[0]["rr"][cols, :], axis=1)
     con_matrix = csr_matrix((dist, (rows, cols)), shape=(n_sources, n_sources))
-    dist = mne.source_space._do_src_distances(con_matrix, src[0]['vertno'],
-                                              np.arange(src[0]['nuse']),
-                                              dist_limit)[0]
+    dist = mne.source_space._do_src_distances(
+        con_matrix, src[0]["vertno"], np.arange(src[0]["nuse"]), dist_limit
+    )[0]
     d = dist.ravel()  # already float32
     idx = d > 0
     d = d[idx]
-    i, j = np.meshgrid(src[0]['vertno'], src[0]['vertno'])
+    i, j = np.meshgrid(src[0]["vertno"], src[0]["vertno"])
     i = i.ravel()[idx]
     j = j.ravel()[idx]
-    src[0]['dist'] = csr_matrix((d, (i, j)), shape=(n_sources, n_sources))
-    src[0]['dist_limit'] = np.array([dist_limit], 'float32')
+    src[0]["dist"] = csr_matrix((d, (i, j)), shape=(n_sources, n_sources))
+    src[0]["dist_limit"] = np.array([dist_limit], "float32")
     return src
 
 
 def make_mri_con_matrix(img):
     from scipy.sparse import csr_matrix
+
     # Create 3 x 3 x 3 cube of (ijk) indices, centered around (0, 0, 0)
     cube = np.array(list(np.ndindex(3, 3, 3))) - [1, 1, 1]
     # Remove center of the cube
@@ -947,13 +1098,12 @@ def make_mri_con_matrix(img):
     neighbours = np.ravel_multi_index(
         (neighbours[:, 0, :], neighbours[:, 1, :], neighbours[:, 2, :]),
         img.shape[:3],
-        mode='clip',
+        mode="clip",
     )
     rows = np.repeat(np.arange(neighbours.shape[0]), neighbours.shape[1])
     cols = neighbours.ravel()
     dist = np.tile(dist, neighbours.shape[0])
-    con_matrix = csr_matrix((dist, (rows, cols)),
-                            shape=(len(voxels), len(voxels)))
+    con_matrix = csr_matrix((dist, (rows, cols)), shape=(len(voxels), len(voxels)))
     return con_matrix
 
 
@@ -991,17 +1141,18 @@ def backfill_stc_from_rois(values, rois, src, tmin=0, tstep=1, subject=None):
         n_samples = 1
     else:
         n_samples = values.shape[1]
-    data = np.zeros((src[0]['nuse'] + src[1]['nuse'], n_samples))
-    verts_lh = src[0]['vertno']
-    verts_rh = src[1]['vertno']
+    data = np.zeros((src[0]["nuse"] + src[1]["nuse"], n_samples))
+    verts_lh = src[0]["vertno"]
+    verts_rh = src[1]["vertno"]
     for roi, rsa_timecourse in zip(rois, values):
         roi = roi.copy().restrict(src)
-        if roi.hemi == 'lh':
+        if roi.hemi == "lh":
             roi_ind = np.searchsorted(verts_lh, roi.vertices)
         else:
             roi_ind = np.searchsorted(verts_rh, roi.vertices)
-            roi_ind += src[0]['nuse']
+            roi_ind += src[0]["nuse"]
         for ind in roi_ind:
             data[ind] = rsa_timecourse
-    return mne.SourceEstimate(data, vertices=[verts_lh, verts_rh], tmin=tmin,
-                              tstep=tstep, subject=subject)
+    return mne.SourceEstimate(
+        data, vertices=[verts_lh, verts_rh], tmin=tmin, tstep=tstep, subject=subject
+    )

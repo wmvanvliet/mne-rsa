@@ -10,7 +10,7 @@ from .folds import create_folds
 from .searchlight import searchlight
 
 
-def compute_dsm(data, metric='correlation', **kwargs):
+def compute_dsm(data, metric="correlation", **kwargs):
     """Compute a dissimilarity matrix (DSM).
 
     Parameters
@@ -44,16 +44,18 @@ def compute_dsm(data, metric='correlation', **kwargs):
     n_items, n_features = X.shape
 
     # Be careful with certain metrics
-    if n_features == 1 and metric in ['correlation', 'cosine']:
-        raise ValueError("There is only a single feature, so "
-                         "'correlation' and 'cosine' can not be "
-                         "used as DSM metric. Consider using 'sqeuclidean' "
-                         "instead.")
+    if n_features == 1 and metric in ["correlation", "cosine"]:
+        raise ValueError(
+            "There is only a single feature, so "
+            "'correlation' and 'cosine' can not be "
+            "used as DSM metric. Consider using 'sqeuclidean' "
+            "instead."
+        )
 
     return distance.pdist(X, metric, **kwargs)
 
 
-def compute_dsm_cv(folds, metric='correlation', **kwargs):
+def compute_dsm_cv(folds, metric="correlation", **kwargs):
     """Compute a dissimilarity matrix (DSM) using cross-validation.
 
     The distance computation is performed from the average of
@@ -93,11 +95,13 @@ def compute_dsm_cv(folds, metric='correlation', **kwargs):
     n_folds, n_items, n_features = X.shape[:3]
 
     # Be careful with certain metrics
-    if n_features == 1 and metric in ['correlation', 'cosine']:
-        raise ValueError("There is only a single feature, so "
-                         "'correlataion' and 'cosine' can not be "
-                         "used as DSM metric. Consider using 'sqeuclidean' "
-                         "instead.")
+    if n_features == 1 and metric in ["correlation", "cosine"]:
+        raise ValueError(
+            "There is only a single feature, so "
+            "'correlataion' and 'cosine' can not be "
+            "used as DSM metric. Consider using 'sqeuclidean' "
+            "instead."
+        )
 
     dsm = np.zeros((n_items * (n_items - 1)) // 2)
 
@@ -120,20 +124,26 @@ def _ensure_condensed(dsm, var_name):
         return [_ensure_condensed(d, var_name) for d in dsm]
 
     if not isinstance(dsm, np.ndarray):
-        raise TypeError('A single DSM should be a NumPy array. '
-                        'Multiple DSMs should be a list of NumPy arrays.')
+        raise TypeError(
+            "A single DSM should be a NumPy array. "
+            "Multiple DSMs should be a list of NumPy arrays."
+        )
 
     if dsm.ndim == 2:
         if dsm.shape[0] != dsm.shape[1]:
-            raise ValueError(f'Invalid dimensions for "{var_name}" '
-                             '({dsm.shape}). The DSM should either be a '
-                             'square matrix, or a one dimensional array when '
-                             'in condensed form.')
+            raise ValueError(
+                f'Invalid dimensions for "{var_name}" '
+                "({dsm.shape}). The DSM should either be a "
+                "square matrix, or a one dimensional array when "
+                "in condensed form."
+            )
         dsm = distance.squareform(dsm)
     elif dsm.ndim != 1:
-        raise ValueError(f'Invalid dimensions for "{var_name}" ({dsm.shape}). '
-                         'The DSM should either be a square matrix, or a one '
-                         'dimensional array when in condensed form.')
+        raise ValueError(
+            f'Invalid dimensions for "{var_name}" ({dsm.shape}). '
+            "The DSM should either be a square matrix, or a one "
+            "dimensional array when in condensed form."
+        )
     return dsm
 
 
@@ -213,8 +223,16 @@ class dsm_array:
     rsa
     searchlight
     """
-    def __init__(self, X, patches=None, dist_metric='correlation',
-                 dist_params=dict(), y=None, n_folds=1):
+
+    def __init__(
+        self,
+        X,
+        patches=None,
+        dist_metric="correlation",
+        dist_params=dict(),
+        y=None,
+        n_folds=1,
+    ):
         if patches is None:
             patches = searchlight(X.shape)
 
@@ -244,11 +262,13 @@ class dsm_array:
     def _iter_dsms(self):
         for patch in self.patches:
             if self.use_cv:
-                yield compute_dsm_cv(self.X[(slice(None),) + patch],
-                                     self.dist_metric, **self.dist_params)
+                yield compute_dsm_cv(
+                    self.X[(slice(None),) + patch], self.dist_metric, **self.dist_params
+                )
             else:
-                yield compute_dsm(self.X[0][patch],
-                                  self.dist_metric, **self.dist_params)
+                yield compute_dsm(
+                    self.X[0][patch], self.dist_metric, **self.dist_params
+                )
 
     def __len__(self):
         """Get total number of DSMs that will be generated."""

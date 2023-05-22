@@ -37,7 +37,7 @@ import mne_rsa
 # the data from the original 250 Hz. to 100 Hz.
 
 data_path = mne.datasets.kiloword.data_path(verbose=True)
-epochs = mne.read_epochs(data_path / 'kword_metadata-epo.fif')
+epochs = mne.read_epochs(data_path / "kword_metadata-epo.fif")
 epochs = epochs.resample(100)
 
 
@@ -72,13 +72,15 @@ y = epochs.metadata.NumberOfLetters.astype(int)
 # computing DSMs using a spatio-temporal searchlight on the sensor-level data.
 
 dsms = mne_rsa.dsm_epochs(
-    epochs,                      # The EEG data
-    y=y,                         # Set labels to enable cross validation         
-    n_folds=5,                   # Number of folds to use during cross validation
-    dist_metric='sqeuclidean',   # Distance metric to compute the DSMs
-    spatial_radius=0.45,         # Spatial radius of the searchlight patch in meters.
-    temporal_radius=0.05,        # Temporal radius of the searchlight path in seconds.
-    tmin=0.15, tmax=0.25)        # To save time, only analyze this time interval
+    epochs,  # The EEG data
+    y=y,  # Set labels to enable cross validation
+    n_folds=5,  # Number of folds to use during cross validation
+    dist_metric="sqeuclidean",  # Distance metric to compute the DSMs
+    spatial_radius=0.45,  # Spatial radius of the searchlight patch in meters.
+    temporal_radius=0.05,  # Temporal radius of the searchlight path in seconds.
+    tmin=0.15,
+    tmax=0.25,
+)  # To save time, only analyze this time interval
 
 
 ###############################################################################
@@ -97,5 +99,5 @@ X = epochs.get_data()
 y = epochs.metadata.NumberOfLetters.astype(int)
 folds = mne_rsa.create_folds(X, y, n_folds=5)
 
-dsm = mne_rsa.compute_dsm_cv(folds, metric='euclidean')
+dsm = mne_rsa.compute_dsm_cv(folds, metric="euclidean")
 mne_rsa.plot_dsms(dsm)

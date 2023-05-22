@@ -8,8 +8,7 @@ import numpy as np
 from scipy.spatial import distance
 
 
-def plot_dsms(dsms, names=None, items=None, n_rows=1, cmap='viridis',
-              title=None):
+def plot_dsms(dsms, names=None, items=None, n_rows=1, cmap="viridis", title=None):
     """Plot one or more DSMs
 
     Parameters
@@ -44,8 +43,10 @@ def plot_dsms(dsms, names=None, items=None, n_rows=1, cmap='viridis',
     if isinstance(names, str):
         names = [names]
     if names is not None and len(names) != len(dsms):
-        raise ValueError(f'Number of given names ({len(names)}) does not '
-                         f'match the number of DSMs ({len(dsms)})')
+        raise ValueError(
+            f"Number of given names ({len(names)}) does not "
+            f"match the number of DSMs ({len(dsms)})"
+        )
 
     n_cols = int(np.ceil(len(dsms) / n_rows))
     fig = plt.figure(figsize=(2 * n_cols, 2 * n_rows))
@@ -59,7 +60,7 @@ def plot_dsms(dsms, names=None, items=None, n_rows=1, cmap='viridis',
                 if dsm.ndim == 1:
                     dsm = distance.squareform(dsm)
                 elif dsm.ndim > 2:
-                    raise ValueError(f'Invalid shape {dsm.shape} for DSM')
+                    raise ValueError(f"Invalid shape {dsm.shape} for DSM")
                 im = ax[row, col].imshow(dsm, cmap=cmap)
 
                 if names is not None:
@@ -80,7 +81,7 @@ def plot_dsms(dsms, names=None, items=None, n_rows=1, cmap='viridis',
 
 
 def _click_func(ax, ch_idx, dsms, cmap):
-    """ Function used to plot a single DSM interactively.
+    """Function used to plot a single DSM interactively.
 
     Parameters
     ----------
@@ -99,10 +100,19 @@ def _click_func(ax, ch_idx, dsms, cmap):
     ax.imshow(dsm, cmap=cmap)
 
 
-def _plot_dsms_topo_timepoint(dsms, info, layout=None, fig=None, title=None,
-                              axis_facecolor='w', axis_spinecolor='w',
-                              fig_facecolor='w', figsize=(6.4, 4.8),
-                              cmap='viridis', show=False):
+def _plot_dsms_topo_timepoint(
+    dsms,
+    info,
+    layout=None,
+    fig=None,
+    title=None,
+    axis_facecolor="w",
+    axis_spinecolor="w",
+    fig_facecolor="w",
+    figsize=(6.4, 4.8),
+    cmap="viridis",
+    show=False,
+):
     """Plot DSMs on 2D MEG topography.
 
     Parameters
@@ -147,15 +157,20 @@ def _plot_dsms_topo_timepoint(dsms, info, layout=None, fig=None, title=None,
     if fig is None:
         fig = plt.figure(figsize=figsize)
         if title is not None:
-            fig.suptitle(title, x=0.98, horizontalalignment='right')
+            fig.suptitle(title, x=0.98, horizontalalignment="right")
     else:
         fig = plt.figure(fig.number)
 
-    my_topo_plot = _iter_topography(info=info, layout=layout, on_pick=on_pick,
-                                    fig=fig, axis_facecolor=axis_facecolor,
-                                    axis_spinecolor=axis_spinecolor,
-                                    fig_facecolor=fig_facecolor,
-                                    unified=False)
+    my_topo_plot = _iter_topography(
+        info=info,
+        layout=layout,
+        on_pick=on_pick,
+        fig=fig,
+        axis_facecolor=axis_facecolor,
+        axis_spinecolor=axis_spinecolor,
+        fig_facecolor=fig_facecolor,
+        unified=False,
+    )
 
     for i, (ax, _) in enumerate(my_topo_plot):
         dsms_i = dsms[i]
@@ -168,10 +183,20 @@ def _plot_dsms_topo_timepoint(dsms, info, layout=None, fig=None, title=None,
     return fig
 
 
-def plot_dsms_topo(dsms, info, time=None, layout=None, fig=None,
-                   axis_facecolor='w', axis_spinecolor='w', fig_facecolor='w',
-                   figsize=(6.4, 4.8), cmap='viridis', show=True):
-    """ Plot DSMs on 2D sensor topography
+def plot_dsms_topo(
+    dsms,
+    info,
+    time=None,
+    layout=None,
+    fig=None,
+    axis_facecolor="w",
+    axis_spinecolor="w",
+    fig_facecolor="w",
+    figsize=(6.4, 4.8),
+    cmap="viridis",
+    show=True,
+):
+    """Plot DSMs on 2D sensor topography
 
     Parameters
     ----------
@@ -216,8 +241,10 @@ def plot_dsms_topo(dsms, info, time=None, layout=None, fig=None,
         dsms = np.array(list(dsms))
 
     if dsms.ndim != 2 and dsms.ndim != 3:
-        raise ValueError('dsms have to be a 2D or 3D ndarray or numpy.memmap, '
-                         '[n_sensors,[ n_times,] n_dsm_datapoints]')
+        raise ValueError(
+            "dsms have to be a 2D or 3D ndarray or numpy.memmap, "
+            "[n_sensors,[ n_times,] n_dsm_datapoints]"
+        )
     if len(dsms.shape) == 2:
         dsms = dsms[:, np.newaxis, :]
     if time is None:
@@ -225,37 +252,47 @@ def plot_dsms_topo(dsms, info, time=None, layout=None, fig=None,
     if isinstance(time, int):
         time = [time, time + 1]
     if not isinstance(time, list):
-        raise TypeError('time has to be int, list of [int, int] or None.')
+        raise TypeError("time has to be int, list of [int, int] or None.")
     if (not all(isinstance(i, int) for i in time)) or (len(time) != 2):
-        raise TypeError('time has to be int, list of [int, int] or None.')
+        raise TypeError("time has to be int, list of [int, int] or None.")
     if time[0] >= time[1]:
-        raise ValueError('The start of the time window has to be smaller '
-                         'than the end of the time window.')
+        raise ValueError(
+            "The start of the time window has to be smaller "
+            "than the end of the time window."
+        )
     if time[0] < 0 or time[1] > dsms.shape[1]:
-        raise ValueError('The time window is out of range. The minimum is 0 '
-                         f'and the maximum is {dsms.shape[1]}')
+        raise ValueError(
+            "The time window is out of range. The minimum is 0 "
+            f"and the maximum is {dsms.shape[1]}"
+        )
     if (fig is not None) and (not isinstance(fig, plt.Figure)):
-        raise TypeError('fig has to be matplotlib.pyplot.Figure or None.')
+        raise TypeError("fig has to be matplotlib.pyplot.Figure or None.")
 
-    dsms_cropped = dsms[:, time[0]:time[1], :]
+    dsms_cropped = dsms[:, time[0] : time[1], :]
     dsms_avg = dsms_cropped.mean(axis=1)
     # set title to time window
     if time[0] + 1 != time[1]:
-        title = f'From {time[0]} (inclusive) to {time[1]} (exclusive)'
+        title = f"From {time[0]} (inclusive) to {time[1]} (exclusive)"
     else:
-        title = f'Time point: {time[0]}'
+        title = f"Time point: {time[0]}"
 
-    fig = _plot_dsms_topo_timepoint(dsms_avg, info, fig=fig, layout=layout,
-                                    title=title,
-                                    axis_facecolor=axis_facecolor,
-                                    axis_spinecolor=axis_spinecolor,
-                                    fig_facecolor=fig_facecolor,
-                                    figsize=figsize, cmap=cmap, show=show)
+    fig = _plot_dsms_topo_timepoint(
+        dsms_avg,
+        info,
+        fig=fig,
+        layout=layout,
+        title=title,
+        axis_facecolor=axis_facecolor,
+        axis_spinecolor=axis_spinecolor,
+        fig_facecolor=fig_facecolor,
+        figsize=figsize,
+        cmap=cmap,
+        show=show,
+    )
     return fig
 
 
-def plot_roi_map(values, rois, subject, subjects_dir, cmap='plasma',
-                 alpha=1.0):
+def plot_roi_map(values, rois, subject, subjects_dir, cmap="plasma", alpha=1.0):
     """Plot ROI values on a FreeSurfer brain.
 
     Parameters
@@ -284,14 +321,15 @@ def plot_roi_map(values, rois, subject, subjects_dir, cmap='plasma',
     """
     cmap = get_cmap(cmap)
     max_val = np.max(values)
-    brain = Brain(subject=subject, subjects_dir=subjects_dir, surf='inflated',
-                  hemi='both')
-    labels_lh = np.zeros(len(brain.geo['lh'].coords), dtype=int)
-    labels_rh = np.zeros(len(brain.geo['rh'].coords), dtype=int)
+    brain = Brain(
+        subject=subject, subjects_dir=subjects_dir, surf="inflated", hemi="both"
+    )
+    labels_lh = np.zeros(len(brain.geo["lh"].coords), dtype=int)
+    labels_rh = np.zeros(len(brain.geo["rh"].coords), dtype=int)
     ctab_lh = list()
     ctab_rh = list()
     for i, (roi, value) in enumerate(zip(rois, values), 1):
-        if roi.hemi == 'lh':
+        if roi.hemi == "lh":
             labels = labels_lh
             ctab = ctab_lh
         else:
@@ -301,6 +339,7 @@ def plot_roi_map(values, rois, subject, subjects_dir, cmap='plasma',
         ctab.append([int(x * 255) for x in cmap(value / max_val)[:4]] + [i])
     ctab_lh = np.array(ctab_lh)
     ctab_rh = np.array(ctab_rh)
-    brain.add_annotation([(labels_lh, ctab_lh), (labels_rh, ctab_rh)],
-                         borders=False, alpha=alpha)
+    brain.add_annotation(
+        [(labels_lh, ctab_lh), (labels_rh, ctab_rh)], borders=False, alpha=alpha
+    )
     return brain

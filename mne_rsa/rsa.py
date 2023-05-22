@@ -27,36 +27,40 @@ def _kendall_tau_a(x, y):
     y = np.asarray(y).ravel()
 
     if x.size != y.size:
-        raise ValueError("All inputs to `kendalltau` must be of the same size,"
-                         " found x-size %s and y-size %s" % (x.size, y.size))
+        raise ValueError(
+            "All inputs to `kendalltau` must be of the same size,"
+            " found x-size %s and y-size %s" % (x.size, y.size)
+        )
     elif not x.size or not y.size:
         return np.nan  # Return NaN if arrays are empty
 
     def count_rank_tie(ranks):
-        cnt = np.bincount(ranks).astype('int64', copy=False)
+        cnt = np.bincount(ranks).astype("int64", copy=False)
         cnt = cnt[cnt > 1]
-        return ((cnt * (cnt - 1) // 2).sum(),
-                (cnt * (cnt - 1.) * (cnt - 2)).sum(),
-                (cnt * (cnt - 1.) * (2 * cnt + 5)).sum())
+        return (
+            (cnt * (cnt - 1) // 2).sum(),
+            (cnt * (cnt - 1.0) * (cnt - 2)).sum(),
+            (cnt * (cnt - 1.0) * (2 * cnt + 5)).sum(),
+        )
 
     size = x.size
     perm = np.argsort(y)  # sort on y and convert y to dense ranks
     x, y = x[perm], y[perm]
-    y = np.r_[True, y[1:] != y[:-1]].cumsum(dtype='intp')
+    y = np.r_[True, y[1:] != y[:-1]].cumsum(dtype="intp")
 
     # stable sort on x and convert x to dense ranks
-    perm = np.argsort(x, kind='mergesort')
+    perm = np.argsort(x, kind="mergesort")
     x, y = x[perm], y[perm]
-    x = np.r_[True, x[1:] != x[:-1]].cumsum(dtype='intp')
+    x = np.r_[True, x[1:] != x[:-1]].cumsum(dtype="intp")
 
     dis = _kendall_dis(x, y)  # discordant pairs
 
     obs = np.r_[True, (x[1:] != x[:-1]) | (y[1:] != y[:-1]), True]
-    cnt = np.diff(np.nonzero(obs)[0]).astype('int64', copy=False)
+    cnt = np.diff(np.nonzero(obs)[0]).astype("int64", copy=False)
 
     ntie = (cnt * (cnt - 1) // 2).sum()  # joint ties
-    xtie, x0, x1 = count_rank_tie(x)     # ties in x, stats
-    ytie, y0, y1 = count_rank_tie(y)     # ties in y, stats
+    xtie, x0, x1 = count_rank_tie(x)  # ties in x, stats
+    ytie, y0, y1 = count_rank_tie(y)  # ties in y, stats
 
     tot = (size * (size - 1)) // 2
 
@@ -68,7 +72,7 @@ def _kendall_tau_a(x, y):
     con_minus_dis = tot - xtie - ytie + ntie - 2 * dis
     tau = con_minus_dis / tot
     # Limit range to fix computational errors
-    tau = min(1., max(-1., tau))
+    tau = min(1.0, max(-1.0, tau))
 
     return tau
 
@@ -83,14 +87,14 @@ def _consolidate_masks(masks):
     return mask
 
 
-def _partial_correlation(dsm_data, dsm_model, masks=None, type='pearson'):
+def _partial_correlation(dsm_data, dsm_model, masks=None, type="pearson"):
     """Compute partial Pearson/Spearman correlation."""
     if len(dsm_model) == 1:
-        raise ValueError('Need more than one model DSM to use partial '
-                         'correlation as metric.')
-    if type not in ['pearson', 'spearman']:
-        raise ValueError("Correlation type must be either 'pearson' or "
-                         "'spearman'")
+        raise ValueError(
+            "Need more than one model DSM to use partial " "correlation as metric."
+        )
+    if type not in ["pearson", "spearman"]:
+        raise ValueError("Correlation type must be either 'pearson' or " "'spearman'")
 
     if masks is not None:
         mask = _consolidate_masks(masks)
@@ -98,7 +102,7 @@ def _partial_correlation(dsm_data, dsm_model, masks=None, type='pearson'):
         dsm_data = dsm_data[mask]
 
     X = np.vstack([dsm_data] + dsm_model).T
-    if type == 'spearman':
+    if type == "spearman":
         X = np.apply_along_axis(stats.rankdata, 0, X)
     X = X - X.mean(axis=0)
     cov_X_inv = np.linalg.pinv(X.T @ X)
@@ -107,7 +111,7 @@ def _partial_correlation(dsm_data, dsm_model, masks=None, type='pearson'):
     return -R_partial[0, 1:]
 
 
-def rsa_gen(dsm_data_gen, dsm_model, metric='spearman', ignore_nan=False):
+def rsa_gen(dsm_data_gen, dsm_model, metric="spearman", ignore_nan=False):
     """Generate RSA values between data and model DSMs.
 
     Will yield RSA scores for each data DSM.
@@ -148,10 +152,10 @@ def rsa_gen(dsm_data_gen, dsm_model, metric='spearman', ignore_nan=False):
     """
     if type(dsm_model) == list:
         return_array = True
-        dsm_model = [_ensure_condensed(dsm, 'dsm_model') for dsm in dsm_model]
+        dsm_model = [_ensure_condensed(dsm, "dsm_model") for dsm in dsm_model]
     else:
         return_array = False
-        dsm_model = [_ensure_condensed(dsm_model, 'dsm_model')]
+        dsm_model = [_ensure_condensed(dsm_model, "dsm_model")]
 
     if ignore_nan:
         masks = [~np.isnan(dsm) for dsm in dsm_model]
@@ -159,7 +163,7 @@ def rsa_gen(dsm_data_gen, dsm_model, metric='spearman', ignore_nan=False):
         masks = [slice(None)] * len(dsm_model)
 
     for dsm_data in dsm_data_gen:
-        dsm_data = _ensure_condensed(dsm_data, 'dsm_data')
+        dsm_data = _ensure_condensed(dsm_data, "dsm_data")
         if ignore_nan:
             data_mask = ~np.isnan(dsm_data)
             masks = [m & data_mask for m in masks]
@@ -172,21 +176,26 @@ def rsa_gen(dsm_data_gen, dsm_model, metric='spearman', ignore_nan=False):
 
 def _rsa_single_dsm(dsm_data, dsm_model, metric, masks):
     """Compute RSA between a single data DSM and one or more model DSMs."""
-    if metric == 'spearman':
-        rsa_vals = [stats.spearmanr(dsm_data[mask], dsm_model_[mask])[0]
-                    for dsm_model_, mask in zip(dsm_model, masks)]
-    elif metric == 'pearson':
-        rsa_vals = [stats.pearsonr(dsm_data[mask], dsm_model_[mask])[0]
-                    for dsm_model_, mask in zip(dsm_model, masks)]
-    elif metric == 'kendall-tau-a':
-        rsa_vals = [_kendall_tau_a(dsm_data[mask], dsm_model_[mask])
-                    for dsm_model_, mask in zip(dsm_model, masks)]
-    elif metric == 'partial':
+    if metric == "spearman":
+        rsa_vals = [
+            stats.spearmanr(dsm_data[mask], dsm_model_[mask])[0]
+            for dsm_model_, mask in zip(dsm_model, masks)
+        ]
+    elif metric == "pearson":
+        rsa_vals = [
+            stats.pearsonr(dsm_data[mask], dsm_model_[mask])[0]
+            for dsm_model_, mask in zip(dsm_model, masks)
+        ]
+    elif metric == "kendall-tau-a":
+        rsa_vals = [
+            _kendall_tau_a(dsm_data[mask], dsm_model_[mask])
+            for dsm_model_, mask in zip(dsm_model, masks)
+        ]
+    elif metric == "partial":
         rsa_vals = _partial_correlation(dsm_data, dsm_model, masks)
-    elif metric == 'partial-spearman':
-        rsa_vals = _partial_correlation(dsm_data, dsm_model, masks,
-                                        type='spearman')
-    elif metric == 'regression':
+    elif metric == "partial-spearman":
+        rsa_vals = _partial_correlation(dsm_data, dsm_model, masks, type="spearman")
+    elif metric == "regression":
         mask = _consolidate_masks(masks)
         dsm_model = [dsm[mask] for dsm in dsm_model]
         dsm_data = dsm_data[mask]
@@ -195,14 +204,23 @@ def _rsa_single_dsm(dsm_data, dsm_model, metric, masks):
         y = dsm_data - dsm_data.mean()
         rsa_vals = np.linalg.lstsq(X, y, rcond=None)[0]
     else:
-        raise ValueError("Invalid RSA metric, must be one of: 'spearman', "
-                         "'pearson', 'partial', 'partial-spearman', "
-                         "'regression' or 'kendall-tau-a'.")
+        raise ValueError(
+            "Invalid RSA metric, must be one of: 'spearman', "
+            "'pearson', 'partial', 'partial-spearman', "
+            "'regression' or 'kendall-tau-a'."
+        )
     return rsa_vals
 
 
-def rsa(dsm_data, dsm_model, metric='spearman', ignore_nan=False,
-        n_data_dsms=None, n_jobs=1, verbose=False):
+def rsa(
+    dsm_data,
+    dsm_model,
+    metric="spearman",
+    ignore_nan=False,
+    n_data_dsms=None,
+    n_jobs=1,
+    verbose=False,
+):
     """Perform RSA between data and model DSMs.
 
     Parameters
@@ -252,37 +270,51 @@ def rsa(dsm_data, dsm_model, metric='spearman', ignore_nan=False,
     rsa_gen
     """
     return_array = False
-    if type(dsm_data) == list or hasattr(dsm_data, '__next__'):
+    if type(dsm_data) == list or hasattr(dsm_data, "__next__"):
         return_array = True
     else:
         dsm_data = [dsm_data]
 
     if verbose:
         from tqdm import tqdm
+
         if n_data_dsms is not None:
             total = n_data_dsms
-        elif hasattr(dsm_data, '__len__'):
+        elif hasattr(dsm_data, "__len__"):
             total = len(dsm_data)
         else:
             total = None
-        dsm_data = tqdm(dsm_data, total=total, unit='DSM')
+        dsm_data = tqdm(dsm_data, total=total, unit="DSM")
 
     if n_jobs == 1:
         rsa_vals = list(rsa_gen(dsm_data, dsm_model, metric, ignore_nan))
     else:
+
         def process_single_dsm(dsm):
             return next(rsa_gen([dsm], dsm_model, metric, ignore_nan))
-        rsa_vals = Parallel(n_jobs)(delayed(process_single_dsm)(dsm)
-                                    for dsm in dsm_data)
+
+        rsa_vals = Parallel(n_jobs)(
+            delayed(process_single_dsm)(dsm) for dsm in dsm_data
+        )
     if return_array:
         return np.asarray(rsa_vals)
     else:
         return rsa_vals[0]
 
 
-def rsa_array(X, dsm_model, patches=None, data_dsm_metric='correlation',
-              data_dsm_params=dict(), rsa_metric='spearman', ignore_nan=False,
-              y=None, n_folds=1, n_jobs=1, verbose=False):
+def rsa_array(
+    X,
+    dsm_model,
+    patches=None,
+    data_dsm_metric="correlation",
+    data_dsm_params=dict(),
+    rsa_metric="spearman",
+    ignore_nan=False,
+    y=None,
+    n_folds=1,
+    n_jobs=1,
+    verbose=False,
+):
     """Perform RSA on an array of data, possibly in a searchlight pattern.
 
     Parameters
@@ -365,9 +397,9 @@ def rsa_array(X, dsm_model, patches=None, data_dsm_metric='correlation',
     # The data is now folds x items x n_series x n_times
 
     if type(dsm_model) == list:
-        dsm_model = [_ensure_condensed(dsm, 'dsm_model') for dsm in dsm_model]
+        dsm_model = [_ensure_condensed(dsm, "dsm_model") for dsm in dsm_model]
     else:
-        dsm_model = [_ensure_condensed(dsm_model, 'dsm_model')]
+        dsm_model = [_ensure_condensed(dsm_model, "dsm_model")]
 
     if ignore_nan:
         masks = [~np.isnan(dsm) for dsm in dsm_model]
@@ -376,10 +408,11 @@ def rsa_array(X, dsm_model, patches=None, data_dsm_metric='correlation',
 
     if verbose:
         from tqdm import tqdm
-        shape = getattr(patches, 'shape', (-1,))
-        patches = tqdm(patches, unit='patch')
+
+        shape = getattr(patches, "shape", (-1,))
+        patches = tqdm(patches, unit="patch")
         try:
-            setattr(patches, 'shape', shape)
+            setattr(patches, "shape", shape)
         except AttributeError:
             pass
 
@@ -387,12 +420,12 @@ def rsa_array(X, dsm_model, patches=None, data_dsm_metric='correlation',
         """Compute RSA for a single searchlight patch."""
         if len(X) == 1:  # Check number of folds
             # No cross-validation
-            dsm_data = compute_dsm(X[0][patch],
-                                   data_dsm_metric, **data_dsm_params)
+            dsm_data = compute_dsm(X[0][patch], data_dsm_metric, **data_dsm_params)
         else:
             # Use cross-validation
-            dsm_data = compute_dsm_cv(X[(slice(None),) + patch],
-                                      data_dsm_metric, **data_dsm_params)
+            dsm_data = compute_dsm_cv(
+                X[(slice(None),) + patch], data_dsm_metric, **data_dsm_params
+            )
         if ignore_nan:
             data_mask = ~np.isnan(dsm_data)
             patch_masks = [m & data_mask for m in masks]
@@ -401,11 +434,10 @@ def rsa_array(X, dsm_model, patches=None, data_dsm_metric='correlation',
         return _rsa_single_dsm(dsm_data, dsm_model, rsa_metric, patch_masks)
 
     # Call RSA multiple times in parallel for each searchlight patch
-    data = Parallel(n_jobs)(delayed(rsa_single_patch)(patch)
-                            for patch in patches)
+    data = Parallel(n_jobs)(delayed(rsa_single_patch)(patch) for patch in patches)
 
     # Figure out the desired dimensions of the resulting array
-    dims = getattr(patches, 'shape', (-1,))
+    dims = getattr(patches, "shape", (-1,))
     if len(dsm_model) > 1:
         dims = dims + (len(dsm_model),)
 

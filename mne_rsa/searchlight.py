@@ -93,9 +93,17 @@ class searchlight:
     ----------
     shape
     """
-    def __init__(self, shape, dist=None, spatial_radius=None,
-                 temporal_radius=None, sel_series=None,
-                 samples_from=0, samples_to=-1):
+
+    def __init__(
+        self,
+        shape,
+        dist=None,
+        spatial_radius=None,
+        temporal_radius=None,
+        sel_series=None,
+        samples_from=0,
+        samples_to=-1,
+    ):
         # Interpret the dimensions of the data array (see docstring)
         n_dims = len(shape)
         if n_dims >= 4:
@@ -123,39 +131,52 @@ class searchlight:
         # there is a temporal dimension to the data.
         if samples_from != 0 or samples_to != -1:
             if self.samples_dim is None:
-                raise ValueError('Cannot select samples:'
-                                 f'the provided data shape {shape} has no '
-                                 'temporal dimension.')
+                raise ValueError(
+                    "Cannot select samples:"
+                    f"the provided data shape {shape} has no "
+                    "temporal dimension."
+                )
             n_samples = shape[self.samples_dim]
             if samples_from < 0 or samples_from > n_samples:
-                raise ValueError(f'`samples_from={samples_from}` is out '
-                                 f'of bounds given data shape ({shape}).')
+                raise ValueError(
+                    f"`samples_from={samples_from}` is out "
+                    f"of bounds given data shape ({shape})."
+                )
             if samples_to > n_samples:
-                raise ValueError(f'`samples_to={samples_to}` is out '
-                                 f'of bounds given data shape ({shape}).')
+                raise ValueError(
+                    f"`samples_to={samples_to}` is out "
+                    f"of bounds given data shape ({shape})."
+                )
             if samples_to != -1 and samples_to < samples_from:
-                raise ValueError(f'`samples_to={samples_to} is smaller '
-                                 f'than `samples_from={samples_from}.')
+                raise ValueError(
+                    f"`samples_to={samples_to} is smaller "
+                    f"than `samples_from={samples_from}."
+                )
         self.samples_from = samples_from
         self.samples_to = samples_to
 
         # Will we be creating spatial searchlight patches?
         if self.spatial_radius is not None:
             if self.series_dim is None:
-                raise ValueError('Cannot create spatial searchlight patches: '
-                                 f'the provided data shape ({shape}) has no '
-                                 'spatial dimension.')
+                raise ValueError(
+                    "Cannot create spatial searchlight patches: "
+                    f"the provided data shape ({shape}) has no "
+                    "spatial dimension."
+                )
             # If spatial radius is a number, we will be making searchlight
             # patches based on distance computations. Alternatively, a list of
             # predefined spatial patches may be provided, and we don't need
             # `dist`.
             if type(self.spatial_radius) in [float, int]:
                 if self.dist is None:
-                    raise ValueError('A spatial radius was requested, but no '
-                                     'distance information was specified '
-                                     '(=dist parameter).')
+                    raise ValueError(
+                        "A spatial radius was requested, but no "
+                        "distance information was specified "
+                        "(=dist parameter)."
+                    )
                 # Compressed Sparse Row format is optimal for our computations
                 from scipy.sparse import issparse
+
                 if issparse(self.dist):
                     self.dist = self.dist.tocsr()
                 if self.sel_series is None:
@@ -168,9 +189,11 @@ class searchlight:
         # Will we be creating temporal searchlight patches?
         if temporal_radius is not None:
             if self.samples_dim is None:
-                raise ValueError('Cannot create temporal searchlight patches: '
-                                 f'the provided data shape ({shape}) has no '
-                                 'temporal dimension.')
+                raise ValueError(
+                    "Cannot create temporal searchlight patches: "
+                    f"the provided data shape ({shape}) has no "
+                    "temporal dimension."
+                )
             n_samples = shape[self.samples_dim]
 
             # Compute the centers of the searchlight patches in time. Make sure
@@ -180,13 +203,19 @@ class searchlight:
             samples_max = n_samples - temporal_radius
             if samples_min > samples_max:
                 raise ValueError(
-                    f'Temporal radius ({temporal_radius}) too large for the '
-                    f'given data shape ({shape}).')
-            self.time_centers = list(range(
-                np.clip(samples_from, samples_min, samples_max),
-                np.clip(n_samples if samples_to == -1 else samples_to,
-                        samples_min, samples_max)
-            ))
+                    f"Temporal radius ({temporal_radius}) too large for the "
+                    f"given data shape ({shape})."
+                )
+            self.time_centers = list(
+                range(
+                    np.clip(samples_from, samples_min, samples_max),
+                    np.clip(
+                        n_samples if samples_to == -1 else samples_to,
+                        samples_min,
+                        samples_max,
+                    ),
+                )
+            )
 
         # Create a template for the patches that will be generated that is
         # compatible with the data array dimensions. By default, we select
@@ -196,22 +225,26 @@ class searchlight:
         self.patch_template = [slice(None)] * n_dims
         if self.sel_series is not None:
             if self.series_dim is None:
-                raise ValueError('Cannot select series:'
-                                 f'the provided data shape {shape} has no '
-                                 'spatial dimension.')
+                raise ValueError(
+                    "Cannot select series:"
+                    f"the provided data shape {shape} has no "
+                    "spatial dimension."
+                )
             self.patch_template[self.series_dim] = self.sel_series
         if self.samples_from != 0 or self.samples_to != -1:
             if self.samples_dim is None:
-                raise ValueError('Cannot select samples:'
-                                 f'the provided data shape {shape} has no '
-                                 'temporal dimension.')
-            self.patch_template[self.samples_dim] = slice(self.samples_from,
-                                                          self.samples_to)
+                raise ValueError(
+                    "Cannot select samples:"
+                    f"the provided data shape {shape} has no "
+                    "temporal dimension."
+                )
+            self.patch_template[self.samples_dim] = slice(
+                self.samples_from, self.samples_to
+            )
 
         # Setup the main generator function that will be providing the
         # searchlight patches.
-        if (self.spatial_radius is not None
-                and self.temporal_radius is not None):
+        if self.spatial_radius is not None and self.temporal_radius is not None:
             self._generator = self._iter_spatio_temporal()
         elif self.spatial_radius is not None:
             self._generator = self._iter_spatial()
@@ -231,30 +264,29 @@ class searchlight:
 
     def _iter_spatio_temporal(self):
         """Generate spatio-temporal searchlight patches."""
-        logger.info('Creating spatio-temporal searchlight patches')
+        logger.info("Creating spatio-temporal searchlight patches")
         patch = list(self.patch_template)  # Copy the template
         for series in self.sel_series:
             # Compute all spatial locations in the searchligh path.
             if type(self.spatial_radius) in [float, int]:
-                spat_ind = _get_in_radius(self.dist, series,
-                                          self.spatial_radius)
+                spat_ind = _get_in_radius(self.dist, series, self.spatial_radius)
             else:
                 spat_ind = self.spatial_radius[series]
             patch[self.series_dim] = spat_ind
             for sample in self.time_centers:
-                temp_ind = slice(sample - self.temporal_radius,
-                                 sample + self.temporal_radius + 1)
+                temp_ind = slice(
+                    sample - self.temporal_radius, sample + self.temporal_radius + 1
+                )
                 patch[self.samples_dim] = temp_ind
                 yield tuple(patch)
 
     def _iter_spatial(self):
         """Generate spatial searchlight patches only."""
-        logger.info('Creating spatial searchlight patches')
+        logger.info("Creating spatial searchlight patches")
         patch = list(self.patch_template)  # Copy the template
         for series in self.sel_series:
             if type(self.spatial_radius) in [float, int]:
-                spat_ind = _get_in_radius(self.dist, series,
-                                          self.spatial_radius)
+                spat_ind = _get_in_radius(self.dist, series, self.spatial_radius)
             else:
                 spat_ind = self.spatial_radius[series]
             patch[self.series_dim] = spat_ind
@@ -262,11 +294,12 @@ class searchlight:
 
     def _iter_temporal(self):
         """Generate temporal searchlight patches only."""
-        logger.info('Creating temporal searchlight patches')
+        logger.info("Creating temporal searchlight patches")
         patch = list(self.patch_template)  # Copy the template
         for sample in self.time_centers:
-            patch[self.samples_dim] = slice(sample - self.temporal_radius,
-                                            sample + self.temporal_radius + 1)
+            patch[self.samples_dim] = slice(
+                sample - self.temporal_radius, sample + self.temporal_radius + 1
+            )
             yield tuple(patch)
 
     @property
@@ -291,8 +324,7 @@ class searchlight:
             For no searchlight:
                 Zero elements.
         """
-        if (self.spatial_radius is not None
-                and self.temporal_radius is not None):
+        if self.spatial_radius is not None and self.temporal_radius is not None:
             return (len(self.sel_series), len(self.time_centers))
         elif self.spatial_radius is not None:
             return (len(self.sel_series),)
@@ -329,6 +361,7 @@ def _get_in_radius(dist, seed, radius):
         Indices of all points in the given radius from the seed point.
     """
     from scipy.sparse import issparse
+
     if issparse(dist):
         # Treat all zero distances as missing data
         ind = dist[seed].nonzero()[1]

@@ -42,16 +42,18 @@ import mne_rsa
 # the data from the original 250 Hz. to 100 Hz.
 
 data_path = mne.datasets.kiloword.data_path(verbose=True)
-epochs = mne.read_epochs(data_path / 'kword_metadata-epo.fif')
+epochs = mne.read_epochs(data_path / "kword_metadata-epo.fif")
 epochs = epochs.resample(100)
+
+noise_cov = mne.compute_covariance(epochs)
 
 ###############################################################################
 # The kiloword datas was erroneously stored with sensor locations given in
 # centimeters instead of meters. We will fix it now. For your own data, the
 # sensor locations are likely properly stored in meters, so you can skip this
 # step.
-for ch in epochs.info['chs']:
-    ch['loc'] /= 100
+for ch in epochs.info["chs"]:
+    ch["loc"] /= 100
 
 
 ###############################################################################
@@ -65,8 +67,7 @@ epochs.metadata.sample(10)
 # Let's pick something obvious for this example and build a dissimilarity
 # matrix (DSM) based on the number of letters in each word.
 
-dsm_vis = mne_rsa.compute_dsm(epochs.metadata[['NumberOfLetters']],
-                              metric='euclidean')
+dsm_vis = mne_rsa.compute_dsm(epochs.metadata[["NumberOfLetters"]], metric="euclidean")
 mne_rsa.plot_dsms(dsm_vis)
 
 ###############################################################################
@@ -77,16 +78,19 @@ mne_rsa.plot_dsms(dsm_vis)
 # points in each searchlight patch. Feel free to play around with other metrics.
 
 rsa_result = mne_rsa.rsa_epochs(
-    epochs,                           # The EEG data
-    dsm_vis,                          # The model DSM
-    epochs_dsm_metric='sqeuclidean',  # Metric to compute the EEG DSMs
-    rsa_metric='kendall-tau-a',       # Metric to compare model and EEG DSMs
-    spatial_radius=0.05,              # Spatial radius of the searchlight patch in meters.
-    temporal_radius=0.05,             # Temporal radius of the searchlight path in seconds.
-    tmin=0.15, tmax=0.25,             # To save time, only analyze this time interval
-    n_jobs=1,                         # Only use one CPU core. Increase this for more speed.
-    n_folds=None,                     # Don't use any cross-validation
-    verbose=False)                    # Set to True to display a progress bar
+    epochs,  # The EEG data
+    dsm_vis,  # The model DSM
+    epochs_dsm_metric="sqeuclidean",  # Metric to compute the EEG DSMs
+    rsa_metric="kendall-tau-a",  # Metric to compare model and EEG DSMs
+    noise_cov=noise_cov,
+    spatial_radius=0.05,  # Spatial radius of the searchlight patch in meters.
+    temporal_radius=0.05,  # Temporal radius of the searchlight path in seconds.
+    tmin=0.15,
+    tmax=0.25,  # To save time, only analyze this time interval
+    n_jobs=1,  # Only use one CPU core. Increase this for more speed.
+    n_folds=None,  # Don't use any cross-validation
+    verbose=False,
+)  # Set to True to display a progress bar
 
 
 ###############################################################################
@@ -97,9 +101,15 @@ rsa_result = mne_rsa.rsa_epochs(
 # need to explicitly inform the plotting function we are plotting RSA values
 # and tweak the range of the colormap.
 
-rsa_result.plot_topomap(rsa_result.times, units=dict(eeg='kendall-tau-a'),
-                        scalings=dict(eeg=1), cbar_fmt='%.4f', vmin=0, nrows=2,
-                        sphere=1)
+rsa_result.plot_topomap(
+    rsa_result.times,
+    units=dict(eeg="kendall-tau-a"),
+    scalings=dict(eeg=1),
+    cbar_fmt="%.4f",
+    vmin=0,
+    nrows=2,
+    sphere=1,
+)
 
 ###############################################################################
 # Unsurprisingly, we get the highest correspondance between number of letters
