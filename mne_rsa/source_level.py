@@ -1,7 +1,5 @@
 # encoding: utf-8
-"""
-Module implementing representational similarity analysis (RSA) at the source
-level.
+"""Module implementing representational similarity analysis (RSA) at the source level.
 
 Kriegeskorte, N., Mur, M., & Bandettini, P. A. (2008). Representational
 similarity analysis - connecting the branches of systems neuroscience.
@@ -41,6 +39,7 @@ def rsa_stcs(
     y=None,
     n_folds=1,
     sel_vertices=None,
+    sel_vertices_by_index=None,
     tmin=None,
     tmax=None,
     n_jobs=1,
@@ -117,10 +116,19 @@ def rsa_stcs(
         ``sklearn.model_selection.KFold``) to assert fine-grained control over
         how folds are created.
         Defaults to 1 (no cross-validation).
-    sel_vertices : list of int | None
+    sel_vertices :  mne.Label | list of mne.Label | list of ndarray | None
         When set, searchlight patches will only be generated for the subset of
-        vertices/voxels with the given indices. Defaults to ``None``, in which
-        case patches for all vertices/voxels are generated.
+        ROI labels, or vertices/voxels with the given vertex numbers. When
+        giving vertex numbers, supply a list of numpy arrays with for each
+        hemisphere, the selected vertex numbers. For volume source spaces,
+        supple a list with only a single element, with that element being the
+        ndarray with vertex numbers.
+        See also ``sel_vertices_by_index`` for an alternative manner of
+        selecting vertices.
+    sel_vertices_by_index : ndarray of int, shape (n_vertices,)
+        When set, searchlight patches will only be generated for the subset of
+        vertices with the given indices in the ``stc.data`` array.
+        See also ``sel_vertices`` for an alternative manner of selecting vertices.
     tmin : float | None
         When set, searchlight patches will only be generated from subsequent
         time points starting from this time point. This value is given in
@@ -186,6 +194,27 @@ def rsa_stcs(
 
     samples_from, samples_to = _tmin_tmax_to_indices(stcs[0].times, tmin, tmax)
 
+    if sel_vertices_by_index is not None:
+        sel_series = sel_vertices
+    else:
+        sel_series = vertex_selection_to_indices(stcs[0].vertices, sel_vertices)
+
+    logger.info(
+        f"Performing RSA between SourceEstimates and {len(dsm_model)} model DSM(s)"
+    )
+    if spatial_radius is not None:
+        logger.info(f"    Spatial radius: {spatial_radius} meters")
+    if sel_vertices is not None:
+        logger.info(f"    Using {len(sel_series)} vertices")
+    else:
+        logger.info(
+            f"    Using {len(stcs[0].vertices[0]) + len(stcs[0].vertices[1])} vertices"
+        )
+    if temporal_radius is not None:
+        logger.info(f"    Temporal radius: {temporal_radius} samples")
+    if tmin is not None or tmax is not None:
+        logger.info(f"    Time inverval: {tmin}-{tmax} seconds")
+
     # Perform the RSA
     X = np.array([stc.data for stc in stcs])
     patches = searchlight(
@@ -193,10 +222,12 @@ def rsa_stcs(
         dist=dist,
         spatial_radius=spatial_radius,
         temporal_radius=temporal_radius,
-        sel_series=sel_vertices,
+        sel_series=sel_series,
         samples_from=samples_from,
         samples_to=samples_to,
     )
+    logger.info(f"    Number of searchlight patches: {len(patches)}")
+
     data = rsa_array(
         X,
         dsm_model,
@@ -213,9 +244,7 @@ def rsa_stcs(
 
     # Pack the result in a SourceEstimate object
     if spatial_radius is not None:
-        vertices = stcs[0].vertices
-        if sel_vertices is not None:
-            vertices = vertices[sel_vertices]
+        vertices = vertex_indices_to_numbers(stcs[0].vertices, sel_series)
     else:
         if src.kind == "volume":
             vertices = [np.array([1])]
@@ -261,6 +290,7 @@ def dsm_stcs(
     y=None,
     n_folds=None,
     sel_vertices=None,
+    sel_vertices_by_index=None,
     tmin=None,
     tmax=None,
     n_jobs=1,
@@ -313,10 +343,19 @@ def dsm_stcs(
         ``sklearn.model_selection.KFold``) to assert fine-grained control over
         how folds are created.
         Defaults to 1 (no cross-validation).
-    sel_vertices : list of int | None
+    sel_vertices :  mne.Label | list of mne.Label | list of ndarray | None
         When set, searchlight patches will only be generated for the subset of
-        vertices/voxels with the given indices. Defaults to ``None``, in which
-        case patches for all vertices/voxels are generated.
+        ROI labels, or vertices/voxels with the given vertex numbers. When
+        giving vertex numbers, supply a list of numpy arrays with for each
+        hemisphere, the selected vertex numbers. For volume source spaces,
+        supple a list with only a single element, with that element being the
+        ndarray with vertex numbers.
+        See also ``sel_vertices_by_index`` for an alternative manner of
+        selecting vertices.
+    sel_vertices_by_index : ndarray of int, shape (n_vertices,)
+        When set, searchlight patches will only be generated for the subset of
+        vertices with the given indices in the ``stc.data`` array.
+        See also ``sel_vertices`` for an alternative manner of selecting vertices.
     tmin : float | None
         When set, searchlight patches will only be generated from subsequent
         time points starting from this time point. This value is given in
@@ -331,6 +370,9 @@ def dsm_stcs(
         The number of processes (=number of CPU cores) to use for the
         source-to-source distance computation. Specify -1 to use all available
         cores. Defaults to 1.
+    verbose : bool
+        Whether to display a progress bar. In order for this to work, you need
+        the tqdm python module installed. Defaults to False.
 
     Yields
     ------
@@ -352,13 +394,18 @@ def dsm_stcs(
 
     samples_from, samples_to = _tmin_tmax_to_indices(stcs[0].times, tmin, tmax)
 
+    if sel_vertices_by_index is not None:
+        sel_series = sel_vertices
+    else:
+        sel_series = vertex_selection_to_indices(stcs[0].vertices, sel_vertices)
+
     X = np.array([stc.data for stc in stcs])
     patches = searchlight(
         X.shape,
         dist=dist,
         spatial_radius=spatial_radius,
         temporal_radius=temporal_radius,
-        sel_series=sel_vertices,
+        sel_series=sel_series,
         samples_from=samples_from,
         samples_to=samples_to,
     )
@@ -369,6 +416,7 @@ def dsm_stcs(
         dist_params=dist_params,
         y=y,
         n_folds=n_folds,
+        n_jobs=n_jobs,
     )
 
 
@@ -384,7 +432,6 @@ def rsa_stcs_rois(
     ignore_nan=False,
     y=None,
     n_folds=1,
-    sel_vertices=None,
     tmin=None,
     tmax=None,
     n_jobs=1,
@@ -460,10 +507,6 @@ def rsa_stcs_rois(
         ``sklearn.model_selection.KFold``) to assert fine-grained control over
         how folds are created.
         Defaults to 1 (no cross-validation).
-    sel_vertices : list of int | None
-        When set, searchlight patches will only be generated for the subset of
-        vertices/voxels with the given indices. Defaults to ``None``, in which
-        case patches for all vertices/voxels are generated.
     tmin : float | None
         When set, searchlight patches will only be generated from subsequent
         time points starting from this time point. This value is given in
@@ -533,15 +576,7 @@ def rsa_stcs_rois(
     samples_from, samples_to = _tmin_tmax_to_indices(stcs[0].times, tmin, tmax)
 
     # Convert the labels to data indices
-    roi_inds = list()
-    for roi in rois:
-        roi = roi.copy().restrict(src)
-        if roi.hemi == "lh":
-            roi_ind = np.searchsorted(src[0]["vertno"], roi.vertices)
-        else:
-            roi_ind = np.searchsorted(src[1]["vertno"], roi.vertices)
-            roi_ind += src[0]["nuse"]
-        roi_inds.append(roi_ind)
+    roi_inds = [vertex_selection_to_indices(stcs[0].vertices, roi) for roi in rois]
 
     # Perform the RSA
     X = np.array([stc.data for stc in stcs])
@@ -549,7 +584,6 @@ def rsa_stcs_rois(
         X.shape,
         spatial_radius=roi_inds,
         temporal_radius=temporal_radius,
-        sel_series=sel_vertices,
         samples_from=samples_from,
         samples_to=samples_to,
     )
@@ -568,10 +602,7 @@ def rsa_stcs_rois(
     )
 
     # Pack the result in SourceEstimate objects
-    vertices = stcs[0].vertices
     subject = stcs[0].subject
-    if sel_vertices is not None:
-        vertices = vertices[sel_vertices]
     tmin = _construct_tmin(stcs[0].times, samples_from, samples_to, temporal_radius)
     tstep = stcs[0].tstep
     if one_model:
@@ -943,7 +974,6 @@ def dsm_nifti(
         y=y,
         n_folds=n_folds,
         n_jobs=n_jobs,
-        verbose=verbose,
     )
 
 
@@ -1005,7 +1035,7 @@ def _get_distance_matrix(src, dist_lim, n_jobs=1):
         if "dist" not in hemi or hemi["dist"] is None:
             needs_distance_computation = True
         else:
-            if hemi["dist_limit"][0] < dist_lim:
+            if hemi["dist_limit"] != np.inf and hemi["dist_limit"][0] < dist_lim:
                 warn(
                     f"Source space has pre-computed distances, but all "
                     f"distances are smaller than the searchlight radius "
@@ -1156,3 +1186,66 @@ def backfill_stc_from_rois(values, rois, src, tmin=0, tstep=1, subject=None):
     return mne.SourceEstimate(
         data, vertices=[verts_lh, verts_rh], tmin=tmin, tstep=tstep, subject=subject
     )
+
+
+def vertex_selection_to_indices(vertno, sel_vertices):
+    """Unify across different ways of selecting vertices."""
+    if isinstance(sel_vertices, mne.Label):
+        sel_vertices = [sel_vertices]
+    if not isinstance(sel_vertices, list):
+        raise ValueError(
+            "Invalid type for sel_vertices. It should be an mne.Label, a list of "
+            f"mne.Label's or a list of numpy arrays, but {type(sel_vertices)} was "
+            "provided."
+        )
+    if len(sel_vertices) == 0:
+        raise ValueError("Empty list provided for sel_vertices.")
+
+    # Deal with mne.Label objects
+    if isinstance(sel_vertices[0], mne.Label):
+        labels = sel_vertices
+        sel_vertices = [[] for _ in range(len(vertno))]
+        for label in labels:
+            if label.hemi == "lh":
+                sel_vertices[0].extend(label.get_vertices_used(vertno[0]).tolist())
+            else:
+                if len(vertno) == 1:
+                    raise ValueError(
+                        "one of the Label's provided for sel_vertices defines vertices "
+                        "on the right hemisphere. However, the provided "
+                        "SourceEstimate's only have vertices in the left hemisphere."
+                    )
+                sel_vertices[1].extend(label.get_vertices_used(vertno[1]).tolist())
+
+    # At this point, sel_vertices should be an array of vertex numbers.
+    # Convert them to indices for the .data array.
+    if len(sel_vertices) != len(vertno):
+        raise ValueError(
+            f"sel_vertices should be a list with {len(vertno)} elements: one for "
+            "each hemisphere (volume source spaces have one hemisphere.)"
+        )
+    sel_series = []
+    for hemi, (hemi_vertno, hemi_sel_vertno) in enumerate(zip(vertno, sel_vertices)):
+        if len(hemi_sel_vertno) == 0:
+            continue
+        sel_inds = np.searchsorted(hemi_vertno, hemi_sel_vertno)
+        if not np.array_equal(hemi_vertno[sel_inds], hemi_sel_vertno):
+            raise ValueError("Some selected vertices are not present in the data.")
+        if hemi > 0:
+            sel_inds += len(vertno[hemi - 1])
+        sel_series.append(sel_inds)
+    return np.unique(np.hstack(sel_series))
+
+
+def vertex_indices_to_numbers(vertno, vert_ind):
+    """Convert vertex indices to vertex numbers."""
+    min_vert_ind = 0
+    sel_vert_no = [[] for _ in vertno]
+    for hemi, hemi_vertno in enumerate(vertno):
+        if hemi > 0:
+            min_vert_ind += len(vertno[hemi - 1])
+        max_vert_ind = min_vert_ind + len(hemi_vertno)
+        hemi_vert_ind = vert_ind[(vert_ind >= min_vert_ind) & (vert_ind < max_vert_ind)]
+        hemi_vert_ind -= min_vert_ind
+        sel_vert_no[hemi] = hemi_vertno[hemi_vert_ind]
+    return sel_vert_no

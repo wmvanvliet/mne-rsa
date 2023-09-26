@@ -244,19 +244,20 @@ class searchlight:
 
         # Setup the main generator function that will be providing the
         # searchlight patches.
-        if self.spatial_radius is not None and self.temporal_radius is not None:
-            self._generator = self._iter_spatio_temporal()
-        elif self.spatial_radius is not None:
-            self._generator = self._iter_spatial()
-        elif self.temporal_radius is not None:
-            self._generator = self._iter_temporal()
-        else:
-            # Single searchlight patch only
-            self._generator = iter([tuple(self.patch_template)])
+        self._generator = iter(self)
 
     def __iter__(self):
         """Get an iterator over the searchlight patches."""
-        return self
+        if self.spatial_radius is not None and self.temporal_radius is not None:
+            iterator = self._iter_spatio_temporal()
+        elif self.spatial_radius is not None:
+            iterator = self._iter_spatial()
+        elif self.temporal_radius is not None:
+            iterator = self._iter_temporal()
+        else:
+            # Single searchlight patch only
+            iterator = iter([tuple(self.patch_template)])
+        return iterator
 
     def __next__(self):
         """Generate searchlight patches."""

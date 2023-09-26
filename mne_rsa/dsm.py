@@ -1,10 +1,9 @@
 # encoding: utf-8
-"""
-Methods to compute dissimilarity matrices (DSMs).
-"""
+"""Methods to compute dissimilarity matrices (DSMs)."""
 
 import numpy as np
 from scipy.spatial import distance
+from joblib import Parallel, delayed
 
 from .folds import create_folds
 from .searchlight import searchlight
@@ -119,7 +118,7 @@ def compute_dsm_cv(folds, metric="correlation", **kwargs):
 
 
 def _ensure_condensed(dsm, var_name):
-    """Converts a DSM to condensed form if needed."""
+    """Convert a DSM to condensed form if needed."""
     if type(dsm) is list:
         return [_ensure_condensed(d, var_name) for d in dsm]
 
@@ -217,7 +216,7 @@ class dsm_array:
         For no searchlight:
             One element: the length of a condensed DSM.
 
-    See also
+    See Also
     --------
     dsm
     rsa
@@ -232,6 +231,7 @@ class dsm_array:
         dist_params=dict(),
         y=None,
         n_folds=1,
+        n_jobs=1,
     ):
         if patches is None:
             patches = searchlight(X.shape)
@@ -249,26 +249,36 @@ class dsm_array:
         dsm_length = len(np.triu_indices(self.X.shape[1], k=1)[0])
         self.shape = patches.shape + (dsm_length,)
 
+        self.n_jobs = n_jobs
+
         # Setup the generator that will be producing the DSMs
-        self._generator = self._iter_dsms()
+        self._generator = iter(self)
 
     def __iter__(self):
-        return self
+        """Build a new iterator that starts from the beginning."""
+        return self._iter_dsms()
 
     def __next__(self):
-        """Generate a DSM for each searchlight patch."""
+        """Generate a DSM for each patch."""
         return next(self._generator)
 
     def _iter_dsms(self):
-        for patch in self.patches:
-            if self.use_cv:
-                yield compute_dsm_cv(
+        print("Using", self.n_jobs, "jobs")
+        par = Parallel(n_jobs=self.n_jobs, return_as="generator")
+        if self.use_cv:
+            yield from par(
+                delayed(compute_dsm_cv)(
                     self.X[(slice(None),) + patch], self.dist_metric, **self.dist_params
                 )
-            else:
-                yield compute_dsm(
+                for patch in self.patches
+            )
+        else:
+            yield from par(
+                delayed(compute_dsm)(
                     self.X[0][patch], self.dist_metric, **self.dist_params
                 )
+                for patch in self.patches
+            )
 
     def __len__(self):
         """Get total number of DSMs that will be generated."""

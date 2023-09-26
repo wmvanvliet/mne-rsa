@@ -142,7 +142,7 @@ def rsa_evokeds(
     if one_model:
         dsm_model = [dsm_model]
 
-    logger.info(f"Performing RSA between Evokeds and {len(dsm_model)} model " "DSM(s)")
+    logger.info(f"Performing RSA between Evokeds and {len(dsm_model)} model DSM(s)")
 
     # Check for compatibility of the evokeds and the model features
     for dsm in dsm_model:
@@ -192,6 +192,7 @@ def rsa_evokeds(
         logger.info(f"    Using {len(picks)} sensors")
     if temporal_radius is not None:
         logger.info(f"    Temporal radius: {temporal_radius} samples")
+    if tmin is not None or tmax is not None:
         logger.info(f"    Time inverval: {tmin}-{tmax} seconds")
 
     # Perform the RSA
@@ -228,7 +229,7 @@ def rsa_evokeds(
 
     if one_model:
         return mne.EvokedArray(
-            np.atleast_2d(data[..., 0]), info, tmin, comment="RSA", nave=len(evokeds)
+            np.atleast_2d(data), info, tmin, comment="RSA", nave=len(evokeds)
         )
     else:
         return [
@@ -373,7 +374,7 @@ def rsa_epochs(
     if one_model:
         dsm_model = [dsm_model]
 
-    logger.info(f"Performing RSA between Epochs and {len(dsm_model)} model " "DSM(s)")
+    logger.info(f"Performing RSA between Epochs and {len(dsm_model)} model DSM(s)")
 
     if y is None:
         y_source = "Epoch object"

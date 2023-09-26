@@ -434,7 +434,7 @@ def rsa_array(
         return _rsa_single_dsm(dsm_data, dsm_model, rsa_metric, patch_masks)
 
     # Call RSA multiple times in parallel for each searchlight patch
-    data = Parallel(n_jobs)(delayed(rsa_single_patch)(patch) for patch in patches)
+    data = Parallel(n_jobs=n_jobs)(delayed(rsa_single_patch)(patch) for patch in patches)
 
     # Figure out the desired dimensions of the resulting array
     dims = getattr(patches, "shape", (-1,))
