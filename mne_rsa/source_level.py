@@ -985,16 +985,28 @@ def _check_stcs_compatibility(stcs, src):
             f"source space (src.kind={src.kind})."
         )
 
+    if src.kind == "volume":
+        if len(np.setdiff1d(stcs[0].vertices, src[0]["vertno"])) > 0:
+            raise ValueError(
+                "Mismatch between vertives in the source estimate and source space"
+            )
+    else:
+        for src_hemi, stc_hemi_vertno in zip(src, stcs[0].vertices):
+            if len(np.setdiff1d(stc_hemi_vertno, src_hemi["vertno"])) > 0:
+                raise ValueError(
+                    "Mismatch between vertives in the source estimate and source space"
+                )
+
+    vertices = stcs[0].vertices
     for stc in stcs:
         if src.kind == "volume":
-            if np.any(stc.vertices != src[0]["vertno"]):
-                raise ValueError("Not all source estimates have the same " "vertices.")
+            if np.any(stc.vertices != vertices):
+                raise ValueError("Not all source estimates have the same vertices.")
         else:
-            for src_hemi, stc_hemi_vertno in zip(src, stcs[0].vertices):
-                if np.any(stc_hemi_vertno != src_hemi["vertno"]):
-                    raise ValueError(
-                        "Not all source estimates have the same " "vertices."
-                    )
+            if np.any(stc.vertices[0] != vertices[0]) or np.any(
+                stc.vertices[1] != vertices[1]
+            ):
+                raise ValueError("Not all source estimates have the same " "vertices.")
 
     times = stcs[0].times
     for stc in stcs:
@@ -1190,6 +1202,8 @@ def backfill_stc_from_rois(values, rois, src, tmin=0, tstep=1, subject=None):
 
 def vertex_selection_to_indices(vertno, sel_vertices):
     """Unify across different ways of selecting vertices."""
+    if sel_vertices is None:
+        return None
     if isinstance(sel_vertices, mne.Label):
         sel_vertices = [sel_vertices]
     if not isinstance(sel_vertices, list):
