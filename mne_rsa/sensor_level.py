@@ -193,7 +193,7 @@ def rsa_evokeds(
     if temporal_radius is not None:
         logger.info(f"    Temporal radius: {temporal_radius} samples")
     if tmin is not None or tmax is not None:
-        logger.info(f"    Time inverval: {tmin}-{tmax} seconds")
+        logger.info(f"    Time interval: {tmin}-{tmax} seconds")
 
     # Perform the RSA
     X = np.array([evoked.data for evoked in evokeds])
@@ -426,7 +426,7 @@ def rsa_epochs(
 
     if temporal_radius is not None:
         logger.info(f"    Temporal radius: {temporal_radius} samples")
-        logger.info(f"    Time inverval: {tmin}-{tmax} seconds")
+        logger.info(f"    Time interval: {tmin}-{tmax} seconds")
 
     # Perform the RSA
     X = epochs.get_data()

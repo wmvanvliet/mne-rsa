@@ -13,10 +13,11 @@ Annika Hultén <annika.hulten@aalto.fi>
 Ossi Lehtonen <ossi.lehtonen@aalto.fi>
 """
 
+from copy import deepcopy
 from warnings import warn
 import numpy as np
 import mne
-from mne.utils import logger
+from mne.utils import logger, verbose
 from scipy.linalg import block_diag
 import nibabel as nib
 
@@ -26,6 +27,7 @@ from .searchlight import searchlight
 from .sensor_level import _tmin_tmax_to_indices, _construct_tmin
 
 
+@verbose
 def rsa_stcs(
     stcs,
     dsm_model,
@@ -181,7 +183,7 @@ def rsa_stcs(
                 % (n_items, len(np.unique(y)))
             )
 
-    _check_stcs_compatibility(stcs, src)
+    src = _check_stcs_compatibility(stcs, src)
     if spatial_radius is not None:
         dist = _get_distance_matrix(src, dist_lim=spatial_radius, n_jobs=n_jobs)
     else:
@@ -195,7 +197,9 @@ def rsa_stcs(
     samples_from, samples_to = _tmin_tmax_to_indices(stcs[0].times, tmin, tmax)
 
     if sel_vertices_by_index is not None:
-        sel_series = sel_vertices
+        sel_series = sel_vertices_by_index
+    elif sel_vertices is None:
+        sel_series = np.arange(len(stcs[0].data))
     else:
         sel_series = vertex_selection_to_indices(stcs[0].vertices, sel_vertices)
 
@@ -213,7 +217,7 @@ def rsa_stcs(
     if temporal_radius is not None:
         logger.info(f"    Temporal radius: {temporal_radius} samples")
     if tmin is not None or tmax is not None:
-        logger.info(f"    Time inverval: {tmin}-{tmax} seconds")
+        logger.info(f"    Time interval: {tmin}-{tmax} seconds")
 
     # Perform the RSA
     X = np.array([stc.data for stc in stcs])
@@ -280,6 +284,7 @@ def rsa_stcs(
             ]
 
 
+@verbose
 def dsm_stcs(
     stcs,
     src,
@@ -379,7 +384,7 @@ def dsm_stcs(
     dsm : ndarray, shape (n_items, n_items)
         A DSM for each searchlight patch.
     """
-    _check_stcs_compatibility(stcs, src)
+    src = _check_stcs_compatibility(stcs, src)
     if spatial_radius is not None:
         dist = _get_distance_matrix(src, dist_lim=spatial_radius, n_jobs=n_jobs)
     else:
@@ -395,7 +400,9 @@ def dsm_stcs(
     samples_from, samples_to = _tmin_tmax_to_indices(stcs[0].times, tmin, tmax)
 
     if sel_vertices_by_index is not None:
-        sel_series = sel_vertices
+        sel_series = sel_vertices_by_index
+    elif sel_vertices is None:
+        sel_series = np.arange(len(stcs[0].data))
     else:
         sel_series = vertex_selection_to_indices(stcs[0].vertices, sel_vertices)
 
@@ -420,6 +427,7 @@ def dsm_stcs(
     )
 
 
+@verbose
 def rsa_stcs_rois(
     stcs,
     dsm_model,
@@ -564,7 +572,7 @@ def rsa_stcs_rois(
                 % (n_items, len(np.unique(y)))
             )
 
-    _check_stcs_compatibility(stcs, src)
+    src = _check_stcs_compatibility(stcs, src)
 
     if temporal_radius is not None:
         # Convert the temporal radius to samples
@@ -620,6 +628,7 @@ def rsa_stcs_rois(
     return data, stc
 
 
+@verbose
 def rsa_nifti(
     image,
     dsm_model,
@@ -834,6 +843,7 @@ def rsa_nifti(
         return results
 
 
+@verbose
 def dsm_nifti(
     image,
     spatial_radius=0.01,
@@ -981,37 +991,29 @@ def _check_stcs_compatibility(stcs, src):
     """Check for compatibility of the source estimates and source space."""
     if src.kind == "volume" and not isinstance(stcs[0], mne.VolSourceEstimate):
         raise ValueError(
-            f"Volume source estimates provided, but not a volume "
-            f"source space (src.kind={src.kind})."
+            "Volume source estimates provided, but not a volume source space "
+            f"(src.kind={src.kind})."
         )
-
     if src.kind == "volume":
-        if len(np.setdiff1d(stcs[0].vertices, src[0]["vertno"])) > 0:
-            raise ValueError(
-                "Mismatch between vertives in the source estimate and source space"
-            )
+        if np.any(stcs[0].vertices != src[0]["vertno"]):
+            src = _restrict_src_to_vertices(src, stcs[0].vertices)
+        for stc in stcs:
+            if np.any(stc.vertices != src[0]["vertno"]):
+                raise ValueError("Not all source estimates have the same vertices.")
     else:
         for src_hemi, stc_hemi_vertno in zip(src, stcs[0].vertices):
-            if len(np.setdiff1d(stc_hemi_vertno, src_hemi["vertno"])) > 0:
-                raise ValueError(
-                    "Mismatch between vertives in the source estimate and source space"
-                )
-
-    vertices = stcs[0].vertices
-    for stc in stcs:
-        if src.kind == "volume":
-            if np.any(stc.vertices != vertices):
-                raise ValueError("Not all source estimates have the same vertices.")
-        else:
-            if np.any(stc.vertices[0] != vertices[0]) or np.any(
-                stc.vertices[1] != vertices[1]
-            ):
-                raise ValueError("Not all source estimates have the same " "vertices.")
+            if np.any(stc_hemi_vertno != src_hemi["vertno"]):
+                src = _restrict_src_to_vertices(src, stcs[0].vertices)
+        for stc in stcs:
+            for src_hemi, stc_hemi_vertno in zip(src, stcs[0].vertices):
+                if np.any(stc_hemi_vertno != src_hemi["vertno"]):
+                    raise ValueError("Not all source estimates have the same vertices.")
 
     times = stcs[0].times
     for stc in stcs:
         if np.any(stc.times != times):
-            raise ValueError("Not all source estimates have the same " "time points.")
+            raise ValueError("Not all source estimates have the same time points.")
+    return src
 
 
 def _get_distance_matrix(src, dist_lim, n_jobs=1):
@@ -1202,8 +1204,6 @@ def backfill_stc_from_rois(values, rois, src, tmin=0, tstep=1, subject=None):
 
 def vertex_selection_to_indices(vertno, sel_vertices):
     """Unify across different ways of selecting vertices."""
-    if sel_vertices is None:
-        return None
     if isinstance(sel_vertices, mne.Label):
         sel_vertices = [sel_vertices]
     if not isinstance(sel_vertices, list):
@@ -1263,3 +1263,54 @@ def vertex_indices_to_numbers(vertno, vert_ind):
         hemi_vert_ind -= min_vert_ind
         sel_vert_no[hemi] = hemi_vertno[hemi_vert_ind]
     return sel_vert_no
+
+
+@verbose
+def _restrict_src_to_vertices(src, vertno, verbose=None):
+    """Restrict a source space to the given vertices.
+
+    Parameters
+    ----------
+    src: instance of SourceSpaces
+        The source space to be restricted.
+    vertno : tuple of lists (vertno_lh, vertno_rh)
+        For each hemisphere, the vertex numbers to keep.
+    verbose : bool | str | int | None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    src_out : instance of SourceSpaces
+        The restricted source space.
+    """
+    src_out = deepcopy(src)
+
+    vert_no_lh, vert_no_rh = vertno
+    if not (
+        np.all(np.in1d(vert_no_lh, src[0]["vertno"]))
+        and np.all(np.in1d(vert_no_rh, src[1]["vertno"]))
+    ):
+        raise ValueError("One or more vertices were not present in the source space.")
+    logger.info(
+        "Restricting source space to {n_keep} out of {n_total} vertices.".format(
+            n_keep=len(vert_no_lh) + len(vert_no_rh),
+            n_total=src[0]["nuse"] + src[1]["nuse"],
+        )
+    )
+
+    for hemi, verts in zip(src_out, (vert_no_lh, vert_no_rh)):
+        # Ensure vertices are in sequential order
+        verts = np.sort(verts)
+
+        # Restrict the source space
+        hemi["vertno"] = verts
+        hemi["nuse"] = len(verts)
+        hemi["inuse"] = hemi["inuse"].copy()
+        hemi["inuse"].fill(0)
+        if hemi["nuse"] > 0:  # Don't use empty array as index
+            hemi["inuse"][verts] = 1
+        hemi["use_tris"] = np.array([[]], int)
+        hemi["nuse_tri"] = np.array([0])
+
+    return src_out
