@@ -172,8 +172,15 @@ def rsa_evokeds(
 
     # Normalize with the noise cov
     if noise_cov is not None:
-        logger.info("    Whitening data using noise covariance")
-        diag = spatial_radius is not None
+        if spatial_radius is not None:
+            logger.info(
+                "    Using diagonal values of the covariance matrix to whiten "
+                "the data."
+            )
+            diag = True
+        else:
+            logger.info("    Using covariance matrix to whiten the data.")
+            diag = False
         evokeds = [
             mne.whiten_evoked(evoked, noise_cov, diag=diag) for evoked in evokeds
         ]
