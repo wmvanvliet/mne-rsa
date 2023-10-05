@@ -24,8 +24,8 @@ def rsa_evokeds(
     evokeds,
     dsm_model,
     noise_cov=None,
-    spatial_radius=0.04,
-    temporal_radius=0.1,
+    spatial_radius=None,
+    temporal_radius=None,
     evoked_dsm_metric="correlation",
     evoked_dsm_params=dict(),
     rsa_metric="spearman",
@@ -63,10 +63,10 @@ def rsa_evokeds(
     spatial_radius : float | None
         The spatial radius of the searchlight patch in meters. All sensors within this
         radius will belong to the searchlight patch. Set to None to only perform the
-        searchlight over time, flattening across sensors. Defaults to 0.04.
+        searchlight over time, flattening across sensors. Defaults to None.
     temporal_radius : float | None
         The temporal radius of the searchlight patch in seconds. Set to None to only
-        perform the searchlight over sensors, flattening across time. Defaults to 0.1.
+        perform the searchlight over sensors, flattening across time. Defaults to None.
     evoked_dsm_metric : str
         The metric to use to compute the DSM for the evokeds. This can be any metric
         supported by the scipy.distance.pdist function. See also the
@@ -255,8 +255,8 @@ def rsa_epochs(
     epochs,
     dsm_model,
     noise_cov=None,
-    spatial_radius=0.04,
-    temporal_radius=0.1,
+    spatial_radius=None,
+    temporal_radius=None,
     epochs_dsm_metric="correlation",
     epochs_dsm_params=dict(),
     rsa_metric="spearman",
@@ -294,10 +294,10 @@ def rsa_epochs(
     spatial_radius : floats | None
         The spatial radius of the searchlight patch in meters. All sensors within this
         radius will belong to the searchlight patch. Set to None to only perform the
-        searchlight over time, flattening across sensors. Defaults to 0.04.
+        searchlight over time, flattening across sensors. Defaults to None.
     temporal_radius : float | None
         The temporal radius of the searchlight patch in seconds. Set to None to only
-        perform the searchlight over sensors, flattening across time. Defaults to 0.1.
+        perform the searchlight over sensors, flattening across time. Defaults to None.
     epochs_dsm_metric : str
         The metric to use to compute the DSM for the epochs. This can be any metric
         supported by the scipy.distance.pdist function. See also the
@@ -488,8 +488,8 @@ def rsa_epochs(
 def dsm_evokeds(
     evokeds,
     noise_cov=None,
-    spatial_radius=0.04,
-    temporal_radius=0.1,
+    spatial_radius=None,
+    temporal_radius=None,
     dist_metric="correlation",
     dist_params=dict(),
     y=None,
@@ -513,10 +513,10 @@ def dsm_evokeds(
     spatial_radius : floats | None
         The spatial radius of the searchlight patch in meters. All sensors within this
         radius will belong to the searchlight patch. Set to None to only perform the
-        searchlight over time, flattening across sensors. Defaults to 0.04.
+        searchlight over time, flattening across sensors. Defaults to None.
     temporal_radius : float | None
         The temporal radius of the searchlight patch in seconds. Set to None to only
-        perform the searchlight over sensors, flattening across time. Defaults to 0.1.
+        perform the searchlight over sensors, flattening across time. Defaults to None.
     dist_metric : str
         The metric to use to compute the DSM for the evokeds. This can be any metric
         supported by the scipy.distance.pdist function. See also the ``dist_params``
@@ -609,8 +609,8 @@ def dsm_evokeds(
 def dsm_epochs(
     epochs,
     noise_cov=None,
-    spatial_radius=0.04,
-    temporal_radius=0.1,
+    spatial_radius=None,
+    temporal_radius=None,
     dist_metric="correlation",
     dist_params=dict(),
     y=None,
@@ -634,10 +634,10 @@ def dsm_epochs(
     spatial_radius : floats | None
         The spatial radius of the searchlight patch in meters. All sensors within this
         radius will belong to the searchlight patch. Set to None to only perform the
-        searchlight over time, flattening across sensors. Defaults to 0.04.
+        searchlight over time, flattening across sensors. Defaults to None.
     temporal_radius : float | None
         The temporal radius of the searchlight patch in seconds. Set to None to only
-        perform the searchlight over sensors, flattening across time. Defaults to 0.1.
+        perform the searchlight over sensors, flattening across time. Defaults to None.
     dist_metric : str
         The metric to use to compute the DSM for the epochs. This can be any metric
         supported by the scipy.distance.pdist function. See also the

@@ -32,8 +32,8 @@ def rsa_stcs(
     stcs,
     dsm_model,
     src,
-    spatial_radius=0.04,
-    temporal_radius=0.1,
+    spatial_radius=None,
+    temporal_radius=None,
     stc_dsm_metric="correlation",
     stc_dsm_params=dict(),
     rsa_metric="spearman",
@@ -76,11 +76,11 @@ def rsa_stcs(
         The spatial radius of the searchlight patch in meters. All source
         points within this radius will belong to the searchlight patch. Set to
         None to only perform the searchlight over time, flattening across
-        sensors. Defaults to 0.04.
+        sensors. Defaults to None.
     temporal_radius : float | None
         The temporal radius of the searchlight patch in seconds. Set to None to
         only perform the searchlight over sensors, flattening across time.
-        Defaults to 0.1.
+        Defaults to None.
     stc_dsm_metric : str
         The metric to use to compute the DSM for the source estimates. This can
         be any metric supported by the scipy.distance.pdist function. See also
@@ -288,8 +288,8 @@ def rsa_stcs(
 def dsm_stcs(
     stcs,
     src,
-    spatial_radius=0.04,
-    temporal_radius=0.1,
+    spatial_radius=None,
+    temporal_radius=None,
     dist_metric="sqeuclidean",
     dist_params=dict(),
     y=None,
@@ -322,11 +322,11 @@ def dsm_stcs(
         The spatial radius of the searchlight patch in meters. All source
         points within this radius will belong to the searchlight patch. Set to
         None to only perform the searchlight over time, flattening across
-        sensors. Defaults to 0.04.
+        sensors. Defaults to None.
     temporal_radius : float | None
         The temporal radius of the searchlight patch in seconds. Set to None to
         only perform the searchlight over sensors, flattening across time.
-        Defaults to 0.1.
+        Defaults to None.
     dist_metric : str
         The metric to use to compute the DSM for the source estimates. This can
         be any metric supported by the scipy.distance.pdist function. See also

@@ -263,7 +263,6 @@ class dsm_array:
         return next(self._generator)
 
     def _iter_dsms(self):
-        print("Using", self.n_jobs, "jobs")
         par = Parallel(n_jobs=self.n_jobs, return_as="generator")
         if self.use_cv:
             yield from par(
