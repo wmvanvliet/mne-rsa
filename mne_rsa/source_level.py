@@ -212,7 +212,7 @@ def rsa_stcs(
         logger.info(f"    Using {len(sel_series)} vertices")
     else:
         logger.info(
-            f"    Using {len(stcs[0].vertices[0]) + len(stcs[0].vertices[1])} vertices"
+            f"    Using {sum(len(v) for v in stcs[0].vertices)} vertices"
         )
     if temporal_radius is not None:
         logger.info(f"    Temporal radius: {temporal_radius} samples")
