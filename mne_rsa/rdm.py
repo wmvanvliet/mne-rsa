@@ -1,5 +1,5 @@
 # encoding: utf-8
-"""Methods to compute dissimilarity matrices (DSMs)."""
+"""Methods to compute dissimilarity matrices (RDMs)."""
 
 import numpy as np
 from scipy.spatial import distance
@@ -9,8 +9,8 @@ from .folds import create_folds
 from .searchlight import searchlight
 
 
-def compute_dsm(data, metric="correlation", **kwargs):
-    """Compute a dissimilarity matrix (DSM).
+def compute_rdm(data, metric="correlation", **kwargs):
+    """Compute a dissimilarity matrix (RDM).
 
     Parameters
     ----------
@@ -18,7 +18,7 @@ def compute_dsm(data, metric="correlation", **kwargs):
         For each item, all the features. The first dimension are the items and
         all other dimensions will be flattened and treated as features.
     metric : str | function
-        The distance metric to use to compute the DSM. Can be any metric
+        The distance metric to use to compute the RDM. Can be any metric
         supported by :func:`scipy.spatial.distance.pdist`. When a function is
         specified, it needs to take in two vectors and output a single number.
         See also the ``dist_params`` parameter to specify and additional
@@ -31,13 +31,13 @@ def compute_dsm(data, metric="correlation", **kwargs):
 
     Returns
     -------
-    dsm : ndarray, shape (n_classes * n_classes-1,)
-        The DSM, in condensed form.
+    rdm : ndarray, shape (n_classes * n_classes-1,)
+        The RDM, in condensed form.
         See :func:`scipy.spatial.distance.squareform`.
 
     See Also
     --------
-    compute_dsm_cv
+    compute_rdm_cv
     """
     X = np.reshape(np.asarray(data), (len(data), -1))
     n_items, n_features = X.shape
@@ -47,20 +47,20 @@ def compute_dsm(data, metric="correlation", **kwargs):
         raise ValueError(
             "There is only a single feature, so "
             "'correlation' and 'cosine' can not be "
-            "used as DSM metric. Consider using 'sqeuclidean' "
+            "used as RDM metric. Consider using 'sqeuclidean' "
             "instead."
         )
 
     return distance.pdist(X, metric, **kwargs)
 
 
-def compute_dsm_cv(folds, metric="correlation", **kwargs):
-    """Compute a dissimilarity matrix (DSM) using cross-validation.
+def compute_rdm_cv(folds, metric="correlation", **kwargs):
+    """Compute a dissimilarity matrix (RDM) using cross-validation.
 
     The distance computation is performed from the average of
     all-but-one "training" folds to the remaining "test" fold. This is repeated
     with each fold acting as the "test" fold once. The resulting distances are
-    averaged and the result used in the final DSM.
+    averaged and the result used in the final RDM.
 
     Parameters
     ----------
@@ -69,7 +69,7 @@ def compute_dsm_cv(folds, metric="correlation", **kwargs):
         for cross-validation, items are along the second dimension, and all
         other dimensions will be flattened and treated as features.
     metric : str | function
-        The distance metric to use to compute the DSM. Can be any metric
+        The distance metric to use to compute the RDM. Can be any metric
         supported by :func:`scipy.spatial.distance.pdist`. When a function is
         specified, it needs to take in two vectors and output a single number.
         See also the ``dist_params`` parameter to specify and additional
@@ -82,13 +82,13 @@ def compute_dsm_cv(folds, metric="correlation", **kwargs):
 
     Returns
     -------
-    dsm : ndarray, shape (n_classes * n_classes-1,)
-        The cross-validated DSM, in condensed form.
+    rdm : ndarray, shape (n_classes * n_classes-1,)
+        The cross-validated RDM, in condensed form.
         See :func:`scipy.spatial.distance.squareform`.
 
     See Also
     --------
-    compute_dsm
+    compute_rdm
     """
     X = np.reshape(folds, (folds.shape[0], folds.shape[1], -1))
     n_folds, n_items, n_features = X.shape[:3]
@@ -98,11 +98,11 @@ def compute_dsm_cv(folds, metric="correlation", **kwargs):
         raise ValueError(
             "There is only a single feature, so "
             "'correlataion' and 'cosine' can not be "
-            "used as DSM metric. Consider using 'sqeuclidean' "
+            "used as RDM metric. Consider using 'sqeuclidean' "
             "instead."
         )
 
-    dsm = np.zeros((n_items * (n_items - 1)) // 2)
+    rdm = np.zeros((n_items * (n_items - 1)) // 2)
 
     X_mean = X.mean(axis=0)
 
@@ -112,53 +112,53 @@ def compute_dsm_cv(folds, metric="correlation", **kwargs):
         X_train = X_mean - (X_mean - X_test) / (n_folds - 1)
 
         dist = distance.cdist(X_train, X_test, metric, **kwargs)
-        dsm += dist[np.triu_indices_from(dist, 1)]
+        rdm += dist[np.triu_indices_from(dist, 1)]
 
-    return dsm / n_folds
+    return rdm / n_folds
 
 
-def _ensure_condensed(dsm, var_name):
-    """Convert a DSM to condensed form if needed."""
-    if type(dsm) is list:
-        return [_ensure_condensed(d, var_name) for d in dsm]
+def _ensure_condensed(rdm, var_name):
+    """Convert a RDM to condensed form if needed."""
+    if type(rdm) is list:
+        return [_ensure_condensed(d, var_name) for d in rdm]
 
-    if not isinstance(dsm, np.ndarray):
+    if not isinstance(rdm, np.ndarray):
         raise TypeError(
-            "A single DSM should be a NumPy array. "
-            "Multiple DSMs should be a list of NumPy arrays."
+            "A single RDM should be a NumPy array. "
+            "Multiple RDMs should be a list of NumPy arrays."
         )
 
-    if dsm.ndim == 2:
-        if dsm.shape[0] != dsm.shape[1]:
+    if rdm.ndim == 2:
+        if rdm.shape[0] != rdm.shape[1]:
             raise ValueError(
                 f'Invalid dimensions for "{var_name}" '
-                "({dsm.shape}). The DSM should either be a "
+                "({rdm.shape}). The RDM should either be a "
                 "square matrix, or a one dimensional array when "
                 "in condensed form."
             )
-        dsm = distance.squareform(dsm)
-    elif dsm.ndim != 1:
+        rdm = distance.squareform(rdm)
+    elif rdm.ndim != 1:
         raise ValueError(
-            f'Invalid dimensions for "{var_name}" ({dsm.shape}). '
-            "The DSM should either be a square matrix, or a one "
+            f'Invalid dimensions for "{var_name}" ({rdm.shape}). '
+            "The RDM should either be a square matrix, or a one "
             "dimensional array when in condensed form."
         )
-    return dsm
+    return rdm
 
 
-def _n_items_from_dsm(dsm):
-    """Get the number of items, given a DSM."""
-    if dsm.ndim == 2:
-        return dsm.shape[0]
-    elif dsm.ndim == 1:
-        return distance.squareform(dsm).shape[0]
+def _n_items_from_rdm(rdm):
+    """Get the number of items, given a RDM."""
+    if rdm.ndim == 2:
+        return rdm.shape[0]
+    elif rdm.ndim == 1:
+        return distance.squareform(rdm).shape[0]
 
 
-class dsm_array:
-    """Generate DSMs from an array of data, possibly in a searchlight pattern.
+class rdm_array:
+    """Generate RDMs from an array of data, possibly in a searchlight pattern.
 
     First use :class:`searchlight` to compute the searchlight patches.
-    Then you can use this function to compute DSMs for each searchlight patch.
+    Then you can use this function to compute RDMs for each searchlight patch.
 
     Parameters
     ----------
@@ -168,14 +168,14 @@ class dsm_array:
         Searchlight patches as generated by :class:`searchlight`. If ``None``,
         no searchlight is used. Defaults to ``None``.
     dist_metric : str | function
-        The distance metric to use to compute the DSMs. Can be any metric
+        The distance metric to use to compute the RDMs. Can be any metric
         supported by :func:`scipy.spatial.distance.pdist`. When a function is
         specified, it needs to take in two vectors and output a single number.
         See also the ``dist_params`` parameter to specify and additional
         parameter for the distance function.
         Defaults to 'correlation'.
     dist_params : dict
-        Extra arguments for the distance metric used to compute the DSMs.
+        Extra arguments for the distance metric used to compute the RDMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
         and their arguments. Defaults to an empty dictionary.
     y : ndarray of int, shape (n_items,) | None
@@ -193,32 +193,32 @@ class dsm_array:
 
     Yields
     ------
-    dsm : ndarray, shape (n_patches, n_items * (n_items - 1))
-        A DSM (in condensed form) for each searchlight patch.
+    rdm : ndarray, shape (n_patches, n_items * (n_items - 1))
+        A RDM (in condensed form) for each searchlight patch.
 
     Attributes
     ----------
     shape : tuple of int
-        Multidimensional shape of the generted DSMs.
+        Multidimensional shape of the generted RDMs.
 
         This is useful for re-shaping the result obtained after consuming the
         this generator.
 
         For a spatio-temporal searchlight:
             Three elements: the number of time-series, number of time
-            samples and length of a consensed DSM.
+            samples and length of a consensed RDM.
         For a spatial searchlight:
             Two element: the number of time-series and length of a condensed
-            DSM.
+            RDM.
         For a temporal searchlight:
             Two elements: the number of time-samples and length of a condensed
-            DSM.
+            RDM.
         For no searchlight:
-            One element: the length of a condensed DSM.
+            One element: the length of a condensed RDM.
 
     See Also
     --------
-    dsm
+    rdm
     rsa
     searchlight
     """
@@ -236,7 +236,7 @@ class dsm_array:
         if patches is None:
             patches = searchlight(X.shape)
 
-        # Create folds for cross-validated DSM metrics
+        # Create folds for cross-validated RDM metrics
         self.X = create_folds(X, y, n_folds)
         # The data is now folds x items x n_series x ...
 
@@ -245,40 +245,40 @@ class dsm_array:
         self.dist_params = dist_params
         self.use_cv = len(self.X) > 1  # More than one fold present
 
-        # Target shape for an array that would hold all of the generated DSMs.
-        dsm_length = len(np.triu_indices(self.X.shape[1], k=1)[0])
-        self.shape = patches.shape + (dsm_length,)
+        # Target shape for an array that would hold all of the generated RDMs.
+        rdm_length = len(np.triu_indices(self.X.shape[1], k=1)[0])
+        self.shape = patches.shape + (rdm_length,)
 
         self.n_jobs = n_jobs
 
-        # Setup the generator that will be producing the DSMs
+        # Setup the generator that will be producing the RDMs
         self._generator = iter(self)
 
     def __iter__(self):
         """Build a new iterator that starts from the beginning."""
-        return self._iter_dsms()
+        return self._iter_rdms()
 
     def __next__(self):
-        """Generate a DSM for each patch."""
+        """Generate a RDM for each patch."""
         return next(self._generator)
 
-    def _iter_dsms(self):
+    def _iter_rdms(self):
         par = Parallel(n_jobs=self.n_jobs, return_as="generator")
         if self.use_cv:
             yield from par(
-                delayed(compute_dsm_cv)(
+                delayed(compute_rdm_cv)(
                     self.X[(slice(None),) + patch], self.dist_metric, **self.dist_params
                 )
                 for patch in self.patches
             )
         else:
             yield from par(
-                delayed(compute_dsm)(
+                delayed(compute_rdm)(
                     self.X[0][patch], self.dist_metric, **self.dist_params
                 )
                 for patch in self.patches
             )
 
     def __len__(self):
-        """Get total number of DSMs that will be generated."""
+        """Get total number of RDMs that will be generated."""
         return len(self.patches)

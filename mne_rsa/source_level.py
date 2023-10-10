@@ -21,7 +21,7 @@ from mne.utils import logger, verbose
 from scipy.linalg import block_diag
 import nibabel as nib
 
-from .dsm import _n_items_from_dsm, dsm_array
+from .rdm import _n_items_from_rdm, rdm_array
 from .rsa import rsa_array
 from .searchlight import searchlight
 from .sensor_level import _tmin_tmax_to_indices, _construct_tmin
@@ -30,12 +30,12 @@ from .sensor_level import _tmin_tmax_to_indices, _construct_tmin
 @verbose
 def rsa_stcs(
     stcs,
-    dsm_model,
+    rdm_model,
     src,
     spatial_radius=None,
     temporal_radius=None,
-    stc_dsm_metric="correlation",
-    stc_dsm_params=dict(),
+    stc_rdm_metric="correlation",
+    stc_rdm_params=dict(),
     rsa_metric="spearman",
     ignore_nan=False,
     y=None,
@@ -62,13 +62,13 @@ def rsa_stcs(
     ----------
     stcs : list of mne.SourceEstimate | list of mne.VolSourceEstimate
         For each item, a source estimate for the brain activity.
-    dsm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
-        The model DSM, see :func:`compute_dsm`. For efficiency, you can give it
+    rdm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
+        The model RDM, see :func:`compute_rdm`. For efficiency, you can give it
         in condensed form, meaning only the upper triangle of the matrix as a
         vector. See :func:`scipy.spatial.distance.squareform`. To perform RSA
-        against multiple models at the same time, supply a list of model DSMs.
+        against multiple models at the same time, supply a list of model RDMs.
 
-        Use :func:`compute_dsm` to compute DSMs.
+        Use :func:`compute_rdm` to compute RDMs.
     src : instance of mne.SourceSpaces
         The source space used by the source estimates specified in the `stcs`
         parameter.
@@ -81,17 +81,17 @@ def rsa_stcs(
         The temporal radius of the searchlight patch in seconds. Set to None to
         only perform the searchlight over sensors, flattening across time.
         Defaults to None.
-    stc_dsm_metric : str
-        The metric to use to compute the DSM for the source estimates. This can
+    stc_rdm_metric : str
+        The metric to use to compute the RDM for the source estimates. This can
         be any metric supported by the scipy.distance.pdist function. See also
-        the ``stc_dsm_params`` parameter to specify and additional parameter
+        the ``stc_rdm_params`` parameter to specify and additional parameter
         for the distance function. Defaults to 'correlation'.
-    stc_dsm_params : dict
-        Extra arguments for the distance metric used to compute the DSMs.
+    stc_rdm_params : dict
+        Extra arguments for the distance metric used to compute the RDMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
         and their arguments. Defaults to an empty dictionary.
     rsa_metric : str
-        The RSA metric to use to compare the DSMs. Valid options are:
+        The RSA metric to use to compare the RDMs. Valid options are:
 
         * 'spearman' for Spearman's correlation (the default)
         * 'pearson' for Pearson's correlation
@@ -159,26 +159,26 @@ def rsa_stcs(
 
     See Also
     --------
-    compute_dsm
+    compute_rdm
     """  # noqa E501
     # Check for compatibility of the source estimates and the model features
-    one_model = type(dsm_model) is np.ndarray
+    one_model = type(rdm_model) is np.ndarray
     if one_model:
-        dsm_model = [dsm_model]
+        rdm_model = [rdm_model]
 
     # Check for compatibility of the stcs and the model features
-    for dsm in dsm_model:
-        n_items = _n_items_from_dsm(dsm)
+    for rdm in rdm_model:
+        n_items = _n_items_from_rdm(rdm)
         if len(stcs) != n_items and y is None:
             raise ValueError(
                 "The number of source estimates (%d) should be equal to the "
-                "number of items in `dsm_model` (%d). Alternatively, use "
+                "number of items in `rdm_model` (%d). Alternatively, use "
                 "the `y` parameter to assign source estimates to items."
                 % (len(stcs), n_items)
             )
         if y is not None and len(np.unique(y)) != n_items:
             raise ValueError(
-                "The number of items in `dsm_model` (%d) does not match "
+                "The number of items in `rdm_model` (%d) does not match "
                 "the number of items encoded in the `y` matrix (%d)."
                 % (n_items, len(np.unique(y)))
             )
@@ -204,7 +204,7 @@ def rsa_stcs(
         sel_series = vertex_selection_to_indices(stcs[0].vertices, sel_vertices)
 
     logger.info(
-        f"Performing RSA between SourceEstimates and {len(dsm_model)} model DSM(s)"
+        f"Performing RSA between SourceEstimates and {len(rdm_model)} model RDM(s)"
     )
     if spatial_radius is not None:
         logger.info(f"    Spatial radius: {spatial_radius} meters")
@@ -234,10 +234,10 @@ def rsa_stcs(
 
     data = rsa_array(
         X,
-        dsm_model,
+        rdm_model,
         patches,
-        data_dsm_metric=stc_dsm_metric,
-        data_dsm_params=stc_dsm_params,
+        data_rdm_metric=stc_rdm_metric,
+        data_rdm_params=stc_rdm_params,
         rsa_metric=rsa_metric,
         ignore_nan=ignore_nan,
         y=y,
@@ -285,7 +285,7 @@ def rsa_stcs(
 
 
 @verbose
-def dsm_stcs(
+def rdm_stcs(
     stcs,
     src,
     spatial_radius=None,
@@ -301,9 +301,9 @@ def dsm_stcs(
     n_jobs=1,
     verbose=False,
 ):
-    """Generate DSMs in a searchlight pattern on MNE-Python source estimates.
+    """Generate RDMs in a searchlight pattern on MNE-Python source estimates.
 
-    DSMs are computed using a patch surrounding each source point. Source
+    RDMs are computed using a patch surrounding each source point. Source
     estimate objects can be either defined along a cortical surface
     (``SourceEstimate`` objects) or volumetric (``VolSourceEstimate`` objects).
     For surface source estimates, distances between vertices are measured in 2D
@@ -328,12 +328,12 @@ def dsm_stcs(
         only perform the searchlight over sensors, flattening across time.
         Defaults to None.
     dist_metric : str
-        The metric to use to compute the DSM for the source estimates. This can
+        The metric to use to compute the RDM for the source estimates. This can
         be any metric supported by the scipy.distance.pdist function. See also
-        the ``stc_dsm_params`` parameter to specify and additional parameter
+        the ``stc_rdm_params`` parameter to specify and additional parameter
         for the distance function. Defaults to 'sqeuclidean'.
     dist_params : dict
-        Extra arguments for the distance metric used to compute the DSMs.
+        Extra arguments for the distance metric used to compute the RDMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
         and their arguments. Defaults to an empty dictionary.
     y : ndarray of int, shape (n_items,) | None
@@ -381,8 +381,8 @@ def dsm_stcs(
 
     Yields
     ------
-    dsm : ndarray, shape (n_items, n_items)
-        A DSM for each searchlight patch.
+    rdm : ndarray, shape (n_items, n_items)
+        A RDM for each searchlight patch.
     """
     src = _check_stcs_compatibility(stcs, src)
     if spatial_radius is not None:
@@ -416,7 +416,7 @@ def dsm_stcs(
         samples_from=samples_from,
         samples_to=samples_to,
     )
-    yield from dsm_array(
+    yield from rdm_array(
         X,
         patches,
         dist_metric=dist_metric,
@@ -430,12 +430,12 @@ def dsm_stcs(
 @verbose
 def rsa_stcs_rois(
     stcs,
-    dsm_model,
+    rdm_model,
     src,
     rois,
     temporal_radius=0.1,
-    stc_dsm_metric="correlation",
-    stc_dsm_params=dict(),
+    stc_rdm_metric="correlation",
+    stc_rdm_params=dict(),
     rsa_metric="spearman",
     ignore_nan=False,
     y=None,
@@ -460,13 +460,13 @@ def rsa_stcs_rois(
     ----------
     stcs : list of mne.SourceEstimate | list of mne.VolSourceEstimate
         For each item, a source estimate for the brain activity.
-    dsm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
-        The model DSM, see :func:`compute_dsm`. For efficiency, you can give it
+    rdm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
+        The model RDM, see :func:`compute_rdm`. For efficiency, you can give it
         in condensed form, meaning only the upper triangle of the matrix as a
         vector. See :func:`scipy.spatial.distance.squareform`. To perform RSA
-        against multiple models at the same time, supply a list of model DSMs.
+        against multiple models at the same time, supply a list of model RDMs.
 
-        Use :func:`compute_dsm` to compute DSMs.
+        Use :func:`compute_rdm` to compute RDMs.
     src : instance of mne.SourceSpaces
         The source space used by the source estimates specified in the `stcs`
         parameter.
@@ -478,17 +478,17 @@ def rsa_stcs_rois(
         The temporal radius of the searchlight patch in seconds. Set to None to
         only perform the searchlight over sensors, flattening across time.
         Defaults to 0.1.
-    stc_dsm_metric : str
-        The metric to use to compute the DSM for the source estimates. This can
+    stc_rdm_metric : str
+        The metric to use to compute the RDM for the source estimates. This can
         be any metric supported by the scipy.distance.pdist function. See also
-        the ``stc_dsm_params`` parameter to specify and additional parameter
+        the ``stc_rdm_params`` parameter to specify and additional parameter
         for the distance function. Defaults to 'correlation'.
-    stc_dsm_params : dict
-        Extra arguments for the distance metric used to compute the DSMs.
+    stc_rdm_params : dict
+        Extra arguments for the distance metric used to compute the RDMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
         and their arguments. Defaults to an empty dictionary.
     rsa_metric : str
-        The RSA metric to use to compare the DSMs. Valid options are:
+        The RSA metric to use to compare the RDMs. Valid options are:
 
         * 'spearman' for Spearman's correlation (the default)
         * 'pearson' for Pearson's correlation
@@ -548,26 +548,26 @@ def rsa_stcs_rois(
 
     See Also
     --------
-    compute_dsm
+    compute_rdm
     """  # noqa E501
     # Check for compatibility of the source estimates and the model features
-    one_model = type(dsm_model) is np.ndarray
+    one_model = type(rdm_model) is np.ndarray
     if one_model:
-        dsm_model = [dsm_model]
+        rdm_model = [rdm_model]
 
     # Check for compatibility of the stcs and the model features
-    for dsm in dsm_model:
-        n_items = _n_items_from_dsm(dsm)
+    for rdm in rdm_model:
+        n_items = _n_items_from_rdm(rdm)
         if len(stcs) != n_items and y is None:
             raise ValueError(
                 "The number of source estimates (%d) should be equal to the "
-                "number of items in `dsm_model` (%d). Alternatively, use "
+                "number of items in `rdm_model` (%d). Alternatively, use "
                 "the `y` parameter to assign source estimates to items."
                 % (len(stcs), n_items)
             )
         if y is not None and len(np.unique(y)) != n_items:
             raise ValueError(
-                "The number of items in `dsm_model` (%d) does not match "
+                "The number of items in `rdm_model` (%d) does not match "
                 "the number of items encoded in the `y` matrix (%d)."
                 % (n_items, len(np.unique(y)))
             )
@@ -597,10 +597,10 @@ def rsa_stcs_rois(
     )
     data = rsa_array(
         X,
-        dsm_model,
+        rdm_model,
         patches,
-        data_dsm_metric=stc_dsm_metric,
-        data_dsm_params=stc_dsm_params,
+        data_rdm_metric=stc_rdm_metric,
+        data_rdm_params=stc_rdm_params,
         rsa_metric=rsa_metric,
         ignore_nan=ignore_nan,
         y=y,
@@ -631,10 +631,10 @@ def rsa_stcs_rois(
 @verbose
 def rsa_nifti(
     image,
-    dsm_model,
+    rdm_model,
     spatial_radius=0.01,
-    image_dsm_metric="correlation",
-    image_dsm_params=dict(),
+    image_rdm_metric="correlation",
+    image_rdm_params=dict(),
     rsa_metric="spearman",
     ignore_nan=False,
     y=None,
@@ -656,28 +656,28 @@ def rsa_nifti(
     image : 4D Nifti-like image
         The Nitfi image data. The 4th dimension must contain the images
         for each item.
-    dsm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
-        The model DSM, see :func:`compute_dsm`. For efficiency, you can give it
+    rdm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
+        The model RDM, see :func:`compute_rdm`. For efficiency, you can give it
         in condensed form, meaning only the upper triangle of the matrix as a
         vector. See :func:`scipy.spatial.distance.squareform`. To perform RSA
-        against multiple models at the same time, supply a list of model DSMs.
+        against multiple models at the same time, supply a list of model RDMs.
 
-        Use :func:`compute_dsm` to compute DSMs.
+        Use :func:`compute_rdm` to compute RDMs.
     spatial_radius : float
         The spatial radius of the searchlight patch in meters. All source
         points within this radius will belong to the searchlight patch.
         Defaults to 0.01.
-    image_dsm_metric : str
-        The metric to use to compute the DSM for the data. This can be
+    image_rdm_metric : str
+        The metric to use to compute the RDM for the data. This can be
         any metric supported by the scipy.distance.pdist function. See also the
-        ``image_dsm_params`` parameter to specify and additional parameter for
+        ``image_rdm_params`` parameter to specify and additional parameter for
         the distance function. Defaults to 'correlation'.
-    image_dsm_params : dict
-        Extra arguments for the distance metric used to compute the DSMs.
+    image_rdm_params : dict
+        Extra arguments for the distance metric used to compute the RDMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
         and their arguments. Defaults to an empty dictionary.
     rsa_metric : str
-        The RSA metric to use to compare the DSMs. Valid options are:
+        The RSA metric to use to compare the RDMs. Valid options are:
 
         * 'spearman' for Spearman's correlation (the default)
         * 'pearson' for Pearson's correlation
@@ -735,12 +735,12 @@ def rsa_nifti(
 
     See Also
     --------
-    compute_dsm
+    compute_rdm
     """
     # Check for compatibility of the source estimates and the model features
-    one_model = type(dsm_model) is np.ndarray
+    one_model = type(rdm_model) is np.ndarray
     if one_model:
-        dsm_model = [dsm_model]
+        rdm_model = [rdm_model]
 
     if (
         not isinstance(image, tuple(nib.imageclasses.all_image_classes))
@@ -749,18 +749,18 @@ def rsa_nifti(
         raise ValueError("The image data must be 4-dimensional Nifti-like " "images")
 
     # Check for compatibility of the BOLD images and the model features
-    for dsm in dsm_model:
-        n_items = _n_items_from_dsm(dsm)
+    for rdm in rdm_model:
+        n_items = _n_items_from_rdm(rdm)
         if image.shape[3] != n_items and y is None:
             raise ValueError(
                 "The number of images (%d) should be equal to the "
-                "number of items in `dsm_model` (%d). Alternatively, use "
+                "number of items in `rdm_model` (%d). Alternatively, use "
                 "the `y` parameter to assign evokeds to items."
                 % (image.shape[3], n_items)
             )
         if y is not None and len(np.unique(y)) != n_items:
             raise ValueError(
-                "The number of items in `dsm_model` (%d) does not match "
+                "The number of items in `rdm_model` (%d) does not match "
                 "the number of items encoded in the `y` matrix (%d)."
                 % (n_items, len(np.unique(y)))
             )
@@ -818,10 +818,10 @@ def rsa_nifti(
     )
     rsa_result = rsa_array(
         X,
-        dsm_model,
+        rdm_model,
         patches,
-        data_dsm_metric=image_dsm_metric,
-        data_dsm_params=image_dsm_params,
+        data_rdm_metric=image_rdm_metric,
+        data_rdm_params=image_rdm_params,
         rsa_metric=rsa_metric,
         ignore_nan=ignore_nan,
         y=y,
@@ -844,7 +844,7 @@ def rsa_nifti(
 
 
 @verbose
-def dsm_nifti(
+def rdm_nifti(
     image,
     spatial_radius=0.01,
     dist_metric="correlation",
@@ -856,9 +856,9 @@ def dsm_nifti(
     n_jobs=1,
     verbose=False,
 ):
-    """Generate DSMs in a searchlight pattern on Nibabel Nifty-like images.
+    """Generate RDMs in a searchlight pattern on Nibabel Nifty-like images.
 
-    DSMs are computed using a patch surrounding each voxel.
+    RDMs are computed using a patch surrounding each voxel.
 
     .. versionadded:: 0.4
 
@@ -872,12 +872,12 @@ def dsm_nifti(
         points within this radius will belong to the searchlight patch.
         Defaults to 0.01.
     dist_metric : str
-        The metric to use to compute the DSM for the data. This can be
+        The metric to use to compute the RDM for the data. This can be
         any metric supported by the scipy.distance.pdist function. See also the
         ``dist_params`` parameter to specify and additional parameter for
         the distance function. Defaults to 'correlation'.
     dist_params : dict
-        Extra arguments for the distance metric used to compute the DSMs.
+        Extra arguments for the distance metric used to compute the RDMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
         and their arguments. Defaults to an empty dictionary.
     y : ndarray of int, shape (n_items,) | None
@@ -916,8 +916,8 @@ def dsm_nifti(
 
     Yields
     ------
-    dsm : ndarray, shape (n_items, n_items)
-        A DSM for each searchlight patch.
+    rdm : ndarray, shape (n_items, n_items)
+        A RDM for each searchlight patch.
     """
     if (
         not isinstance(image, tuple(nib.imageclasses.all_image_classes))
@@ -968,7 +968,7 @@ def dsm_nifti(
     nn = NearestNeighbors(radius=spatial_radius, n_jobs=n_jobs).fit(voxel_loc)
     dist = nn.radius_neighbors_graph(mode="distance")
 
-    # Compute DSMs
+    # Compute RDMs
     patches = searchlight(
         X.shape,
         dist=dist,
@@ -976,7 +976,7 @@ def dsm_nifti(
         temporal_radius=None,
         sel_series=roi_mask,
     )
-    yield from dsm_array(
+    yield from rdm_array(
         X,
         patches,
         dist_metric=dist_metric,

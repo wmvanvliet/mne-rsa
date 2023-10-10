@@ -2,12 +2,12 @@
 # coding: utf-8
 
 """
-Plot sensor-level DSMs
+Plot sensor-level RDMs
 ======================
 
 This example demonstrates how to visualize representational dissimilarity
-matrices (DSMs) computed from EEG data. We will compute them using a spatial
-searchlight and plot the DSM computed for each searchlight-patch.
+matrices (RDMs) computed from EEG data. We will compute them using a spatial
+searchlight and plot the RDM computed for each searchlight-patch.
 
 """
 # Import required packages
@@ -27,13 +27,13 @@ epochs = mne.read_epochs(data_path / "kword_metadata-epo.fif")
 epochs = epochs.resample(100)
 
 ###############################################################################
-# We now compute DSMs using a spatial searchlight with a radius of 45
+# We now compute RDMs using a spatial searchlight with a radius of 45
 # centimeters.
 
-# This will create a generator for the DSMs
-dsms = mne_rsa.dsm_epochs(
+# This will create a generator for the RDMs
+rdms = mne_rsa.rdm_epochs(
     epochs,  # The EEG data
-    dist_metric="correlation",  # Metric to compute the EEG DSMs
+    dist_metric="correlation",  # Metric to compute the EEG RDMs
     spatial_radius=45,  # Spatial radius of the searchlight patch
     temporal_radius=None,  # Perform only spatial searchlight
     tmin=0.15,
@@ -41,7 +41,7 @@ dsms = mne_rsa.dsm_epochs(
 )
 
 # Unpack the generator into a NumPy array so we can plot it
-dsms = np.array(list(dsms))
+rdms = np.array(list(rdms))
 
-# Visualize the DSMs.
-mne_rsa.viz.plot_dsms_topo(dsms, epochs.info, cmap="magma")
+# Visualize the RDMs.
+mne_rsa.viz.plot_rdms_topo(rdms, epochs.info, cmap="magma")

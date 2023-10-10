@@ -38,8 +38,8 @@ Use cases
 
 This is what the package can do for you:
 
--  Compute DSMs on arbitrary data
--  Compute DSMs in a searchlight across:
+-  Compute RDMs on arbitrary data
+-  Compute RDMs in a searchlight across:
 
    -  vertices/voxels and samples (source level)
    -  sensors and samples (sensor level)
@@ -47,43 +47,43 @@ This is what the package can do for you:
    -  sensors only (sensor level)
    -  samples only (source and sensor level)
 
--  Use cross-validated distance metrics when computing DSMs
--  And of course: compute RSA between DSMs
+-  Use cross-validated distance metrics when computing RDMs
+-  And of course: compute RSA between RDMs
 
-Supported metrics for comparing DSMs:
+Supported metrics for comparing RDMs:
 
 -  Spearman correlation (the default)
 -  Pearson correlation
 -  Kendall’s Tau-A
--  Linear regression (when comparing multiple DSMs at once)
--  Partial correlation (when comparing multiple DSMs at once)
+-  Linear regression (when comparing multiple RDMs at once)
+-  Partial correlation (when comparing multiple RDMs at once)
 
 Juicy bits of the API
 ---------------------
 
 .. code:: python
 
-   def compute_dsm(data, metric='correlation', **kwargs)
+   def compute_rdm(data, metric='correlation', **kwargs)
 
-   def rsa_stcs(stcs, dsm_model, src, spatial_radius=0.04, temporal_radius=0.1,
-                stc_dsm_metric='correlation', stc_dsm_params=dict(),
+   def rsa_stcs(stcs, rdm_model, src, spatial_radius=0.04, temporal_radius=0.1,
+                stc_rdm_metric='correlation', stc_rdm_params=dict(),
                 rsa_metric='spearman', y=None, n_folds=1, sel_vertices=None,
                 tmin=None, tmax=None, n_jobs=1, verbose=False):
 
-   def rsa_evokeds(evokeds, dsm_model, noise_cov=None, spatial_radius=0.04,
-                   temporal_radius=0.1, evoked_dsm_metric='correlation',
-                   evoked_dsm_params=dict(), rsa_metric='spearman', y=None,
+   def rsa_evokeds(evokeds, rdm_model, noise_cov=None, spatial_radius=0.04,
+                   temporal_radius=0.1, evoked_rdm_metric='correlation',
+                   evoked_rdm_params=dict(), rsa_metric='spearman', y=None,
                    n_folds=1, picks=None, tmin=None, tmax=None, n_jobs=1,
                    verbose=False):
 
-   def rsa_epochs(epochs, dsm_model, noise_cov=None, spatial_radius=0.04,
-                  temporal_radius=0.1, epochs_dsm_metric='correlation',
-                  epochs_dsm_params=dict(), rsa_metric='spearman', y=None,
+   def rsa_epochs(epochs, rdm_model, noise_cov=None, spatial_radius=0.04,
+                  temporal_radius=0.1, epochs_rdm_metric='correlation',
+                  epochs_rdm_params=dict(), rsa_metric='spearman', y=None,
                   n_folds=1, picks=None, tmin=None, tmax=None, n_jobs=1,
                   verbose=False):
 
-   def rsa_nifti(image, dsm_model, spatial_radius=0.01,
-                 image_dsm_metric='correlation', image_dsm_params=dict(),
+   def rsa_nifti(image, rdm_model, spatial_radius=0.01,
+                 image_rdm_metric='correlation', image_rdm_params=dict(),
                  rsa_metric='spearman', y=None, n_folds=1, roi_mask=None,
                  brain_mask=None, n_jobs=1, verbose=False):
 
@@ -98,9 +98,9 @@ Basic example on the EEG “kiloword” data:
    import rsa
    data_path = mne.datasets.kiloword.data_path(verbose=True)
    epochs = mne.read_epochs(data_path + '/kword_metadata-epo.fif')
-   # Compute the model DSM using all word properties
-   dsm_model = rsa.compute_dsm(epochs.metadata.iloc[:, 1:].values)
-   evoked_rsa = rsa.rsa_epochs(epochs, dsm_model,
+   # Compute the model RDM using all word properties
+   rdm_model = rsa.compute_rdm(epochs.metadata.iloc[:, 1:].values)
+   evoked_rsa = rsa.rsa_epochs(epochs, rdm_model,
                                spatial_radius=0.04, temporal_radius=0.01,
                                verbose=True)
 
@@ -127,7 +127,7 @@ Performance
 
 This package aims to be fast and memory efficient. An important design
 feature is that under the hood, everything operates on generators. The
-searchlight routines produce a generator of DSMs which are consumed by a
+searchlight routines produce a generator of RDMs which are consumed by a
 generator of RSA values. Parallel processing is also supported, so you
 can use all of your CPU cores.
 

@@ -2,11 +2,11 @@
 # coding: utf-8
 
 """
-Using cross-validation when computing DSMs
+Using cross-validation when computing RDMs
 ==========================================
 
 This example demonstrates how to perform cross-validation when computing
-dissimilarity matrices (DSMs). When the data has repeated measurements of the
+dissimilarity matrices (RDMs). When the data has repeated measurements of the
 same stimulus type, cross-validation can be used to provide much more robust
 distance estimates between stimulus types. Repeated measurements can for
 example be actual repetitions of the same stimulus within the same recording,
@@ -68,14 +68,14 @@ y = epochs.metadata.NumberOfLetters.astype(int)
 ###############################################################################
 # Many high-level functions in the MNE-RSA module can take the ``y`` list as a
 # parameter to enable cross-validation. Notably the functions for performing
-# RSA and computing DSMs. In this example, we will restrict the analysis to
-# computing DSMs using a spatio-temporal searchlight on the sensor-level data.
+# RSA and computing RDMs. In this example, we will restrict the analysis to
+# computing RDMs using a spatio-temporal searchlight on the sensor-level data.
 
-dsms = mne_rsa.dsm_epochs(
+rdms = mne_rsa.rdm_epochs(
     epochs,  # The EEG data
     y=y,  # Set labels to enable cross validation
     n_folds=5,  # Number of folds to use during cross validation
-    dist_metric="sqeuclidean",  # Distance metric to compute the DSMs
+    dist_metric="sqeuclidean",  # Distance metric to compute the RDMs
     spatial_radius=0.45,  # Spatial radius of the searchlight patch in meters.
     temporal_radius=0.05,  # Temporal radius of the searchlight path in seconds.
     tmin=0.15,
@@ -84,9 +84,9 @@ dsms = mne_rsa.dsm_epochs(
 
 
 ###############################################################################
-# Plotting the cross-validated DSMs
+# Plotting the cross-validated RDMs
 
-mne_rsa.plot_dsms_topo(dsms, epochs.info)
+mne_rsa.plot_rdms_topo(rdms, epochs.info)
 
 
 ###############################################################################
@@ -99,5 +99,5 @@ X = epochs.get_data()
 y = epochs.metadata.NumberOfLetters.astype(int)
 folds = mne_rsa.create_folds(X, y, n_folds=5)
 
-dsm = mne_rsa.compute_dsm_cv(folds, metric="euclidean")
-mne_rsa.plot_dsms(dsm)
+rdm = mne_rsa.compute_rdm_cv(folds, metric="euclidean")
+mne_rsa.plot_rdms(rdm)

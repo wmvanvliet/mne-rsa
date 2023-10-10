@@ -65,23 +65,23 @@ epochs.metadata.sample(10)
 
 ###############################################################################
 # Let's pick something obvious for this example and build a dissimilarity
-# matrix (DSM) based on the number of letters in each word.
+# matrix (RDM) based on the number of letters in each word.
 
-dsm_vis = mne_rsa.compute_dsm(epochs.metadata[["NumberOfLetters"]], metric="euclidean")
-mne_rsa.plot_dsms(dsm_vis)
+rdm_vis = mne_rsa.compute_rdm(epochs.metadata[["NumberOfLetters"]], metric="euclidean")
+mne_rsa.plot_rdms(rdm_vis)
 
 ###############################################################################
-# The above DSM will serve as our "model" DSM. In this example RSA analysis, we
-# are going to compare the model DSM against DSMs created from the EEG data.
-# The EEG DSMs will be created using a "searchlight" pattern. We are using
-# squared Euclidean distance for our DSM metric, since we only have a few data
+# The above RDM will serve as our "model" RDM. In this example RSA analysis, we
+# are going to compare the model RDM against RDMs created from the EEG data.
+# The EEG RDMs will be created using a "searchlight" pattern. We are using
+# squared Euclidean distance for our RDM metric, since we only have a few data
 # points in each searchlight patch. Feel free to play around with other metrics.
 
 rsa_result = mne_rsa.rsa_epochs(
     epochs,  # The EEG data
-    dsm_vis,  # The model DSM
-    epochs_dsm_metric="sqeuclidean",  # Metric to compute the EEG DSMs
-    rsa_metric="kendall-tau-a",  # Metric to compare model and EEG DSMs
+    rdm_vis,  # The model RDM
+    epochs_rdm_metric="sqeuclidean",  # Metric to compute the EEG RDMs
+    rsa_metric="kendall-tau-a",  # Metric to compare model and EEG RDMs
     noise_cov=noise_cov,
     spatial_radius=0.05,  # Spatial radius of the searchlight patch in meters.
     temporal_radius=0.05,  # Temporal radius of the searchlight path in seconds.

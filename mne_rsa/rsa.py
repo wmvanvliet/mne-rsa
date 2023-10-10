@@ -8,7 +8,7 @@ from scipy import stats
 from joblib import Parallel, delayed
 
 from .folds import create_folds
-from .dsm import _ensure_condensed, compute_dsm, compute_dsm_cv
+from .rdm import _ensure_condensed, compute_rdm, compute_rdm_cv
 from .searchlight import searchlight
 
 try:
@@ -87,21 +87,21 @@ def _consolidate_masks(masks):
     return mask
 
 
-def _partial_correlation(dsm_data, dsm_model, masks=None, type="pearson"):
+def _partial_correlation(rdm_data, rdm_model, masks=None, type="pearson"):
     """Compute partial Pearson/Spearman correlation."""
-    if len(dsm_model) == 1:
+    if len(rdm_model) == 1:
         raise ValueError(
-            "Need more than one model DSM to use partial " "correlation as metric."
+            "Need more than one model RDM to use partial " "correlation as metric."
         )
     if type not in ["pearson", "spearman"]:
         raise ValueError("Correlation type must be either 'pearson' or " "'spearman'")
 
     if masks is not None:
         mask = _consolidate_masks(masks)
-        dsm_model = [dsm[mask] for dsm in dsm_model]
-        dsm_data = dsm_data[mask]
+        rdm_model = [rdm[mask] for rdm in rdm_model]
+        rdm_data = rdm_data[mask]
 
-    X = np.vstack([dsm_data] + dsm_model).T
+    X = np.vstack([rdm_data] + rdm_model).T
     if type == "spearman":
         X = np.apply_along_axis(stats.rankdata, 0, X)
     X = X - X.mean(axis=0)
@@ -111,19 +111,19 @@ def _partial_correlation(dsm_data, dsm_model, masks=None, type="pearson"):
     return -R_partial[0, 1:]
 
 
-def rsa_gen(dsm_data_gen, dsm_model, metric="spearman", ignore_nan=False):
-    """Generate RSA values between data and model DSMs.
+def rsa_gen(rdm_data_gen, rdm_model, metric="spearman", ignore_nan=False):
+    """Generate RSA values between data and model RDMs.
 
-    Will yield RSA scores for each data DSM.
+    Will yield RSA scores for each data RDM.
 
     Parameters
     ----------
-    dsm_data_gen : generator of ndarray, shape (n_items, n_items)
-        The generator for data DSMs
-    dsm_model : ndarray, shape (n_items, n_items) | list of ndarray
-        The model DSM, or list of model DSMs.
+    rdm_data_gen : generator of ndarray, shape (n_items, n_items)
+        The generator for data RDMs
+    rdm_model : ndarray, shape (n_items, n_items) | list of ndarray
+        The model RDM, or list of model RDMs.
     metric : str
-        The RSA metric to use to compare the DSMs. Valid options are:
+        The RSA metric to use to compare the RDMs. Valid options are:
 
         * 'spearman' for Spearman's correlation (the default)
         * 'pearson' for Pearson's correlation
@@ -141,67 +141,67 @@ def rsa_gen(dsm_data_gen, dsm_model, metric="spearman", ignore_nan=False):
 
     Yields
     ------
-    rsa_val : float | ndarray, shape (len(dsm_model),)
-        For each data DSM, the representational similarity with the model DSM.
-        When multiple model DSMs are specified, this will be a 1D array of
-        similarities, comparing the data DSM with each model DSM.
+    rsa_val : float | ndarray, shape (len(rdm_model),)
+        For each data RDM, the representational similarity with the model RDM.
+        When multiple model RDMs are specified, this will be a 1D array of
+        similarities, comparing the data RDM with each model RDM.
 
     See also
     --------
     rsa
     """
-    if type(dsm_model) == list:
+    if type(rdm_model) == list:
         return_array = True
-        dsm_model = [_ensure_condensed(dsm, "dsm_model") for dsm in dsm_model]
+        rdm_model = [_ensure_condensed(rdm, "rdm_model") for rdm in rdm_model]
     else:
         return_array = False
-        dsm_model = [_ensure_condensed(dsm_model, "dsm_model")]
+        rdm_model = [_ensure_condensed(rdm_model, "rdm_model")]
 
     if ignore_nan:
-        masks = [~np.isnan(dsm) for dsm in dsm_model]
+        masks = [~np.isnan(rdm) for rdm in rdm_model]
     else:
-        masks = [slice(None)] * len(dsm_model)
+        masks = [slice(None)] * len(rdm_model)
 
-    for dsm_data in dsm_data_gen:
-        dsm_data = _ensure_condensed(dsm_data, "dsm_data")
+    for rdm_data in rdm_data_gen:
+        rdm_data = _ensure_condensed(rdm_data, "rdm_data")
         if ignore_nan:
-            data_mask = ~np.isnan(dsm_data)
+            data_mask = ~np.isnan(rdm_data)
             masks = [m & data_mask for m in masks]
-        rsa_vals = _rsa_single_dsm(dsm_data, dsm_model, metric, masks)
+        rsa_vals = _rsa_single_rdm(rdm_data, rdm_model, metric, masks)
         if return_array:
             yield np.asarray(rsa_vals)
         else:
             yield rsa_vals[0]
 
 
-def _rsa_single_dsm(dsm_data, dsm_model, metric, masks):
-    """Compute RSA between a single data DSM and one or more model DSMs."""
+def _rsa_single_rdm(rdm_data, rdm_model, metric, masks):
+    """Compute RSA between a single data RDM and one or more model RDMs."""
     if metric == "spearman":
         rsa_vals = [
-            stats.spearmanr(dsm_data[mask], dsm_model_[mask])[0]
-            for dsm_model_, mask in zip(dsm_model, masks)
+            stats.spearmanr(rdm_data[mask], rdm_model_[mask])[0]
+            for rdm_model_, mask in zip(rdm_model, masks)
         ]
     elif metric == "pearson":
         rsa_vals = [
-            stats.pearsonr(dsm_data[mask], dsm_model_[mask])[0]
-            for dsm_model_, mask in zip(dsm_model, masks)
+            stats.pearsonr(rdm_data[mask], rdm_model_[mask])[0]
+            for rdm_model_, mask in zip(rdm_model, masks)
         ]
     elif metric == "kendall-tau-a":
         rsa_vals = [
-            _kendall_tau_a(dsm_data[mask], dsm_model_[mask])
-            for dsm_model_, mask in zip(dsm_model, masks)
+            _kendall_tau_a(rdm_data[mask], rdm_model_[mask])
+            for rdm_model_, mask in zip(rdm_model, masks)
         ]
     elif metric == "partial":
-        rsa_vals = _partial_correlation(dsm_data, dsm_model, masks)
+        rsa_vals = _partial_correlation(rdm_data, rdm_model, masks)
     elif metric == "partial-spearman":
-        rsa_vals = _partial_correlation(dsm_data, dsm_model, masks, type="spearman")
+        rsa_vals = _partial_correlation(rdm_data, rdm_model, masks, type="spearman")
     elif metric == "regression":
         mask = _consolidate_masks(masks)
-        dsm_model = [dsm[mask] for dsm in dsm_model]
-        dsm_data = dsm_data[mask]
-        X = np.atleast_2d(np.array(dsm_model)).T
+        rdm_model = [rdm[mask] for rdm in rdm_model]
+        rdm_data = rdm_data[mask]
+        X = np.atleast_2d(np.array(rdm_model)).T
         X = X - X.mean(axis=0)
-        y = dsm_data - dsm_data.mean()
+        y = rdm_data - rdm_data.mean()
         rsa_vals = np.linalg.lstsq(X, y, rcond=None)[0]
     else:
         raise ValueError(
@@ -213,24 +213,24 @@ def _rsa_single_dsm(dsm_data, dsm_model, metric, masks):
 
 
 def rsa(
-    dsm_data,
-    dsm_model,
+    rdm_data,
+    rdm_model,
     metric="spearman",
     ignore_nan=False,
-    n_data_dsms=None,
+    n_data_rdms=None,
     n_jobs=1,
     verbose=False,
 ):
-    """Perform RSA between data and model DSMs.
+    """Perform RSA between data and model RDMs.
 
     Parameters
     ----------
-    dsm_data : ndarray, shape (n_items, n_items) | list | generator
-        The data DSM (or list/generator of data DSMs).
-    dsm_model : ndarray, shape (n_items, n_items) | list of ndarray
-        The model DSM (or list of model DSMs).
+    rdm_data : ndarray, shape (n_items, n_items) | list | generator
+        The data RDM (or list/generator of data RDMs).
+    rdm_model : ndarray, shape (n_items, n_items) | list of ndarray
+        The model RDM (or list of model RDMs).
     metric : str
-        The RSA metric to use to compare the DSMs. Valid options are:
+        The RSA metric to use to compare the RDMs. Valid options are:
 
         * 'spearman' for Spearman's correlation (the default)
         * 'pearson' for Pearson's correlation
@@ -245,10 +245,10 @@ def rsa(
         the distance metric. Defaults to ``False``.
 
         .. versionadded:: 0.8
-    n_data_dsms : int | None
-        The number of data DSMs. This is useful when displaying a progress bar,
+    n_data_rdms : int | None
+        The number of data RDMs. This is useful when displaying a progress bar,
         so an estimate can be made of the computation time remaining. This
-        information is available if ``dsm_data`` is an array or a list, but if
+        information is available if ``rdm_data`` is an array or a list, but if
         it is a generator, this information is not available and you may want
         to set it explicitly.
     n_jobs : int
@@ -260,41 +260,41 @@ def rsa(
 
     Returns
     -------
-    rsa_val : float | ndarray, shape (len(dsm_data), len(dsm_model))
-        Depending on whether one or more data and model DSMs were specified, a
+    rsa_val : float | ndarray, shape (len(rdm_data), len(rdm_model))
+        Depending on whether one or more data and model RDMs were specified, a
         single similarity value or a 2D array of similarity values for each
-        data DSM versus each model DSM.
+        data RDM versus each model RDM.
 
     See also
     --------
     rsa_gen
     """
     return_array = False
-    if type(dsm_data) == list or hasattr(dsm_data, "__next__"):
+    if type(rdm_data) == list or hasattr(rdm_data, "__next__"):
         return_array = True
     else:
-        dsm_data = [dsm_data]
+        rdm_data = [rdm_data]
 
     if verbose:
         from tqdm import tqdm
 
-        if n_data_dsms is not None:
-            total = n_data_dsms
-        elif hasattr(dsm_data, "__len__"):
-            total = len(dsm_data)
+        if n_data_rdms is not None:
+            total = n_data_rdms
+        elif hasattr(rdm_data, "__len__"):
+            total = len(rdm_data)
         else:
             total = None
-        dsm_data = tqdm(dsm_data, total=total, unit="DSM")
+        rdm_data = tqdm(rdm_data, total=total, unit="RDM")
 
     if n_jobs == 1:
-        rsa_vals = list(rsa_gen(dsm_data, dsm_model, metric, ignore_nan))
+        rsa_vals = list(rsa_gen(rdm_data, rdm_model, metric, ignore_nan))
     else:
 
-        def process_single_dsm(dsm):
-            return next(rsa_gen([dsm], dsm_model, metric, ignore_nan))
+        def process_single_rdm(rdm):
+            return next(rsa_gen([rdm], rdm_model, metric, ignore_nan))
 
         rsa_vals = Parallel(n_jobs)(
-            delayed(process_single_dsm)(dsm) for dsm in dsm_data
+            delayed(process_single_rdm)(rdm) for rdm in rdm_data
         )
     if return_array:
         return np.asarray(rsa_vals)
@@ -304,10 +304,10 @@ def rsa(
 
 def rsa_array(
     X,
-    dsm_model,
+    rdm_model,
     patches=None,
-    data_dsm_metric="correlation",
-    data_dsm_params=dict(),
+    data_rdm_metric="correlation",
+    data_rdm_params=dict(),
     rsa_metric="spearman",
     ignore_nan=False,
     y=None,
@@ -321,26 +321,26 @@ def rsa_array(
     ----------
     X : ndarray, shape (n_items, n_series, n_times)
         An array containing the data.
-    dsm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
-        The model DSM, see :func:`compute_dsm`. For efficiency, you can give it
+    rdm_model : ndarray, shape (n, n) | (n * (n - 1) // 2,) | list of ndarray
+        The model RDM, see :func:`compute_rdm`. For efficiency, you can give it
         in condensed form, meaning only the upper triangle of the matrix as a
         vector. See :func:`scipy.spatial.distance.squareform`. To perform RSA
-        against multiple models at the same time, supply a list of model DSMs.
+        against multiple models at the same time, supply a list of model RDMs.
 
-        Use :func:`compute_dsm` to compute DSMs.
+        Use :func:`compute_rdm` to compute RDMs.
     patches : generator of tuples | None
         Searchlight patches as generated by :class:`searchlight`. If ``None``,
         no searchlight is used. Defaults to ``None``.
-    data_dsm_metric : str
-        The metric to use to compute the data DSMs. This can be any metric
+    data_rdm_metric : str
+        The metric to use to compute the data RDMs. This can be any metric
         supported by the scipy.distance.pdist function. Defaults to
         'correlation'.
-    data_dsm_params : dict
-        Extra arguments for the distance metric used to compute the DSMs.
+    data_rdm_params : dict
+        Extra arguments for the distance metric used to compute the RDMs.
         Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
         and their arguments. Defaults to an empty dictionary.
     rsa_metric : str
-        The RSA metric to use to compare the DSMs. Valid options are:
+        The RSA metric to use to compare the RDMs. Valid options are:
 
         * 'spearman' for Spearman's correlation (the default)
         * 'pearson' for Pearson's correlation
@@ -376,7 +376,7 @@ def rsa_array(
 
     Returns
     -------
-    rsa_vals : ndarray, shape ([n_series,] [n_times,] [n_model_dsms])
+    rsa_vals : ndarray, shape ([n_series,] [n_times,] [n_model_rdms])
         The RSA value for each searchlight patch. When ``spatial_radius`` is
         set to ``None``, there will only be no ``n_series`` dimension. When
         ``temporal_radius`` is set to ``None``, there will be no time
@@ -386,25 +386,25 @@ def rsa_array(
     See Also
     --------
     searchlight
-    compute_dsm
-    dsm_array
+    compute_rdm
+    rdm_array
     """
     if patches is None:
         patches = searchlight(X.shape)  # One big searchlight patch
 
-    # Create folds for cross-validated DSM metrics
+    # Create folds for cross-validated RDM metrics
     X = create_folds(X, y, n_folds)
     # The data is now folds x items x n_series x n_times
 
-    if type(dsm_model) == list:
-        dsm_model = [_ensure_condensed(dsm, "dsm_model") for dsm in dsm_model]
+    if type(rdm_model) == list:
+        rdm_model = [_ensure_condensed(rdm, "rdm_model") for rdm in rdm_model]
     else:
-        dsm_model = [_ensure_condensed(dsm_model, "dsm_model")]
+        rdm_model = [_ensure_condensed(rdm_model, "rdm_model")]
 
     if ignore_nan:
-        masks = [~np.isnan(dsm) for dsm in dsm_model]
+        masks = [~np.isnan(rdm) for rdm in rdm_model]
     else:
-        masks = [slice(None)] * len(dsm_model)
+        masks = [slice(None)] * len(rdm_model)
 
     if verbose:
         from tqdm import tqdm
@@ -420,25 +420,27 @@ def rsa_array(
         """Compute RSA for a single searchlight patch."""
         if len(X) == 1:  # Check number of folds
             # No cross-validation
-            dsm_data = compute_dsm(X[0][patch], data_dsm_metric, **data_dsm_params)
+            rdm_data = compute_rdm(X[0][patch], data_rdm_metric, **data_rdm_params)
         else:
             # Use cross-validation
-            dsm_data = compute_dsm_cv(
-                X[(slice(None),) + patch], data_dsm_metric, **data_dsm_params
+            rdm_data = compute_rdm_cv(
+                X[(slice(None),) + patch], data_rdm_metric, **data_rdm_params
             )
         if ignore_nan:
-            data_mask = ~np.isnan(dsm_data)
+            data_mask = ~np.isnan(rdm_data)
             patch_masks = [m & data_mask for m in masks]
         else:
             patch_masks = masks
-        return _rsa_single_dsm(dsm_data, dsm_model, rsa_metric, patch_masks)
+        return _rsa_single_rdm(rdm_data, rdm_model, rsa_metric, patch_masks)
 
     # Call RSA multiple times in parallel for each searchlight patch
-    data = Parallel(n_jobs=n_jobs)(delayed(rsa_single_patch)(patch) for patch in patches)
+    data = Parallel(n_jobs=n_jobs)(
+        delayed(rsa_single_patch)(patch) for patch in patches
+    )
 
     # Figure out the desired dimensions of the resulting array
     dims = getattr(patches, "shape", (-1,))
-    if len(dsm_model) > 1:
-        dims = dims + (len(dsm_model),)
+    if len(rdm_model) > 1:
+        dims = dims + (len(rdm_model),)
 
     return np.array(data).reshape(dims)

@@ -8,22 +8,22 @@ import numpy as np
 from scipy.spatial import distance
 
 
-def plot_dsms(dsms, names=None, items=None, n_rows=1, cmap="viridis", title=None):
-    """Plot one or more DSMs
+def plot_rdms(rdms, names=None, items=None, n_rows=1, cmap="viridis", title=None):
+    """Plot one or more RDMs
 
     Parameters
     ----------
-    dsms : ndarray | list of ndarray
-        The DSM or list of DSMs to plot. The DSMs can either be two-dimensional
+    rdms : ndarray | list of ndarray
+        The RDM or list of RDMs to plot. The RDMs can either be two-dimensional
         (n_items x n_items) matrices or be in condensed form.
     names : str | list of str | None
-        For each given DSM, a name to show above it. Defaults to no names.
+        For each given RDM, a name to show above it. Defaults to no names.
     items : list of str | None
-        The each item (row/col) in the DSM, a string description. This will be
+        The each item (row/col) in the RDM, a string description. This will be
         displayed along the axes. Defaults to None which means the items will
         be numbered.
     n_rows : int
-        Number of rows to use when plotting multiple DSMs at once. Defaults to
+        Number of rows to use when plotting multiple RDMs at once. Defaults to
         1.
     cmap : str
         Matplotlib colormap to use. See
@@ -37,31 +37,31 @@ def plot_dsms(dsms, names=None, items=None, n_rows=1, cmap="viridis", title=None
     fig : matplotlib figure
         The figure produced by matplotlib
     """
-    if not isinstance(dsms, list):
-        dsms = [dsms]
+    if not isinstance(rdms, list):
+        rdms = [rdms]
 
     if isinstance(names, str):
         names = [names]
-    if names is not None and len(names) != len(dsms):
+    if names is not None and len(names) != len(rdms):
         raise ValueError(
             f"Number of given names ({len(names)}) does not "
-            f"match the number of DSMs ({len(dsms)})"
+            f"match the number of RDMs ({len(rdms)})"
         )
 
-    n_cols = int(np.ceil(len(dsms) / n_rows))
+    n_cols = int(np.ceil(len(rdms) / n_rows))
     fig = plt.figure(figsize=(2 * n_cols, 2 * n_rows))
 
     ax = fig.subplots(n_rows, n_cols, sharex=True, sharey=True, squeeze=False)
     for row in range(n_rows):
         for col in range(n_cols):
             i = row * n_cols + col % n_cols
-            if i < len(dsms):
-                dsm = dsms[i]
-                if dsm.ndim == 1:
-                    dsm = distance.squareform(dsm)
-                elif dsm.ndim > 2:
-                    raise ValueError(f"Invalid shape {dsm.shape} for DSM")
-                im = ax[row, col].imshow(dsm, cmap=cmap)
+            if i < len(rdms):
+                rdm = rdms[i]
+                if rdm.ndim == 1:
+                    rdm = distance.squareform(rdm)
+                elif rdm.ndim > 2:
+                    raise ValueError(f"Invalid shape {rdm.shape} for RDM")
+                im = ax[row, col].imshow(rdm, cmap=cmap)
 
                 if names is not None:
                     name = names[i]
@@ -80,28 +80,28 @@ def plot_dsms(dsms, names=None, items=None, n_rows=1, cmap="viridis", title=None
     return fig
 
 
-def _click_func(ax, ch_idx, dsms, cmap):
-    """Function used to plot a single DSM interactively.
+def _click_func(ax, ch_idx, rdms, cmap):
+    """Function used to plot a single RDM interactively.
 
     Parameters
     ----------
     ax: matplotlib.Axes.axes
-        Axes.axes object on which a new single DSM is plotted.
+        Axes.axes object on which a new single RDM is plotted.
     ch_idx: int
         Index of a channel.
-    dsms: ndarray, shape (n_sensors, n_dsm_datapoint)
-        DSMs of MEG recordings; there's one DSM for each sensor.
+    rdms: ndarray, shape (n_sensors, n_rdm_datapoint)
+        RDMs of MEG recordings; there's one RDM for each sensor.
     cmap: str
-        Colormap used for plotting DSMs.
+        Colormap used for plotting RDMs.
         Check matplotlib.pyplot.imshow for details.
     """
-    dsm = dsms[ch_idx]
-    dsm = distance.squareform(dsm)
-    ax.imshow(dsm, cmap=cmap)
+    rdm = rdms[ch_idx]
+    rdm = distance.squareform(rdm)
+    ax.imshow(rdm, cmap=cmap)
 
 
-def _plot_dsms_topo_timepoint(
-    dsms,
+def _plot_rdms_topo_timepoint(
+    rdms,
     info,
     layout=None,
     fig=None,
@@ -113,36 +113,36 @@ def _plot_dsms_topo_timepoint(
     cmap="viridis",
     show=False,
 ):
-    """Plot DSMs on 2D MEG topography.
+    """Plot RDMs on 2D MEG topography.
 
     Parameters
     ----------
-    dsms: ndarray, shape (n_sensors, n_dsm_datapoints) | generator
-        DSMs of MEG recordings; one DSM for each sensor.
-        Can also be a generator of DSMs as produced by the :func:`dsm_epochs`,
-        :func:`dsm_evokeds` or :func:`dsm_array` functions.
+    rdms: ndarray, shape (n_sensors, n_rdm_datapoints) | generator
+        RDMs of MEG recordings; one RDM for each sensor.
+        Can also be a generator of RDMs as produced by the :func:`rdm_epochs`,
+        :func:`rdm_evokeds` or :func:`rdm_array` functions.
     info: mne.io.meas_info.Info
         Info object that contains meta data of MEG recordings.
     layout: mne.channels.layout.Layout | None
         Layout objects containing sensor layout info.
         The default (``None``) will figure out layout based on info.
     fig: matplotlib.pyplot.Figure | None
-        Figure object on which DSMs on 2D MEG topography are plotted.
+        Figure object on which RDMs on 2D MEG topography are plotted.
         The default (``None``) creates a new Figure object.
     title: str | None
         Title of the plot, used only when ``fig=None``.
         The default (``None``) puts no title in the figure.
     axis_facecolor: str
-        Face color of the each DSM. Defaults to 'w', white.
+        Face color of the each RDM. Defaults to 'w', white.
     axis_spinecolor: str
-        Spine color of each DSM. Defaults to 'w', white.
+        Spine color of each RDM. Defaults to 'w', white.
     fig_facecolor: str
         Face color of the entire topography. Defaults to 'w', white.
     figsize: tuple of float
         Figure size. The first element specify width and the second height.
         Defaults to (6.4, 4.8).
     cmap: str
-        Colormap used for plotting DSMs. Defaults to 'viridis'.
+        Colormap used for plotting RDMs. Defaults to 'viridis'.
         Check :func:`matplotlib.pyplot.imshow` for details.
     show: bool
         Whether to display the generated figure. Defaults to False.
@@ -150,9 +150,9 @@ def _plot_dsms_topo_timepoint(
     Returns
     -------
     fig: matplotlib.pyplot.Figure
-        Figure object in which DSMs are plotted on 2D MEG topography.
+        Figure object in which RDMs are plotted on 2D MEG topography.
     """
-    on_pick = partial(_click_func, dsms=dsms, cmap=cmap)
+    on_pick = partial(_click_func, rdms=rdms, cmap=cmap)
 
     if fig is None:
         fig = plt.figure(figsize=figsize)
@@ -173,9 +173,9 @@ def _plot_dsms_topo_timepoint(
     )
 
     for i, (ax, _) in enumerate(my_topo_plot):
-        dsms_i = dsms[i]
-        dsms_i = distance.squareform(dsms_i)
-        ax.imshow(dsms_i, cmap=cmap)
+        rdms_i = rdms[i]
+        rdms_i = distance.squareform(rdms_i)
+        ax.imshow(rdms_i, cmap=cmap)
 
     if show:
         fig.show()
@@ -183,8 +183,8 @@ def _plot_dsms_topo_timepoint(
     return fig
 
 
-def plot_dsms_topo(
-    dsms,
+def plot_rdms_topo(
+    rdms,
     info,
     time=None,
     layout=None,
@@ -196,38 +196,38 @@ def plot_dsms_topo(
     cmap="viridis",
     show=True,
 ):
-    """Plot DSMs on 2D sensor topography
+    """Plot RDMs on 2D sensor topography
 
     Parameters
     ----------
-    dsms: ndarray | numpy.memmap, shape (n_sensors,[ n_times,] n_dsm_datapts)
-        DSMs of MEG/EEG recordings; one DSM for each sensor and time point.
+    rdms: ndarray | numpy.memmap, shape (n_sensors,[ n_times,] n_rdm_datapts)
+        RDMs of MEG/EEG recordings; one RDM for each sensor and time point.
     info: mne.io.meas_info.Info
         Info object that contains meta data of MEG/EEG recordings.
     time: int | [int, int] | None
-        A time point (int) or time window ([int, int]) for which DSMs are
-        plotted. When a time window is given, averge DSMs for the window are
-        plotted. The default (``None``) plots the average DSMs of all the time
+        A time point (int) or time window ([int, int]) for which RDMs are
+        plotted. When a time window is given, averge RDMs for the window are
+        plotted. The default (``None``) plots the average RDMs of all the time
         points. Start of the time window is inclusive, while the end is
         exclusive.
     layout: mne.channels.layout.Layout, optional
         Layout objects containing sensor layout info.
         The default, ``layout=None``, will figure out layout based on info.
     fig: matplotlib.pyplot.Figure | None, optional
-        Figure object on which DSMs on 2D sensor topography are plotted.
+        Figure object on which RDMs on 2D sensor topography are plotted.
         The default (``None``) creates a new Figure object
         with a title based on time parameter.
     axis_facecolor: str, optional
-        Face color of the each DSM. Defaults to 'w', white.
+        Face color of the each RDM. Defaults to 'w', white.
     axis_spinecolor: str, optional
-        Spine color of each DSM. Defaults to 'w', white.
+        Spine color of each RDM. Defaults to 'w', white.
     fig_facecolor: str, optional
         Face color of the entire topography. Defaults to 'w', white.
     figsize: tuple of float, optional
         Figure size. The first element specify width and the second height.
         Defaults to (6.4, 4.8).
     cmap: str, optional
-        Colormap used for plotting DSMs. Defaults to 'viridis'.
+        Colormap used for plotting RDMs. Defaults to 'viridis'.
         Check :func:`matplotlib.pyplot.imshow` for details.
     show: bool, optional
         Whether to display the generated figure. Defaults to ``True``.
@@ -235,20 +235,20 @@ def plot_dsms_topo(
     Returns
     -------
     fig: matplotlib.pyplot.Figure
-        Figure object in which DSMs are plotted on 2D sensor topography.
+        Figure object in which RDMs are plotted on 2D sensor topography.
     """
-    if isinstance(dsms, types.GeneratorType):
-        dsms = np.array(list(dsms))
+    if isinstance(rdms, types.GeneratorType):
+        rdms = np.array(list(rdms))
 
-    if dsms.ndim != 2 and dsms.ndim != 3:
+    if rdms.ndim != 2 and rdms.ndim != 3:
         raise ValueError(
-            "dsms have to be a 2D or 3D ndarray or numpy.memmap, "
-            "[n_sensors,[ n_times,] n_dsm_datapoints]"
+            "rdms have to be a 2D or 3D ndarray or numpy.memmap, "
+            "[n_sensors,[ n_times,] n_rdm_datapoints]"
         )
-    if len(dsms.shape) == 2:
-        dsms = dsms[:, np.newaxis, :]
+    if len(rdms.shape) == 2:
+        rdms = rdms[:, np.newaxis, :]
     if time is None:
-        time = [0, dsms.shape[1]]
+        time = [0, rdms.shape[1]]
     if isinstance(time, int):
         time = [time, time + 1]
     if not isinstance(time, list):
@@ -260,24 +260,24 @@ def plot_dsms_topo(
             "The start of the time window has to be smaller "
             "than the end of the time window."
         )
-    if time[0] < 0 or time[1] > dsms.shape[1]:
+    if time[0] < 0 or time[1] > rdms.shape[1]:
         raise ValueError(
             "The time window is out of range. The minimum is 0 "
-            f"and the maximum is {dsms.shape[1]}"
+            f"and the maximum is {rdms.shape[1]}"
         )
     if (fig is not None) and (not isinstance(fig, plt.Figure)):
         raise TypeError("fig has to be matplotlib.pyplot.Figure or None.")
 
-    dsms_cropped = dsms[:, time[0] : time[1], :]
-    dsms_avg = dsms_cropped.mean(axis=1)
+    rdms_cropped = rdms[:, time[0] : time[1], :]
+    rdms_avg = rdms_cropped.mean(axis=1)
     # set title to time window
     if time[0] + 1 != time[1]:
         title = f"From {time[0]} (inclusive) to {time[1]} (exclusive)"
     else:
         title = f"Time point: {time[0]}"
 
-    fig = _plot_dsms_topo_timepoint(
-        dsms_avg,
+    fig = _plot_rdms_topo_timepoint(
+        rdms_avg,
         info,
         fig=fig,
         layout=layout,
