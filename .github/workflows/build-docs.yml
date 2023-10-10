@@ -43,6 +43,10 @@ jobs:
           run: |
             /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
 
+        - name: Install PyQt6 dependencies
+          run: |
+            sudo apt-get install qt6-base
+
         - name: Cache Pip
           id: cache-pip
           uses: actions/cache@v1
