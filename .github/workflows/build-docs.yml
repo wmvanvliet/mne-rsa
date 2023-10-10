@@ -2,9 +2,9 @@ name: build-docs
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
     build_docs:
@@ -31,7 +31,7 @@ jobs:
                 echo "Merging $(cat merge.txt)";
                 git remote add upstream git://github.com/wmvanvliet/mne-rsa.git;
                 git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
-                git fetch upstream master;
+                git fetch upstream main;
               fi
 
         - name: Install 3D rendering libraries
