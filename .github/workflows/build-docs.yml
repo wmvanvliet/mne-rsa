@@ -18,10 +18,10 @@ jobs:
       steps:
         - uses: actions/checkout@v2
           
-        - name: Set up Python 3.9
+        - name: Set up Python 3.11
           uses: actions/setup-python@v2
           with:
-            python-version: 3.9
+            python-version: 3.11
 
         - name: Merge with upstream
           run: |
@@ -42,12 +42,6 @@ jobs:
         - name: Spin up Xvfb
           run: |
             /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
-
-        # https://github.com/ContinuumIO/anaconda-issues/issues/9190#issuecomment-386508136
-        # https://github.com/golemfactory/golem/issues/1019
-        - name: Install PyQt5 dependencies
-          run: |
-            sudo apt-get install qt5-default
 
         - name: Cache Pip
           id: cache-pip
