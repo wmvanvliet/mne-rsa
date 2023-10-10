@@ -1111,7 +1111,7 @@ def _add_volume_source_space_distances(src, dist_limit):
     cols = neighbors[(rows, cols)]
     dist = np.linalg.norm(src[0]["rr"][rows, :] - src[0]["rr"][cols, :], axis=1)
     con_matrix = csr_matrix((dist, (rows, cols)), shape=(n_sources, n_sources))
-    dist = mne.source_space._do_src_distances(
+    dist = mne.source_space._source_space._do_src_distances(
         con_matrix, src[0]["vertno"], np.arange(src[0]["nuse"]), dist_limit
     )[0]
     d = dist.ravel()  # already float32

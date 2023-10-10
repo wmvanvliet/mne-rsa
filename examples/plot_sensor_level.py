@@ -45,8 +45,6 @@ data_path = mne.datasets.kiloword.data_path(verbose=True)
 epochs = mne.read_epochs(data_path / "kword_metadata-epo.fif")
 epochs = epochs.resample(100)
 
-noise_cov = mne.compute_covariance(epochs)
-
 ###############################################################################
 # The kiloword datas was erroneously stored with sensor locations given in
 # centimeters instead of meters. We will fix it now. For your own data, the
@@ -82,8 +80,7 @@ rsa_result = mne_rsa.rsa_epochs(
     rdm_vis,  # The model RDM
     epochs_rdm_metric="sqeuclidean",  # Metric to compute the EEG RDMs
     rsa_metric="kendall-tau-a",  # Metric to compare model and EEG RDMs
-    noise_cov=noise_cov,
-    spatial_radius=0.05,  # Spatial radius of the searchlight patch in meters.
+:   spatial_radius=0.05,  # Spatial radius of the searchlight patch in meters.
     temporal_radius=0.05,  # Temporal radius of the searchlight path in seconds.
     tmin=0.15,
     tmax=0.25,  # To save time, only analyze this time interval
@@ -106,7 +103,7 @@ rsa_result.plot_topomap(
     units=dict(eeg="kendall-tau-a"),
     scalings=dict(eeg=1),
     cbar_fmt="%.4f",
-    vmin=0,
+    vlim=(0, None),
     nrows=2,
     sphere=1,
 )
