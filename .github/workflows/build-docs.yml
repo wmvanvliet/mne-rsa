@@ -45,7 +45,7 @@ jobs:
 
         - name: Install PyQt6 dependencies
           run: |
-            sudo apt-get install qt6-base
+            sudo apt-get install qt6-base-dev
 
         - name: Cache Pip
           id: cache-pip

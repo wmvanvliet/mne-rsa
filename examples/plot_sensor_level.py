@@ -80,7 +80,7 @@ rsa_result = mne_rsa.rsa_epochs(
     rdm_vis,  # The model RDM
     epochs_rdm_metric="sqeuclidean",  # Metric to compute the EEG RDMs
     rsa_metric="kendall-tau-a",  # Metric to compare model and EEG RDMs
-:   spatial_radius=0.05,  # Spatial radius of the searchlight patch in meters.
+    spatial_radius=0.05,  # Spatial radius of the searchlight patch in meters.
     temporal_radius=0.05,  # Temporal radius of the searchlight path in seconds.
     tmin=0.15,
     tmax=0.25,  # To save time, only analyze this time interval
