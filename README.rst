@@ -68,24 +68,24 @@ Juicy bits of the API
    def rsa_stcs(stcs, rdm_model, src, spatial_radius=0.04, temporal_radius=0.1,
                 stc_rdm_metric='correlation', stc_rdm_params=dict(),
                 rsa_metric='spearman', y=None, n_folds=1, sel_vertices=None,
-                tmin=None, tmax=None, n_jobs=1, verbose=False):
+                tmin=None, tmax=None, n_jobs=1, verbose=False)
 
    def rsa_evokeds(evokeds, rdm_model, noise_cov=None, spatial_radius=0.04,
                    temporal_radius=0.1, evoked_rdm_metric='correlation',
                    evoked_rdm_params=dict(), rsa_metric='spearman', y=None,
                    n_folds=1, picks=None, tmin=None, tmax=None, n_jobs=1,
-                   verbose=False):
+                   verbose=False)
 
    def rsa_epochs(epochs, rdm_model, noise_cov=None, spatial_radius=0.04,
                   temporal_radius=0.1, epochs_rdm_metric='correlation',
                   epochs_rdm_params=dict(), rsa_metric='spearman', y=None,
                   n_folds=1, picks=None, tmin=None, tmax=None, n_jobs=1,
-                  verbose=False):
+                  verbose=False)
 
    def rsa_nifti(image, rdm_model, spatial_radius=0.01,
                  image_rdm_metric='correlation', image_rdm_params=dict(),
                  rsa_metric='spearman', y=None, n_folds=1, roi_mask=None,
-                 brain_mask=None, n_jobs=1, verbose=False):
+                 brain_mask=None, n_jobs=1, verbose=False)
 
 Example usage
 -------------
