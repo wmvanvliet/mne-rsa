@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mne-rsa"
+authors = [
+    {name = "Marijn van Vliet", email = "w.m.vanvliet@gmail.com"},
+]
+description = "Code for performing Representational Similarity Analysis on MNE-Python data structures."
+readme = "README.rst"
+requires-python = ">=3.7"
+keywords = ["rsa", "meg", "eeg", "neuroimaging", "mne-python"]
+license = {text = "BSD-3-Clause"}
+classifiers = [
+	"Intended Audience :: Science/Research",
+	"Intended Audience :: Developers",
+	"License :: OSI Approved",
+	"Programming Language :: Python",
+	"Topic :: Software Development",
+	"Topic :: Scientific/Engineering",
+	"Operating System :: Microsoft :: Windows",
+	"Operating System :: POSIX",
+	"Operating System :: Unix",
+	"Operating System :: MacOS",
+]
+dynamic = ["version"]
+
+[tool.setuptools.dynamic]
+version = {attr = "mne_rsa.__version__"}
