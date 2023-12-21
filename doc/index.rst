@@ -1,6 +1,12 @@
 Representational Similarity Analysis
 ------------------------------------
 
+.. toctree::
+   :hidden:
+
+   Examples <auto_examples/index>
+   API Reference <api>
+
 |unit_tests|_ |build_docs|_
 
 .. |unit_tests| image:: https://github.com/wmvanvliet/mne-rsa/workflows/unit%20tests/badge.svg

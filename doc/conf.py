@@ -12,7 +12,6 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sphinx_bootstrap_theme
 from numpydoc import numpydoc, docscrape  # noqa
 import mne
 import mne_rsa
@@ -53,7 +52,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "mne-rsa"
-copyright = "2020, Aalto University"
+copyright = "2024, Aalto University"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -83,23 +82,36 @@ todo_include_todos = False
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = "bootstrap"
+html_theme = "pydata_sphinx_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    "navbar_sidebarrel": False,
-    "navbar_links": [
-        ("Examples", "auto_examples/index"),
-        ("API", "api"),
-        ("Github", "https://github.com/wmvanvliet/mne-rsa", True),
+    "icon_links": [
+        dict(
+            name="GitHub",
+            url="https://github.com/wmvanvliet/mne-rsa",
+            icon="fa-brands fa-square-github",
+        ),
     ],
-    "bootswatch_theme": "united",
+    "icon_links_label": "External Links",  # for screen reader
+    "use_edit_page_button": False,
+    "navigation_with_keys": False,
+    "show_toc_level": 2,
+    "article_header_start": [],  # disable breadcrumbs
+    "navbar_end": ["theme-switcher", "navbar-icon-links"],
+    "footer_start": ["copyright"],
+    "secondary_sidebar_items": ["page-toc", "edit-this-page"],
 }
 
-# Add any paths that contain custom themes here, relative to this directory.
-html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
+html_context = {
+    "default_mode": "auto",
+    # next 3 are for the "edit this page" button
+    "github_user": "wmvanvliet",
+    "github_repo": "mne-mne",
+    "github_version": "main",
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
