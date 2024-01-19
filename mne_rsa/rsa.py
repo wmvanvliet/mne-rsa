@@ -4,8 +4,8 @@ Methods to compute representational similarity analysis (RSA).
 """
 
 import numpy as np
-from scipy import stats
 from joblib import Parallel, delayed
+from scipy import stats
 
 from .folds import create_folds
 from .rdm import _ensure_condensed, compute_rdm, compute_rdm_cv
@@ -356,9 +356,29 @@ def rsa_array(
 
         .. versionadded:: 0.8
     y : ndarray of int, shape (n_items,) | None
-        For each item, a number indicating the class to which the item belongs.
-        When ``None``, each item is assumed to belong to a different class.
+        (Deprecated) For each item, a number indicating the class to which the item
+        belongs.  When ``None``, each item is assumed to belong to a different class.
         Defaults to ``None``.
+    labels_rdm_model: list | None
+        For each row in ``rdm_model``, a label that identifies the item to which it
+        corresponds. This is used in combination with ``labels_X`` to align the data and
+        model RDMs before comparing them. Each row should have a unique label. Labels
+        may be of any python type that can be compared with ``==`` (int, float, string,
+        tuple, etc). By default (``None``), the integers ``0:n_rows`` are used as
+        labels.
+
+        .. versionadded:: 0.10
+    labels_X : list | None
+        For each element in ``X`` (=the first dimension), a label that identifies the
+        item to which it corresponds. This is used in combination with
+        ``labels_rdm_model`` to align the data and model RDMs before comparing them.
+        Multiple elements in ``X`` may correspond to the same item, in which case they
+        should have the same label and will be averaged when computing the data RDM.
+        Labels may be of any python type that can be compared with ``==`` (int, float,
+        string, tuple, etc). By default (``None``), the integers ``0:len(X)`` are used
+        as labels.
+
+        .. versionadded:: 0.10
     n_folds : int | sklearn.model_selection.BaseCrollValidator | None
         Number of cross-validation folds to use when computing the distance
         metric. Folds are created based on the ``y`` parameter. Specify

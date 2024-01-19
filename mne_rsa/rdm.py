@@ -2,8 +2,8 @@
 """Methods to compute dissimilarity matrices (RDMs)."""
 
 import numpy as np
-from scipy.spatial import distance
 from joblib import Parallel, delayed
+from scipy.spatial import distance
 
 from .folds import create_folds
 from .searchlight import searchlight
@@ -152,6 +152,35 @@ def _n_items_from_rdm(rdm):
         return rdm.shape[0]
     elif rdm.ndim == 1:
         return distance.squareform(rdm).shape[0]
+    else:
+        raise ValueError(f"Wrong number of dimensions for RDM ({rdm.ndim})")
+
+
+def pick_rdm(rdm, sel):
+    """Select items from an RDM.
+
+    Parameters
+    ----------
+    rdm : ndarray, shape (n, n) | (n * (n - 1) // 2,)
+        The RDM to pick items from.
+    sel : int | list of int | boolean mask | slice
+        The items to pick. These items will be selected from both rows and
+        columns of the RDM.
+
+    Returns
+    -------
+    rdm : ndarray, shape (n, n) | (n * (n - 1) // 2,)
+        A new RDM with only the selected items. If the original RDM was in
+        condensed form, the returned RDM will be as well.
+    """
+    if np.isscalar(sel):
+        sel = [sel]  # to avoid dropping a dimension
+    if rdm.ndim == 2:
+        return rdm[sel, :][:, sel]
+    elif rdm.ndim == 1:
+        return distance.squareform(distance.squareform(rdm)[sel, :][:, sel])
+    else:
+        raise ValueError(f"Wrong number of dimensions for RDM ({rdm.ndim})")
 
 
 class rdm_array:
