@@ -419,7 +419,7 @@ def rsa_epochs(
         else:
             logger.info("    Using covariance matrix to whiten the data.")
         W, _ = compute_whitener(noise_cov, epochs.info, picks=picks)
-        epochs._data[picks] = W @ epochs._data[picks]
+        epochs._data[:, picks] = (W @ epochs._data[:, picks].T).T
 
     if spatial_radius is not None:
         logger.info(f"    Spatial radius: {spatial_radius} meters")
@@ -436,7 +436,7 @@ def rsa_epochs(
         logger.info(f"    Time interval: {tmin}-{tmax} seconds")
 
     # Perform the RSA
-    X = epochs.get_data()
+    X = epochs.get_data(copy=False)
     patches = searchlight(
         X.shape,
         dist=dist,
@@ -721,7 +721,7 @@ def rdm_epochs(
         dist = None
 
     # Compute the RDMs
-    X = epochs.get_data()
+    X = epochs.get_data(copy=False)
     patches = searchlight(
         X.shape,
         dist=dist,
