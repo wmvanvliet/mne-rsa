@@ -101,6 +101,7 @@ html_theme_options = {
     "navigation_with_keys": False,
     "show_toc_level": 2,
     "article_header_start": [],  # disable breadcrumbs
+    "navbar_center": ["navbar-nav"],
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
     "footer_start": ["copyright"],
     "secondary_sidebar_items": ["page-toc", "edit-this-page"],

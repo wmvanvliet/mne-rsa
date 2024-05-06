@@ -141,3 +141,9 @@ Here is how to set up the package as a developer:
    git clone git@github.com:wmvanvliet/mne-rsa.git
    cd mne-rsa
    python setup.py develop --user
+
+.. toctree::
+   :hidden:
+
+   Examples <auto_examples/index>
+   API Reference <api>
