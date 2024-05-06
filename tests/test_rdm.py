@@ -1,4 +1,5 @@
 """Unit tests for the creation of RDMs."""
+
 import numpy as np
 import pytest
 from mne_rsa import compute_rdm, compute_rdm_cv, pick_rdm, rdm_array, searchlight
