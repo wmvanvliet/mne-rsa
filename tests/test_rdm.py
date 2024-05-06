@@ -1,13 +1,14 @@
-import pytest
-import numpy as np
-from numpy.testing import assert_equal, assert_allclose
+"""Unit tests for the creation of RDMs."""
 
-from mne_rsa import searchlight, rdm_array, compute_rdm, compute_rdm_cv
+import numpy as np
+import pytest
+from mne_rsa import compute_rdm, compute_rdm_cv, pick_rdm, rdm_array, searchlight
 from mne_rsa.rdm import _ensure_condensed, _n_items_from_rdm
+from numpy.testing import assert_allclose, assert_equal
 
 
 class TestDsm:
-    """Test computing a RDM"""
+    """Test computing a RDM."""
 
     def test_basic(self):
         """Test basic invocation of compute_rdm."""
@@ -105,6 +106,29 @@ class TestNItemsFromRDM:
         """Test basic invocation of _n_items_from_rdm."""
         assert _n_items_from_rdm(np.array([1, 2, 3])) == 3
         assert _n_items_from_rdm(np.array([[0, 1, 2], [1, 0, 3], [2, 3, 0]])) == 3
+        with pytest.raises(ValueError):
+            _n_items_from_rdm(np.array([[[1, 2, 3]]]))
+
+
+class TestSelectItemsFromRDM:
+    """Test the _select_items_from_rdm function."""
+
+    def test_basic(self):
+        """Test basic invocation of _select_items_from_rdm."""
+        assert_equal(pick_rdm(np.array([1, 2, 3]), 1), np.array([]))
+        assert_equal(
+            pick_rdm(np.array([1, 2, 3]), slice(None)),
+            np.array([1, 2, 3]),
+        )
+        assert_equal(pick_rdm(np.array([1, 2, 3]), [0, 1]), np.array([1]))
+        assert_equal(pick_rdm(np.array([1, 2, 3]), [0, 2]), np.array([2]))
+        assert_equal(pick_rdm(np.array([1, 2, 3]), [1, 2]), np.array([3]))
+        assert_equal(
+            pick_rdm(np.array([[0, 1, 2], [1, 0, 3], [2, 3, 0]]), [1, 2]),
+            np.array([[0, 3], [3, 0]]),
+        )
+        with pytest.raises(ValueError):
+            pick_rdm(np.array([[[1, 2, 3]]]), 1)
 
 
 class TestDsmsSearchlight:
@@ -169,3 +193,15 @@ class TestDsmsSearchlight:
         assert len(rdms) == len(patches)
         assert rdms.shape == (2, 1, 3)
         assert_allclose(list(rdms), [[0, 0, 0], [0, 0, 0]], atol=1e-15)
+
+    def test_generator(self):
+        """Test generator behavior when computing RDMs."""
+        data = np.array([[1, 2, 3, 4], [1, 2, 3, 4]])
+        patches = searchlight(data.shape, temporal_radius=1)
+        rdms = rdm_array(data, patches, dist_metric="euclidean")
+        assert len(rdms) == len(patches)
+        assert next(rdms).shape == (1,)
+        # test restart behavior
+        rdm_list1 = [rdm for rdm in iter(rdms)]
+        rdm_list2 = [rdm for rdm in iter(rdms)]
+        assert len(rdm_list1) == len(rdm_list2) == 2

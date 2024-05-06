@@ -1,3 +1,5 @@
+"""Unit tests for the searchlight patch generator."""
+
 import pytest
 import numpy as np
 from numpy.testing import assert_equal
@@ -7,7 +9,7 @@ from mne_rsa import searchlight
 
 
 class TestSearchLight:
-    """Test the searchlight generator class"""
+    """Test the searchlight generator class."""
 
     def test_iter_spatio_temporal(self):
         """Test generating spatio-temporal searchlight patches."""

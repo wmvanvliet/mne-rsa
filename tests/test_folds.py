@@ -1,8 +1,9 @@
-import pytest
-import numpy as np
-from numpy.testing import assert_equal
+"""Unit tests for the creation of cross-validation folds."""
 
-from mne_rsa.folds import create_folds, _convert_to_one_hot, _compute_item_means
+import numpy as np
+import pytest
+from mne_rsa.folds import _compute_item_means, _convert_to_one_hot, create_folds
+from numpy.testing import assert_equal
 
 
 class TestCreateFolds:

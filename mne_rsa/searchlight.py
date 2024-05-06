@@ -1,4 +1,5 @@
 """Classes and functions having to do with creating searchlights."""
+
 import numpy as np
 from mne.utils import logger
 
@@ -92,6 +93,7 @@ class searchlight:
     Attributes
     ----------
     shape
+
     """
 
     def __init__(
@@ -324,6 +326,7 @@ class searchlight:
                 generated.
             For no searchlight:
                 Zero elements.
+
         """
         if self.spatial_radius is not None and self.temporal_radius is not None:
             return (len(self.sel_series), len(self.time_centers))
@@ -360,6 +363,7 @@ def _get_in_radius(dist, seed, radius):
     -------
     ind : ndarray, shape (n_points_in_radius,)
         Indices of all points in the given radius from the seed point.
+
     """
     from scipy.sparse import issparse
 

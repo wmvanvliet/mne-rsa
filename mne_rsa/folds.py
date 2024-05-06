@@ -1,5 +1,7 @@
-from mne.utils import logger
+"""Functions concerning the creation of cross-validation folds."""
+
 import numpy as np
+from mne.utils import logger
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import OneHotEncoder
 
@@ -7,27 +9,25 @@ from sklearn.preprocessing import OneHotEncoder
 def create_folds(X, y=None, n_folds=None):
     """Group individual items into folds suitable for cross-validation.
 
-    The ``y`` list should contain an integer label for each item in ``X``.
-    Repetitions of the same item have the same integer label. Repeated items
-    are distributed evenly across the folds, and averaged within a fold.
+    The ``y`` list should contain an integer label for each item in ``X``. Repetitions
+    of the same item have the same integer label. Repeated items are distributed evenly
+    across the folds, and averaged within a fold.
 
     Parameters
     ----------
     X : ndarray, shape (n_items, ...)
-        For each item, all the features. The first dimension are the items and
-        all other dimensions will be flattened and treated as features.
+        For each item, all the features. The first dimension are the items and all other
+        dimensions will be flattened and treated as features.
     y : ndarray of int, shape (n_items,) | None
-        For each item, a number indicating the class to which the item belongs.
-        When ``None``, each item is assumed to belong to a different class.
-        Defaults to ``None``.
+        For each item, a number indicating the class to which the item belongs. When
+        ``None``, each item is assumed to belong to a different class. Defaults to
+        ``None``.
     n_folds : int | sklearn.BaseCrossValidator | None
-        Number of cross-validation folds to use when computing the distance
-        metric. Folds are created based on the ``y`` parameter. Specify
-        ``None`` to use the maximum number of folds possible, given the data.
-        Alternatively, you can pass a Scikit-Learn cross validator object (e.g.
-        ``sklearn.model_selection.KFold``) to assert fine-grained control over
-        how folds are created.
-        Defaults to ``None``.
+        Number of cross-validation folds to use when computing the distance metric.
+        Folds are created based on the ``y`` parameter. Specify ``None`` to use the
+        maximum number of folds possible, given the data. Alternatively, you can pass a
+        Scikit-Learn cross validator object (e.g. ``sklearn.model_selection.KFold``) to
+        assert fine-grained control over how folds are created. Defaults to ``None``.
 
     Returns
     -------
