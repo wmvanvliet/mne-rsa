@@ -1,30 +1,31 @@
-from functools import partial
+"""Functions related to visualization of RDMs."""
+
 import types
+from functools import partial
+
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.cm import get_cmap
 from mne.viz import Brain
 from mne.viz.topo import _iter_topography
-import numpy as np
 from scipy.spatial import distance
 
 
 def plot_rdms(rdms, names=None, items=None, n_rows=1, cmap="viridis", title=None):
-    """Plot one or more RDMs
+    """Plot one or more RDMs.
 
     Parameters
     ----------
     rdms : ndarray | list of ndarray
-        The RDM or list of RDMs to plot. The RDMs can either be two-dimensional
-        (n_items x n_items) matrices or be in condensed form.
+        The RDM or list of RDMs to plot. The RDMs can either be two-dimensional (n_items
+        x n_items) matrices or be in condensed form.
     names : str | list of str | None
         For each given RDM, a name to show above it. Defaults to no names.
     items : list of str | None
-        The each item (row/col) in the RDM, a string description. This will be
-        displayed along the axes. Defaults to None which means the items will
-        be numbered.
+        The each item (row/col) in the RDM, a string description. This will be displayed
+        along the axes. Defaults to None which means the items will be numbered.
     n_rows : int
-        Number of rows to use when plotting multiple RDMs at once. Defaults to
-        1.
+        Number of rows to use when plotting multiple RDMs at once. Defaults to 1.
     cmap : str
         Matplotlib colormap to use. See
         https://matplotlib.org/gallery/color/colormap_reference.html
@@ -36,6 +37,7 @@ def plot_rdms(rdms, names=None, items=None, n_rows=1, cmap="viridis", title=None
     -------
     fig : matplotlib figure
         The figure produced by matplotlib
+
     """
     if not isinstance(rdms, list):
         rdms = [rdms]
@@ -81,7 +83,7 @@ def plot_rdms(rdms, names=None, items=None, n_rows=1, cmap="viridis", title=None
 
 
 def _click_func(ax, ch_idx, rdms, cmap):
-    """Function used to plot a single RDM interactively.
+    """Plot a single RDM interactively.
 
     Parameters
     ----------
@@ -92,8 +94,8 @@ def _click_func(ax, ch_idx, rdms, cmap):
     rdms: ndarray, shape (n_sensors, n_rdm_datapoint)
         RDMs of MEG recordings; there's one RDM for each sensor.
     cmap: str
-        Colormap used for plotting RDMs.
-        Check matplotlib.pyplot.imshow for details.
+        Colormap used for plotting RDMs. Check ``matplotlib.pyplot.imshow`` for details.
+
     """
     rdm = rdms[ch_idx]
     rdm = distance.squareform(rdm)
@@ -118,20 +120,20 @@ def _plot_rdms_topo_timepoint(
     Parameters
     ----------
     rdms: ndarray, shape (n_sensors, n_rdm_datapoints) | generator
-        RDMs of MEG recordings; one RDM for each sensor.
-        Can also be a generator of RDMs as produced by the :func:`rdm_epochs`,
+        RDMs of MEG recordings; one RDM for each sensor. Can also be a generator of RDMs
+        as produced by the :func:`rdm_epochs`,
         :func:`rdm_evokeds` or :func:`rdm_array` functions.
     info: mne.io.meas_info.Info
         Info object that contains meta data of MEG recordings.
     layout: mne.channels.layout.Layout | None
-        Layout objects containing sensor layout info.
-        The default (``None``) will figure out layout based on info.
+        Layout objects containing sensor layout info. The default (``None``) will figure
+        out layout based on info.
     fig: matplotlib.pyplot.Figure | None
-        Figure object on which RDMs on 2D MEG topography are plotted.
-        The default (``None``) creates a new Figure object.
+        Figure object on which RDMs on 2D MEG topography are plotted. The default
+        (``None``) creates a new Figure object.
     title: str | None
-        Title of the plot, used only when ``fig=None``.
-        The default (``None``) puts no title in the figure.
+        Title of the plot, used only when ``fig=None``. The default (``None``) puts no
+        title in the figure.
     axis_facecolor: str
         Face color of the each RDM. Defaults to 'w', white.
     axis_spinecolor: str
@@ -151,6 +153,7 @@ def _plot_rdms_topo_timepoint(
     -------
     fig: matplotlib.pyplot.Figure
         Figure object in which RDMs are plotted on 2D MEG topography.
+
     """
     on_pick = partial(_click_func, rdms=rdms, cmap=cmap)
 
@@ -196,7 +199,7 @@ def plot_rdms_topo(
     cmap="viridis",
     show=True,
 ):
-    """Plot RDMs on 2D sensor topography
+    """Plot RDMs on 2D sensor topography.
 
     Parameters
     ----------
@@ -205,18 +208,16 @@ def plot_rdms_topo(
     info: mne.io.meas_info.Info
         Info object that contains meta data of MEG/EEG recordings.
     time: int | [int, int] | None
-        A time point (int) or time window ([int, int]) for which RDMs are
-        plotted. When a time window is given, averge RDMs for the window are
-        plotted. The default (``None``) plots the average RDMs of all the time
-        points. Start of the time window is inclusive, while the end is
-        exclusive.
+        A time point (int) or time window ([int, int]) for which RDMs are plotted. When
+        a time window is given, averge RDMs for the window are plotted. The default
+        (``None``) plots the average RDMs of all the time points. Start of the time
+        window is inclusive, while the end is exclusive.
     layout: mne.channels.layout.Layout, optional
-        Layout objects containing sensor layout info.
-        The default, ``layout=None``, will figure out layout based on info.
+        Layout objects containing sensor layout info. The default, ``layout=None``, will
+        figure out layout based on info.
     fig: matplotlib.pyplot.Figure | None, optional
-        Figure object on which RDMs on 2D sensor topography are plotted.
-        The default (``None``) creates a new Figure object
-        with a title based on time parameter.
+        Figure object on which RDMs on 2D sensor topography are plotted. The default
+        (``None``) creates a new Figure object with a title based on time parameter.
     axis_facecolor: str, optional
         Face color of the each RDM. Defaults to 'w', white.
     axis_spinecolor: str, optional
@@ -236,6 +237,7 @@ def plot_rdms_topo(
     -------
     fig: matplotlib.pyplot.Figure
         Figure object in which RDMs are plotted on 2D sensor topography.
+
     """
     if isinstance(rdms, types.GeneratorType):
         rdms = np.array(list(rdms))
@@ -304,20 +306,20 @@ def plot_roi_map(values, rois, subject, subjects_dir, cmap="plasma", alpha=1.0):
     subject : str
         The name of the FreeSurfer subject to plot the brain for.
     subjects_dir : str
-        The folder in which the FreeSurfer subject data is kept. Inside this
-        folder should be a folder with the same name as the `subject`
-        parameter.
+        The folder in which the FreeSurfer subject data is kept. Inside this folder
+        should be a folder with the same name as the `subject` parameter.
     cmap : str
         The name of the matplotlib colormap to use. Defaults to 'plasma'.
     alpha : float
-        The alpha (opacity, 1.0 is fully opaque, 0.0 is fully transparant) of
-        the data being plotted on top of the brain.
+        The alpha (opacity, 1.0 is fully opaque, 0.0 is fully transparant) of the data
+        being plotted on top of the brain.
 
     Returns
     -------
     brain : mne.viz.Brain
         The MNE-Python brain plotting object that was created and currently
         being shown. You can use this to modify the plot.
+
     """
     cmap = get_cmap(cmap)
     max_val = np.max(values)

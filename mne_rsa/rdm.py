@@ -15,29 +15,27 @@ def compute_rdm(data, metric="correlation", **kwargs):
     Parameters
     ----------
     data : ndarray, shape (n_items, ...)
-        For each item, all the features. The first dimension are the items and
-        all other dimensions will be flattened and treated as features.
+        For each item, all the features. The first dimension are the items and all other
+        dimensions will be flattened and treated as features.
     metric : str | function
-        The distance metric to use to compute the RDM. Can be any metric
-        supported by :func:`scipy.spatial.distance.pdist`. When a function is
-        specified, it needs to take in two vectors and output a single number.
-        See also the ``dist_params`` parameter to specify and additional
-        parameter for the distance function.
+        The distance metric to use to compute the RDM. Can be any metric supported by
+        :func:`scipy.spatial.distance.pdist`. When a function is specified, it needs to
+        take in two vectors and output a single number. See also the ``dist_params``
+        parameter to specify and additional parameter for the distance function.
         Defaults to 'correlation'.
     **kwargs : dict, optional
-        Extra arguments for the distance metric. Refer to
-        :mod:`scipy.spatial.distance` for a list of all other metrics and their
-        arguments.
+        Extra arguments for the distance metric. Refer to :mod:`scipy.spatial.distance`
+        for a list of all other metrics and their arguments.
 
     Returns
     -------
     rdm : ndarray, shape (n_classes * n_classes-1,)
-        The RDM, in condensed form.
-        See :func:`scipy.spatial.distance.squareform`.
+        The RDM, in condensed form. See :func:`scipy.spatial.distance.squareform`.
 
     See Also
     --------
     compute_rdm_cv
+
     """
     X = np.reshape(np.asarray(data), (len(data), -1))
     n_items, n_features = X.shape
@@ -57,28 +55,26 @@ def compute_rdm(data, metric="correlation", **kwargs):
 def compute_rdm_cv(folds, metric="correlation", **kwargs):
     """Compute a dissimilarity matrix (RDM) using cross-validation.
 
-    The distance computation is performed from the average of
-    all-but-one "training" folds to the remaining "test" fold. This is repeated
-    with each fold acting as the "test" fold once. The resulting distances are
-    averaged and the result used in the final RDM.
+    The distance computation is performed from the average of all-but-one "training"
+    folds to the remaining "test" fold. This is repeated with each fold acting as the
+    "test" fold once. The resulting distances are averaged and the result used in the
+    final RDM.
 
     Parameters
     ----------
     folds : ndarray, shape (n_folds, n_items, ...)
-        For each item, all the features. The first dimension are the folds used
-        for cross-validation, items are along the second dimension, and all
-        other dimensions will be flattened and treated as features.
+        For each item, all the features. The first dimension are the folds used for
+        cross-validation, items are along the second dimension, and all other dimensions
+        will be flattened and treated as features.
     metric : str | function
-        The distance metric to use to compute the RDM. Can be any metric
-        supported by :func:`scipy.spatial.distance.pdist`. When a function is
-        specified, it needs to take in two vectors and output a single number.
-        See also the ``dist_params`` parameter to specify and additional
-        parameter for the distance function.
+        The distance metric to use to compute the RDM. Can be any metric supported by
+        :func:`scipy.spatial.distance.pdist`. When a function is specified, it needs to
+        take in two vectors and output a single number. See also the ``dist_params``
+        parameter to specify and additional parameter for the distance function.
         Defaults to 'correlation'.
     **kwargs : dict, optional
-        Extra arguments for the distance metric. Refer to
-        :mod:`scipy.spatial.distance` for a list of all other metrics and their
-        arguments.
+        Extra arguments for the distance metric. Refer to :mod:`scipy.spatial.distance`
+        for a list of all other metrics and their arguments.
 
     Returns
     -------
@@ -89,6 +85,7 @@ def compute_rdm_cv(folds, metric="correlation", **kwargs):
     See Also
     --------
     compute_rdm
+
     """
     X = np.reshape(folds, (folds.shape[0], folds.shape[1], -1))
     n_folds, n_items, n_features = X.shape[:3]
@@ -119,7 +116,7 @@ def compute_rdm_cv(folds, metric="correlation", **kwargs):
 
 def _ensure_condensed(rdm, var_name):
     """Convert a RDM to condensed form if needed."""
-    if type(rdm) is list:
+    if isinstance(rdm, list):
         return [_ensure_condensed(d, var_name) for d in rdm]
 
     if not isinstance(rdm, np.ndarray):
@@ -164,14 +161,15 @@ def pick_rdm(rdm, sel):
     rdm : ndarray, shape (n, n) | (n * (n - 1) // 2,)
         The RDM to pick items from.
     sel : int | list of int | boolean mask | slice
-        The items to pick. These items will be selected from both rows and
-        columns of the RDM.
+        The items to pick. These items will be selected from both rows and columns of
+        the RDM.
 
     Returns
     -------
     rdm : ndarray, shape (n, n) | (n * (n - 1) // 2,)
-        A new RDM with only the selected items. If the original RDM was in
-        condensed form, the returned RDM will be as well.
+        A new RDM with only the selected items. If the original RDM was in condensed
+        form, the returned RDM will be as well.
+
     """
     if np.isscalar(sel):
         sel = [sel]  # to avoid dropping a dimension
@@ -186,38 +184,36 @@ def pick_rdm(rdm, sel):
 class rdm_array:
     """Generate RDMs from an array of data, possibly in a searchlight pattern.
 
-    First use :class:`searchlight` to compute the searchlight patches.
-    Then you can use this function to compute RDMs for each searchlight patch.
+    First use :class:`searchlight` to compute the searchlight patches. Then you can use
+    this function to compute RDMs for each searchlight patch.
 
     Parameters
     ----------
     X : ndarray, shape (n_items, n_series, n_times)
         An array containing the data.
     patches : generator of tuples | None
-        Searchlight patches as generated by :class:`searchlight`. If ``None``,
-        no searchlight is used. Defaults to ``None``.
+        Searchlight patches as generated by :class:`searchlight`. If ``None``, no
+        searchlight is used. Defaults to ``None``.
     dist_metric : str | function
-        The distance metric to use to compute the RDMs. Can be any metric
-        supported by :func:`scipy.spatial.distance.pdist`. When a function is
-        specified, it needs to take in two vectors and output a single number.
-        See also the ``dist_params`` parameter to specify and additional
-        parameter for the distance function.
+        The distance metric to use to compute the RDMs. Can be any metric supported by
+        :func:`scipy.spatial.distance.pdist`. When a function is specified, it needs to
+        take in two vectors and output a single number. See also the ``dist_params``
+        parameter to specify and additional parameter for the distance function.
         Defaults to 'correlation'.
     dist_params : dict
-        Extra arguments for the distance metric used to compute the RDMs.
-        Refer to :mod:`scipy.spatial.distance` for a list of all other metrics
-        and their arguments. Defaults to an empty dictionary.
+        Extra arguments for the distance metric used to compute the RDMs. Refer to
+        :mod:`scipy.spatial.distance` for a list of all other metrics and their
+        arguments. Defaults to an empty dictionary.
     y : ndarray of int, shape (n_items,) | None
-        For each item, a number indicating the class to which the item belongs.
-        When ``None``, each item is assumed to belong to a different class.
+        For each item, a number indicating the class to which the item belongs. When
+        ``None``, each item is assumed to belong to a different class.
         Defaults to ``None``.
     n_folds : int | sklearn.model_selection.BaseCrollValidator | None
-        Number of cross-validation folds to use when computing the distance
-        metric. Folds are created based on the ``y`` parameter. Specify
-        ``None`` to use the maximum number of folds possible, given the data.
-        Alternatively, you can pass a Scikit-Learn cross validator object (e.g.
-        ``sklearn.model_selection.KFold``) to assert fine-grained control over
-        how folds are created.
+        Number of cross-validation folds to use when computing the distance metric.
+        Folds are created based on the ``y`` parameter. Specify ``None`` to use the
+        maximum number of folds possible, given the data. Alternatively, you can pass a
+        Scikit-Learn cross validator object (e.g. ``sklearn.model_selection.KFold``) to
+        assert fine-grained control over how folds are created.
         Defaults to 1 (no cross-validation).
 
     Yields
@@ -230,18 +226,16 @@ class rdm_array:
     shape : tuple of int
         Multidimensional shape of the generted RDMs.
 
-        This is useful for re-shaping the result obtained after consuming the
-        this generator.
+        This is useful for re-shaping the result obtained after consuming the this
+        generator.
 
         For a spatio-temporal searchlight:
-            Three elements: the number of time-series, number of time
-            samples and length of a consensed RDM.
+            Three elements: the number of time-series, number of time samples and length
+            of a consensed RDM.
         For a spatial searchlight:
-            Two element: the number of time-series and length of a condensed
-            RDM.
+            Two element: the number of time-series and length of a condensed RDM.
         For a temporal searchlight:
-            Two elements: the number of time-samples and length of a condensed
-            RDM.
+            Two elements: the number of time-samples and length of a condensed RDM.
         For no searchlight:
             One element: the length of a condensed RDM.
 
@@ -250,6 +244,7 @@ class rdm_array:
     rdm
     rsa
     searchlight
+
     """
 
     def __init__(

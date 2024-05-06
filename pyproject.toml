@@ -47,7 +47,10 @@ line-length = 88
 indent-width = 4
 
 [tool.ruff.lint]
-ignore = ["W503"]
+select = ["E", "F", "D", "W"]
+ignore = ["D107", "D203", "D213"]
+per-file-ignores = {"examples/*.py" = ["D205", "D400", "D415", "D212"]} 
+#ignore = ["W503"]
 
 [tool.ruff.format]
 quote-style = "double"

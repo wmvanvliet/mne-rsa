@@ -1,33 +1,36 @@
-import pytest
+"""Unit tests for comparing RDMs (which is called RSA)."""
+
 from types import GeneratorType
+
 import numpy as np
-from numpy.testing import assert_allclose, assert_equal
-from mne_rsa import searchlight, rsa, rsa_gen, rsa_array
+import pytest
+from mne_rsa import rsa, rsa_array, rsa_gen, searchlight
 from mne_rsa.rsa import _kendall_tau_a, _partial_correlation
+from numpy.testing import assert_allclose, assert_equal
 
 
 def rdm():
-    """Create an example RDM"""
+    """Create an example RDM."""
     return np.array([1, 2, 3, 4, 5, 6])
 
 
 def rdm_gen(rdms):
-    """Generator for RDMs"""
+    """Generate RDMs."""
     for rdm in rdms:
         yield np.asarray(rdm)
 
 
 class TestRSAGen:
-    """Test the rsa_gen function"""
+    """Test the rsa_gen function."""
 
     def test_return_type(self):
-        """Test return type of rsa_gen"""
+        """Test return type of rsa_gen."""
         assert isinstance(rsa_gen(rdm_gen([rdm()]), rdm()), GeneratorType)
         assert next(rsa_gen(rdm_gen([rdm()]), rdm())).shape == tuple()
         assert next(rsa_gen(rdm_gen([rdm()]), [rdm()])).shape == (1,)
 
     def test_spearman(self):
-        """Test computing RSA with Spearman correlation"""
+        """Test computing RSA with Spearman correlation."""
         data_rdm = rdm_gen([[1, 2, 3]])
         model_rdm = np.array([2, 3, 3.5])
         assert next(rsa_gen(data_rdm, model_rdm, metric="spearman")) == 1.0
@@ -40,7 +43,7 @@ class TestRSAGen:
         )
 
     def test_pearson(self):
-        """Test computing RSA with Pearson correlation"""
+        """Test computing RSA with Pearson correlation."""
         data_rdm = rdm_gen([[1, 2, 3]])
         model_rdm = np.array([2, 3, 3.5])
         assert next(rsa_gen(data_rdm, model_rdm, metric="pearson")) < 1.0
@@ -52,7 +55,7 @@ class TestRSAGen:
         )
 
     def test_kendall_tau_a(self):
-        """Test computing RSA with Kendall's Tau Alpha"""
+        """Test computing RSA with Kendall's Tau Alpha."""
         data_rdm = rdm_gen([[1, 2, 3]])
         model_rdm = np.array([1, 3, 3])  # This metric deals well with ties
         rsa_val = next(rsa_gen(data_rdm, model_rdm, metric="kendall-tau-a"))
@@ -148,17 +151,17 @@ class TestRSAGen:
 
 
 class TestRSA:
-    """Test the main RSA function"""
+    """Test the main RSA function."""
 
     # Most of the functionality is already tested in TestRSAGen
     def test_return_type(self):
-        """Test return type of rsa_gen"""
+        """Test return type of rsa_gen."""
         assert isinstance(rsa([rdm()], rdm()), np.ndarray)
         assert rsa(rdm(), rdm()).shape == tuple()
         assert rsa(rdm(), [rdm()]).shape == (1,)
 
     def test_progress_bar(self):
-        """Test showing a progress bar for rsa"""
+        """Test showing a progress bar for rsa."""
         assert rsa([rdm()], rdm(), verbose=True) == [1.0]
         assert rsa([rdm()], rdm(), verbose=True, n_data_rdms=1) == [1.0]
         assert rsa(rdm_gen([rdm()]), rdm(), verbose=True) == [1.0]
@@ -297,8 +300,10 @@ class TestRSASearchlight:
 
 
 class TestKendallTau:
+    """Test computing Kendall's Tau Alpha metric."""
+
     def test_basic(self):
-        """Test computing Kendall's Tau Alpha"""
+        """Test computing Kendall's Tau Alpha."""
         # This metric deals well with ties
         assert _kendall_tau_a([1, 2, 3], [1, 3, 3]) == 2 / 3
 
@@ -320,6 +325,8 @@ class TestKendallTau:
 
 
 class TestPartialCorrelation:
+    """Test partial correlations."""
+
     def test_basic(self):
         """Test computing partial correlations."""
         data_rdm = [2, 4, 15, 20]

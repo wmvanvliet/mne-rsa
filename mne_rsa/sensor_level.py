@@ -1,5 +1,4 @@
-"""
-Module implementing representational similarity analysis (RSA) at the sensor level.
+"""Module implementing representational similarity analysis (RSA) at the sensor level.
 
 Kriegeskorte, N., Mur, M., & Bandettini, P. A. (2008). Representational similarity
 analysis - connecting the branches of systems neuroscience. Frontiers in Systems
@@ -9,6 +8,7 @@ Authors
 -------
 Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
+
 import numpy as np
 from scipy.spatial import distance
 import mne
@@ -137,8 +137,9 @@ def rsa_evokeds(
     See Also
     --------
     compute_rdm
+
     """
-    one_model = type(rdm_model) != list
+    one_model = isinstance(rdm_model, list)
     if one_model:
         rdm_model = [rdm_model]
 
@@ -376,6 +377,7 @@ def rsa_epochs(
     See Also
     --------
     compute_rdm
+
     """
     one_model = type(rdm_model) is np.ndarray
     if one_model:
@@ -559,6 +561,7 @@ def rdm_evokeds(
     ------
     rdm : ndarray, shape (n_items, n_items)
         A RDM for each searchlight patch.
+
     """
     times = evokeds[0].times
     for evoked in evokeds:
@@ -687,6 +690,7 @@ def rdm_epochs(
     ------
     rdm : ndarray, shape (n_items, n_items)
         A RDM for each searchlight patch.
+
     """
     if y is None:
         y = epochs.events[:, 2]

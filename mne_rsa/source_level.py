@@ -211,9 +211,7 @@ def rsa_stcs(
     if sel_vertices is not None:
         logger.info(f"    Using {len(sel_series)} vertices")
     else:
-        logger.info(
-            f"    Using {sum(len(v) for v in stcs[0].vertices)} vertices"
-        )
+        logger.info(f"    Using {sum(len(v) for v in stcs[0].vertices)} vertices")
     if temporal_radius is not None:
         logger.info(f"    Temporal radius: {temporal_radius} samples")
     if tmin is not None or tmax is not None:
@@ -383,6 +381,7 @@ def rdm_stcs(
     ------
     rdm : ndarray, shape (n_items, n_items)
         A RDM for each searchlight patch.
+
     """
     src = _check_stcs_compatibility(stcs, src)
     if spatial_radius is not None:
@@ -736,6 +735,7 @@ def rsa_nifti(
     See Also
     --------
     compute_rdm
+
     """
     # Check for compatibility of the source estimates and the model features
     one_model = type(rdm_model) is np.ndarray
@@ -918,6 +918,7 @@ def rdm_nifti(
     ------
     rdm : ndarray, shape (n_items, n_items)
         A RDM for each searchlight patch.
+
     """
     if (
         not isinstance(image, tuple(nib.imageclasses.all_image_classes))
@@ -1038,6 +1039,7 @@ def _get_distance_matrix(src, dist_lim, n_jobs=1):
     -------
     dist : ndarray (n_vertices, n_vertices)
         The vertex-to-vertex distance matrix.
+
     """
     dist = []
 
@@ -1099,6 +1101,7 @@ def _add_volume_source_space_distances(src, dist_limit):
     src : instance of mne.SourceSpaces
         The volume source space, now with the 'dist' and 'dist_limit' fields
         set.
+
     """
     # Lazy import to not have to load the huge scipy module every time mne_rsa
     # get's loaded.
@@ -1123,32 +1126,6 @@ def _add_volume_source_space_distances(src, dist_limit):
     src[0]["dist"] = csr_matrix((d, (i, j)), shape=(n_sources, n_sources))
     src[0]["dist_limit"] = np.array([dist_limit], "float32")
     return src
-
-
-def make_mri_con_matrix(img):
-    from scipy.sparse import csr_matrix
-
-    # Create 3 x 3 x 3 cube of (ijk) indices, centered around (0, 0, 0)
-    cube = np.array(list(np.ndindex(3, 3, 3))) - [1, 1, 1]
-    # Remove center of the cube
-    cube = np.delete(cube, len(cube) // 2, axis=0)
-    # Compute distance from all points in the cube to the center
-    dist = np.linalg.norm(cube @ img.affine[:3, :3], axis=1)
-    # Copy the cube, centering it around each voxel
-    voxels = np.array(list(np.ndindex(*img.shape[:3])))
-    neighbours = voxels[:, :, np.newaxis] + cube.T[np.newaxis, :, :]
-    assert neighbours.shape == (len(voxels), 3, len(cube))
-    # Convert ijk coordinates to voxel numbers
-    neighbours = np.ravel_multi_index(
-        (neighbours[:, 0, :], neighbours[:, 1, :], neighbours[:, 2, :]),
-        img.shape[:3],
-        mode="clip",
-    )
-    rows = np.repeat(np.arange(neighbours.shape[0]), neighbours.shape[1])
-    cols = neighbours.ravel()
-    dist = np.tile(dist, neighbours.shape[0])
-    con_matrix = csr_matrix((dist, (rows, cols)), shape=(len(voxels), len(voxels)))
-    return con_matrix
 
 
 def backfill_stc_from_rois(values, rois, src, tmin=0, tstep=1, subject=None):
@@ -1179,6 +1156,7 @@ def backfill_stc_from_rois(values, rois, src, tmin=0, tstep=1, subject=None):
     -------
     stc : mne.SourceEstimate
         The backfilled source estimate object.
+
     """
     values = np.asarray(values)
     if values.ndim == 1:
@@ -1283,6 +1261,7 @@ def _restrict_src_to_vertices(src, vertno, verbose=None):
     -------
     src_out : instance of SourceSpaces
         The restricted source space.
+
     """
     src_out = deepcopy(src)
 
