@@ -5,8 +5,8 @@ import numpy as np
 from joblib import Parallel, delayed
 from scipy import stats
 
-from .folds import create_folds
-from .rdm import _ensure_condensed, compute_rdm, compute_rdm_cv
+from .folds import _match_order, create_folds
+from .rdm import _ensure_condensed, _n_items_from_rdm, compute_rdm, compute_rdm_cv
 from .searchlight import searchlight
 
 try:
@@ -46,7 +46,7 @@ def _kendall_tau_a(x, y):
     x, y = x[perm], y[perm]
     y = np.r_[True, y[1:] != y[:-1]].cumsum(dtype="intp")
 
-    # stable sort on x and convert x to dense ranks
+    # Perform stable sort on x and convert x to dense ranks.
     perm = np.argsort(x, kind="mergesort")
     x, y = x[perm], y[perm]
     x = np.r_[True, x[1:] != x[:-1]].cumsum(dtype="intp")
@@ -69,7 +69,7 @@ def _kendall_tau_a(x, y):
     #               = con + dis + xtie + ytie - ntie
     con_minus_dis = tot - xtie - ytie + ntie - 2 * dis
     tau = con_minus_dis / tot
-    # Limit range to fix computational errors
+    # Limit range to fix computational errors.
     tau = min(1.0, max(-1.0, tau))
 
     return tau
@@ -310,6 +310,8 @@ def rsa_array(
     rsa_metric="spearman",
     ignore_nan=False,
     y=None,
+    labels_X=None,
+    labels_rdm_model=None,
     n_folds=1,
     n_jobs=1,
     verbose=False,
@@ -371,10 +373,10 @@ def rsa_array(
         item to which it corresponds. This is used in combination with
         ``labels_rdm_model`` to align the data and model RDMs before comparing them.
         Multiple elements in ``X`` may correspond to the same item, in which case they
-        should have the same label and will be averaged when computing the data RDM.
-        Labels may be of any python type that can be compared with ``==`` (int, float,
-        string, tuple, etc). By default (``None``), the integers ``0:len(X)`` are used
-        as labels.
+        should have the same label and will either be averaged when computing the data
+        RDM (``n_folds=1``) or used for cross-validation (``n_folds>1``). Labels may be
+        of any python type that can be compared with ``==`` (int, float, string, tuple,
+        etc). By default (``None``), the integers ``0:len(X)`` are used as labels.
 
         .. versionadded:: 0.10
     n_folds : int | sklearn.model_selection.BaseCrollValidator | None
@@ -407,16 +409,21 @@ def rsa_array(
 
     """
     if patches is None:
-        patches = searchlight(X.shape)  # One big searchlight patch
-
-    # Create folds for cross-validated RDM metrics
-    X = create_folds(X, y, n_folds)
-    # The data is now folds x items x n_series x n_times
+        patches = searchlight(X.shape)  # one big searchlight patch
 
     if isinstance(rdm_model, list):
         rdm_model = [_ensure_condensed(rdm, "rdm_model") for rdm in rdm_model]
+        len_rdm_model = _n_items_from_rdm(rdm_model[0])
     else:
         rdm_model = [_ensure_condensed(rdm_model, "rdm_model")]
+
+    # Align data with model RDM given the provided labels.
+    if y is None:
+        y = _match_order(y, len(X), len_rdm_model, labels_X, labels_rdm_model)
+
+    # Create folds for cross-validated RDM metrics.
+    X = create_folds(X, y, n_folds)
+    # The data is now folds x items x n_series x n_times.
 
     if ignore_nan:
         masks = [~np.isnan(rdm) for rdm in rdm_model]
@@ -435,11 +442,11 @@ def rsa_array(
 
     def rsa_single_patch(patch):
         """Compute RSA for a single searchlight patch."""
-        if len(X) == 1:  # Check number of folds
-            # No cross-validation
+        if len(X) == 1:  # check number of folds
+            # no cross-validation
             rdm_data = compute_rdm(X[0][patch], data_rdm_metric, **data_rdm_params)
         else:
-            # Use cross-validation
+            # with cross-validation
             rdm_data = compute_rdm_cv(
                 X[(slice(None),) + patch], data_rdm_metric, **data_rdm_params
             )
@@ -450,12 +457,12 @@ def rsa_array(
             patch_masks = masks
         return _rsa_single_rdm(rdm_data, rdm_model, rsa_metric, patch_masks)
 
-    # Call RSA multiple times in parallel for each searchlight patch
+    # Call RSA multiple times in parallel for each searchlight patch.
     data = Parallel(n_jobs=n_jobs)(
         delayed(rsa_single_patch)(patch) for patch in patches
     )
 
-    # Figure out the desired dimensions of the resulting array
+    # Figure out the desired dimensions of the resulting array.
     dims = getattr(patches, "shape", (-1,))
     if len(rdm_model) > 1:
         dims = dims + (len(rdm_model),)
