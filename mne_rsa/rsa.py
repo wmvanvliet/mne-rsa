@@ -413,13 +413,14 @@ def rsa_array(
 
     if isinstance(rdm_model, list):
         rdm_model = [_ensure_condensed(rdm, "rdm_model") for rdm in rdm_model]
-        len_rdm_model = _n_items_from_rdm(rdm_model[0])
     else:
         rdm_model = [_ensure_condensed(rdm_model, "rdm_model")]
 
     # Align data with model RDM given the provided labels.
     if y is None:
-        y = _match_order(y, len(X), len_rdm_model, labels_X, labels_rdm_model)
+        y = _match_order(
+            len(X), _n_items_from_rdm(rdm_model[0]), labels_X, labels_rdm_model
+        )
 
     # Create folds for cross-validated RDM metrics.
     X = create_folds(X, y, n_folds)

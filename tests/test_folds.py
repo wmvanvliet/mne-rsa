@@ -1,9 +1,17 @@
 """Unit tests for the creation of cross-validation folds."""
 
+from functools import partial
+
 import numpy as np
 import pytest
-from mne_rsa.folds import _compute_item_means, _convert_to_one_hot, create_folds
+from mne_rsa.folds import (
+    _compute_item_means,
+    _convert_to_one_hot,
+    _match_order,
+    create_folds,
+)
 from numpy.testing import assert_equal
+from sklearn.model_selection import KFold
 
 
 class TestCreateFolds:
@@ -26,10 +34,14 @@ class TestCreateFolds:
         folds = create_folds(data[:, np.newaxis], y, n_folds=3)
         assert_equal(folds, [[[1], [1], [1]], [[2], [2], [2]], [[3], [3], [3]]])
 
-        # Default value for n_folds is maximum number of folds
+        # Scikit-Learn objects should also work.
+        folds = create_folds(data, y, n_folds=KFold(3))
+        assert_equal(folds, [[1, 1, 1], [2, 2, 2], [3, 3, 3]])
+
+        # Default value for n_folds is maximum number of folds.
         assert_equal(create_folds(data, y), create_folds(data, y, n_folds=3))
 
-        # No folding when y=None
+        # No folding when y=None.
         folds = create_folds(data, y=None)
         assert_equal(folds, [data])
 
@@ -71,3 +83,51 @@ class TestComputeItemMeans:
         data = np.array([1, 1, 1, 2, 2, 2, 3, 3, 3])
         y_one_hot = _convert_to_one_hot([1, 2, 3, 1, 2, 3, 1, 2, 3])
         assert_equal(_compute_item_means(data, y_one_hot), [2, 2, 2])
+
+
+class TestMatchOrder:
+    """Test the _match_order function."""
+
+    def test_basic(self):
+        """Test basic invocation of _match_order."""
+        invoke = partial(_match_order, len_X=3, len_rdm_model=3)
+        assert invoke() is None
+        assert_equal(invoke(labels_X=None, labels_rdm_model=[0, 1, 2]), [0, 1, 2])
+        assert_equal(invoke(labels_X=[1, 0, 2], labels_rdm_model=None), [1, 0, 2])
+        assert_equal(invoke(labels_X=[0, 1, 2], labels_rdm_model=[0, 1, 2]), [0, 1, 2])
+        assert_equal(
+            invoke(labels_X=["a", "b", "c"], labels_rdm_model=["a", "b", "c"]),
+            [0, 1, 2],
+        )
+        assert_equal(
+            invoke(labels_X=["a", "c", "b"], labels_rdm_model=["a", "b", "c"]),
+            [0, 2, 1],
+        )
+
+    def test_invalid_input(self):
+        """Test passing invalid input to _match_order."""
+        invoke = partial(_match_order, len_X=3, len_rdm_model=3)
+        with pytest.raises(ValueError, match="The data types"):
+            invoke(labels_X=[0, 1, 2], labels_rdm_model=["a", "b", "c"])
+        with pytest.raises(ValueError, match="The data types"):
+            invoke(labels_X=None, labels_rdm_model=["a", "b", "c"])
+        with pytest.raises(ValueError, match="The data types"):
+            invoke(labels_X=["a", "b", "c"], labels_rdm_model=None)
+        with pytest.raises(ValueError, match="Not all labels in labels_rdm_model"):
+            invoke(labels_X=["a", "b", "c"], labels_rdm_model=["a", "a", "c"])
+        with pytest.raises(ValueError, match="Some labels in labels_X"):
+            invoke(labels_X=["a", "a", "z"], labels_rdm_model=["a", "b", "c"])
+        with pytest.raises(ValueError, match="Some labels in labels_rdm_model"):
+            invoke(labels_X=["a", "a", "c"], labels_rdm_model=["a", "b", "c"])
+
+    def many_to_one(self):
+        """Test many-to-one mapping of data to rdm_model."""
+        invoke = partial(_match_order, len_X=6, len_rdm_model=3)
+        assert_equal(invoke(labels_X=[0, 0, 1, 1, 2, 2]), [0, 0, 1, 1, 2, 2])
+        assert_equal(
+            invoke(
+                labels_X=["a", "b", "b", "c", "a", "c"],
+                labels_rdm_model=["a", "b", "c"],
+            ),
+            [0, 1, 1, 2, 0, 2],
+        )
