@@ -12,6 +12,7 @@ tqdm
 nilearn
 pillow
 nibabel
+pydata_sphinx_theme
 pyvista
 pyvistaqt
 pooch
