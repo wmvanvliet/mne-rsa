@@ -5,7 +5,6 @@ from functools import partial
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.cm import get_cmap
 from mne.viz import Brain
 from mne.viz.topo import _iter_topography
 from scipy.spatial import distance
@@ -321,7 +320,7 @@ def plot_roi_map(values, rois, subject, subjects_dir, cmap="plasma", alpha=1.0):
         being shown. You can use this to modify the plot.
 
     """
-    cmap = get_cmap(cmap)
+    cmap = plt.get_cmap(cmap)
     max_val = np.max(values)
     brain = Brain(
         subject=subject, subjects_dir=subjects_dir, surf="inflated", hemi="both"
