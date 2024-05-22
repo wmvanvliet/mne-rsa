@@ -1,13 +1,16 @@
 Representational Similarity Analysis
 ------------------------------------
 
-|unit_tests| |build_docs|
+|unit_tests| |build_docs| |doi|
 
 .. |unit_tests| image:: https://github.com/wmvanvliet/mne-rsa/workflows/unit%20tests/badge.svg
    :target: https://github.com/wmvanvliet/mne-rsa/actions?query=workflow%3A%22unit+tests%22
 
 .. |build_docs| image:: https://github.com/wmvanvliet/mne-rsa/workflows/build-docs/badge.svg
    :target: https://github.com/wmvanvliet/mne-rsa/actions?query=workflow%3Abuild-docs
+
+.. |doi| image:: https://zenodo.org/badge/194268560.svg
+   :target: https://zenodo.org/doi/10.5281/zenodo.11242874
 
 This is a Python package for performing representational similarity
 analysis (RSA) using
