@@ -188,7 +188,7 @@ def _rsa_single_rdm(rdm_data, rdm_model, metric, masks, ignore_nan):
             ]
         else:
             rsa_vals = [
-                stats.spearmanr(rdm_data[mask], rdm_model_[mask])[0]
+                np.corrcoef(stats.rankdata(rdm_data), stats.rankdata(rdm_model_[mask]))[0, 1]
                 for rdm_model_, mask in zip(rdm_model, masks)
             ]
     elif metric == "pearson":
