@@ -186,7 +186,7 @@ def _rsa_single_rdm(rdm_data, rdm_model, metric, masks, cache_ranks):
         if cache_ranks:
             rdm_data = stats.rankdata(rdm_data)
             rsa_vals = [
-                np.corrcoef(rdm_data, rdm_model_[mask])[0,1]
+                np.corrcoef(rdm_data, rdm_model_[mask])[0, 1]
                 for rdm_model_, mask in zip(rdm_model, masks)
             ]
         else:
