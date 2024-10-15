@@ -751,8 +751,8 @@ def rdm_epochs(
         ]
         for rdm in rdm_gen:
             rdm = distance.squareform(rdm)
-            rdm = np.insert(rdm, nan_locations, np.NaN, axis=0)
-            rdm = np.insert(rdm, nan_locations, np.NaN, axis=1)
+            rdm = np.insert(rdm, nan_locations, np.nan, axis=0)
+            rdm = np.insert(rdm, nan_locations, np.nan, axis=1)
             # Can't use squareform to convert back due to the NaNs.
             yield rdm[np.triu_indices(len(rdm), 1)]
 

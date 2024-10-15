@@ -76,7 +76,8 @@ def _kendall_tau_a(x, y):
 
 
 def _consolidate_masks(masks):
-    if type(masks[0]) == slice:
+    """Compute the union of multiple masks."""
+    if type(masks[0]) is slice:
         mask = slice(None)
     else:
         mask = masks[0]

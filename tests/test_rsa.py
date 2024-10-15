@@ -35,8 +35,8 @@ class TestRSAGen:
         model_rdm = np.array([2, 3, 3.5])
         assert next(rsa_gen(data_rdm, model_rdm, metric="spearman")) == 1.0
 
-        data_rdm = rdm_gen([[np.NaN, 2, 3, 4, 5]])
-        model_rdm = np.array([2, np.NaN, 3.5, 4, 5])
+        data_rdm = rdm_gen([[np.nan, 2, 3, 4, 5]])
+        model_rdm = np.array([2, np.nan, 3.5, 4, 5])
         assert (
             next(rsa_gen(data_rdm, model_rdm, metric="spearman", ignore_nan=True))
             == 1.0
@@ -48,8 +48,8 @@ class TestRSAGen:
         model_rdm = np.array([2, 3, 3.5])
         assert next(rsa_gen(data_rdm, model_rdm, metric="pearson")) < 1.0
 
-        data_rdm = rdm_gen([[np.NaN, 2, 3, 4, 5]])
-        model_rdm = np.array([2, np.NaN, 3.5, 4, 5])
+        data_rdm = rdm_gen([[np.nan, 2, 3, 4, 5]])
+        model_rdm = np.array([2, np.nan, 3.5, 4, 5])
         assert (
             next(rsa_gen(data_rdm, model_rdm, metric="pearson", ignore_nan=True)) < 1.0
         )
@@ -61,8 +61,8 @@ class TestRSAGen:
         rsa_val = next(rsa_gen(data_rdm, model_rdm, metric="kendall-tau-a"))
         assert rsa_val == 2 / 3
 
-        data_rdm = rdm_gen([[1, np.NaN, 2, 3, 4]])
-        model_rdm = np.array([1, 2, 3, 3, np.NaN])
+        data_rdm = rdm_gen([[1, np.nan, 2, 3, 4]])
+        model_rdm = np.array([1, 2, 3, 3, np.nan])
         rsa_val = next(
             rsa_gen(data_rdm, model_rdm, metric="kendall-tau-a", ignore_nan=True)
         )
@@ -76,8 +76,8 @@ class TestRSAGen:
         rsa_val = next(rsa_gen(data_rdm, [model_rdm1, model_rdm2], metric="regression"))
         assert_allclose(rsa_val, [3, 5])
 
-        model_rdm1 = np.array([-1, np.NaN, 0, 1, 1])
-        model_rdm2 = np.array([1, 3, -2, 1, np.NaN])
+        model_rdm1 = np.array([-1, np.nan, 0, 1, 1])
+        model_rdm2 = np.array([1, 3, -2, 1, np.nan])
         data_rdm = rdm_gen([3 * model_rdm1 + 5 * model_rdm2])
         rsa_val = next(
             rsa_gen(
@@ -95,9 +95,9 @@ class TestRSAGen:
         rsa_val = next(rsa_gen(data_rdm, [model_rdm1, model_rdm2], metric="partial"))
         assert_allclose(rsa_val, [0.919145, 0.912871])
 
-        model_rdm1 = np.array([1, np.NaN, 2, 3, 4, 4])
-        model_rdm2 = np.array([0, 0, 0, 1, 1, np.NaN])
-        data_rdm = rdm_gen([[2, np.NaN, 4, 15, 20, np.NaN]])
+        model_rdm1 = np.array([1, np.nan, 2, 3, 4, 4])
+        model_rdm2 = np.array([0, 0, 0, 1, 1, np.nan])
+        data_rdm = rdm_gen([[2, np.nan, 4, 15, 20, np.nan]])
         rsa_val = next(
             rsa_gen(
                 data_rdm, [model_rdm1, model_rdm2], metric="partial", ignore_nan=True
@@ -116,9 +116,9 @@ class TestRSAGen:
         )
         assert_allclose(rsa_val, [0, 2 / 3], atol=1e-15)
 
-        model_rdm1 = np.array([1, np.NaN, 2, 3, 4, 4])
-        model_rdm2 = np.array([0, 0, 0, 1, 1, np.NaN])
-        data_rdm = rdm_gen([[2, np.NaN, 4, 20, 15, np.NaN]])
+        model_rdm1 = np.array([1, np.nan, 2, 3, 4, 4])
+        model_rdm2 = np.array([0, 0, 0, 1, 1, np.nan])
+        data_rdm = rdm_gen([[2, np.nan, 4, 20, 15, np.nan]])
         rsa_val = next(
             rsa_gen(
                 data_rdm,
@@ -141,10 +141,10 @@ class TestRSAGen:
             next(rsa_gen(rdm_gen([rdm()]), rdm(), metric="partial-spearman"))
 
     def test_nan(self):
-        """Test whether NaNs generate an error when appropriate."""
-        assert np.isnan(next(rsa_gen(rdm_gen([[1, 2, np.NaN, 4, 5, 6]]), rdm())))
+        """Test whether nans generate an error when appropriate."""
+        assert np.isnan(next(rsa_gen(rdm_gen([[1, 2, np.nan, 4, 5, 6]]), rdm())))
         assert_allclose(
-            next(rsa_gen(rdm_gen([[1, 2, np.NaN, 4, 5, 6]]), rdm(), ignore_nan=True)),
+            next(rsa_gen(rdm_gen([[1, 2, np.nan, 4, 5, 6]]), rdm(), ignore_nan=True)),
             1,
             atol=1e-15,
         )
