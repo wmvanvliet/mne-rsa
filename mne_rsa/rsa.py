@@ -156,7 +156,6 @@ def rsa_gen(rdm_data_gen, rdm_model, metric="spearman", ignore_nan=False):
         return_array = False
         rdm_model = [_ensure_condensed(rdm_model, "rdm_model")]
 
-
     if ignore_nan:
         masks = [~np.isnan(rdm) for rdm in rdm_model]
     else:
@@ -188,7 +187,9 @@ def _rsa_single_rdm(rdm_data, rdm_model, metric, masks, ignore_nan):
             ]
         else:
             rsa_vals = [
-                np.corrcoef(stats.rankdata(rdm_data), stats.rankdata(rdm_model_[mask]))[0, 1]
+                np.corrcoef(
+                    stats.rankdata(rdm_data[mask]), stats.rankdata(rdm_model_[mask])
+                )[0, 1]
                 for rdm_model_, mask in zip(rdm_model, masks)
             ]
     elif metric == "pearson":
