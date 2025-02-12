@@ -115,7 +115,7 @@ rsa_vals = mne_rsa.rsa_stcs(
     tmin=0,
     tmax=0.3,  # To save time, only analyze this time interval
     n_jobs=1,  # Only use one CPU core. Increase this for more speed.
-    verbose=False,
+    verbose=True,
 )  # Set to True to display a progress bar
 
 # Find the searchlight patch with highest RSA score
